@@ -4,5 +4,10 @@ npx prisma migrate dev
 
 npx prisma studio
 
+npx prisma migrate dev --name first_prisma_migration
+
+npm install prisma typescript tsx @types/node -save-dev
+npx prisma db push
+
 username : admin, teacher, student, parent
 password : admin123,teacher, student,  parent
