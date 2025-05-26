@@ -4,6 +4,8 @@ npx prisma migrate dev
 
 npx prisma studio
 
+npx prisma db seed
+
 npx prisma migrate dev --name first_prisma_migration
 
 npx prisma generate && npm run build
