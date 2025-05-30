@@ -70,9 +70,19 @@ CREATE TABLE `Parent` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `Category` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `catName` VARCHAR(191) NOT NULL,
+
+    UNIQUE INDEX `Category_catName_key`(`catName`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `Grade` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `level` INTEGER NOT NULL,
+    `categoryId` INTEGER NOT NULL,
 
     UNIQUE INDEX `Grade_level_key`(`level`),
     PRIMARY KEY (`id`)
@@ -87,6 +97,41 @@ CREATE TABLE `Class` (
     `gradeId` INTEGER NOT NULL,
 
     UNIQUE INDEX `Class_name_key`(`name`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Registration` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(191) NULL,
+    `fatherName` VARCHAR(191) NULL,
+    `dateOfBirth` DATETIME(3) NOT NULL,
+    `religion` VARCHAR(191) NULL,
+    `cnicNumber` VARCHAR(191) NOT NULL,
+    `profilePicture` VARCHAR(191) NULL,
+    `email` VARCHAR(191) NULL,
+    `mobileNumber` VARCHAR(191) NULL,
+    `city` VARCHAR(191) NULL,
+    `stateProvince` VARCHAR(191) NULL,
+    `addressLine1` VARCHAR(191) NULL,
+    `instituteName` VARCHAR(191) NULL,
+    `olympiadCategory` VARCHAR(191) NULL,
+    `others` VARCHAR(191) NULL,
+    `bankName` VARCHAR(191) NULL,
+    `accountTitle` VARCHAR(191) NULL,
+    `accountNumber` VARCHAR(191) NULL,
+    `totalAmount` VARCHAR(191) NULL,
+    `transactionId` VARCHAR(191) NULL,
+    `dateOfPayment` DATETIME(3) NOT NULL,
+    `paymentOption` VARCHAR(191) NULL,
+    `otherName` VARCHAR(191) NULL,
+    `transactionReceipt` VARCHAR(191) NULL,
+    `applicationId` VARCHAR(191) NULL,
+    `status` VARCHAR(191) NULL,
+    `rollNo` VARCHAR(191) NULL,
+    `ExamId` VARCHAR(191) NULL,
+
+    UNIQUE INDEX `Registration_cnicNumber_key`(`cnicNumber`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -119,7 +164,12 @@ CREATE TABLE `Exam` (
     `title` VARCHAR(191) NOT NULL,
     `startTime` DATETIME(3) NOT NULL,
     `endTime` DATETIME(3) NOT NULL,
-    `lessonId` INTEGER NOT NULL,
+    `categoryId` INTEGER NOT NULL,
+    `gradeId` INTEGER NOT NULL,
+    `subjectId` INTEGER NOT NULL,
+    `totalMCQ` INTEGER NOT NULL,
+    `totalMarks` INTEGER NOT NULL,
+    `lessonId` INTEGER NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -199,6 +249,9 @@ ALTER TABLE `Student` ADD CONSTRAINT `Student_classId_fkey` FOREIGN KEY (`classI
 ALTER TABLE `Student` ADD CONSTRAINT `Student_gradeId_fkey` FOREIGN KEY (`gradeId`) REFERENCES `Grade`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `Grade` ADD CONSTRAINT `Grade_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `Class` ADD CONSTRAINT `Class_supervisorId_fkey` FOREIGN KEY (`supervisorId`) REFERENCES `Teacher`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -214,7 +267,16 @@ ALTER TABLE `Lesson` ADD CONSTRAINT `Lesson_classId_fkey` FOREIGN KEY (`classId`
 ALTER TABLE `Lesson` ADD CONSTRAINT `Lesson_teacherId_fkey` FOREIGN KEY (`teacherId`) REFERENCES `Teacher`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Exam` ADD CONSTRAINT `Exam_lessonId_fkey` FOREIGN KEY (`lessonId`) REFERENCES `Lesson`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Exam` ADD CONSTRAINT `Exam_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Exam` ADD CONSTRAINT `Exam_gradeId_fkey` FOREIGN KEY (`gradeId`) REFERENCES `Grade`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Exam` ADD CONSTRAINT `Exam_subjectId_fkey` FOREIGN KEY (`subjectId`) REFERENCES `Subject`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Exam` ADD CONSTRAINT `Exam_lessonId_fkey` FOREIGN KEY (`lessonId`) REFERENCES `Lesson`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Assignment` ADD CONSTRAINT `Assignment_lessonId_fkey` FOREIGN KEY (`lessonId`) REFERENCES `Lesson`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

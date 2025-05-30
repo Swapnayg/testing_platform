@@ -16,14 +16,165 @@ async function main() {
     },
   });
 
+  await prisma.category.create({
+    data: {
+      id: 1,
+      catName: "Category-I",
+    },
+  });
+
+  await prisma.category.create({
+    data: {
+      id: 2,
+      catName: "Category-II",
+    },
+  });
+
+  await prisma.category.create({
+    data: {
+      id: 3,
+      catName: "Category-III",
+    },
+  });
+  await prisma.category.create({
+    data: {
+      id: 4,
+      catName: "Category-IV",
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "1st",
+      categoryId: 1,
+    },
+  });
+  await prisma.grade.create({
+    data: {
+      level: "2nd",
+      categoryId: 1,
+    },
+  });
+  await prisma.grade.create({
+    data: {
+      level: "3rd",
+      categoryId: 1,
+    },
+  });
+
   // GRADE
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 4; i <= 8; i++) {
     await prisma.grade.create({
       data: {
-        level: i,
+        level: `${i}th`,
+        categoryId: 1,
       },
     });
   }
+  await prisma.grade.create({
+    data: {
+      level: "9th",
+      categoryId: 2,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "10th",
+      categoryId: 2,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "O-Levels",
+      categoryId: 2,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "IGCSE",
+      categoryId: 2,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "11th",
+      categoryId: 3,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "12th",
+      categoryId: 3,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "A-Levels",
+      categoryId: 3,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "IGCSE-1",
+      categoryId: 3,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "IGCSE-2",
+      categoryId: 3,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "DAE",
+      categoryId: 3,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "Undergraduate",
+      categoryId: 4,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "ADP",
+      categoryId: 4,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "Bachelors",
+      categoryId: 4,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "Masters/M.Phil",
+      categoryId: 4,
+    },
+  });
+
+  await prisma.grade.create({
+    data: {
+      level: "Others",
+      categoryId: 4,
+    },
+  });
 
   // CLASS
   for (let i = 1; i <= 6; i++) {
@@ -130,16 +281,16 @@ async function main() {
   }
 
   // EXAM
-  for (let i = 1; i <= 10; i++) {
-    await prisma.exam.create({
-      data: {
-        title: `Exam ${i}`, 
-        startTime: new Date(new Date().setHours(new Date().getHours() + 1)), 
-        endTime: new Date(new Date().setHours(new Date().getHours() + 2)), 
-        lessonId: (i % 30) + 1, 
-      },
-    });
-  }
+  // for (let i = 1; i <= 10; i++) {
+  //   await prisma.exam.create({
+  //     data: {
+  //       title: `Exam ${i}`, 
+  //       startTime: new Date(new Date().setHours(new Date().getHours() + 1)), 
+  //       endTime: new Date(new Date().setHours(new Date().getHours() + 2)), 
+  //       lessonId: (i % 30) + 1, 
+  //     },
+  //   });
+  // }
 
   // ASSIGNMENT
   for (let i = 1; i <= 10; i++) {
@@ -154,15 +305,15 @@ async function main() {
   }
 
   // RESULT
-  for (let i = 1; i <= 10; i++) {
-    await prisma.result.create({
-      data: {
-        score: 90, 
-        studentId: `student${i}`, 
-        ...(i <= 5 ? { examId: i } : { assignmentId: i - 5 }), 
-      },
-    });
-  }
+  // for (let i = 1; i <= 10; i++) {
+  //   await prisma.result.create({
+  //     data: {
+  //       score: 90, 
+  //       studentId: `student${i}`, 
+  //       ...(i <= 5 ? { examId: i } : { assignmentId: i - 5 }), 
+  //     },
+  //   });
+  // }
 
   // ATTENDANCE
   for (let i = 1; i <= 10; i++) {

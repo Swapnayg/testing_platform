@@ -4,16 +4,16 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Exam, Prisma, Subject, Teacher } from "@prisma/client";
+import { Class, Exam, Prisma, Subject, Teacher, Category} from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 
 type ExamList = Exam & {
-  lesson: {
-    subject: Subject;
-    class: Class;
-    teacher: Teacher;
+  grade: {
+    level: string;
+    category: Category;
   };
+  subject: Subject;
 };
 
 const ExamListPage = async () => {
@@ -57,11 +57,9 @@ const renderRow = (item: ExamList) => (
     key={item.id}
     className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
   >
-    <td className="flex items-center gap-4 p-4">{item.lesson.subject.name}</td>
-    <td>{item.lesson.class.name}</td>
-    <td className="hidden md:table-cell">
-      {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
-    </td>
+    <td className="flex items-center gap-4 p-4">{item.grade.level}</td>
+    <td>{item.grade.category.catName}</td>
+
     <td className="hidden md:table-cell">
       {new Intl.DateTimeFormat("en-US").format(item.startTime)}
     </td>
@@ -97,19 +95,19 @@ const renderRow = (item: ExamList) => (
 
   const query: Prisma.ExamWhereInput = {};
 
-  query.lesson = {};
+  query.grade = {};
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
-          case "classId":
-            query.lesson.classId = parseInt(value);
+          case "catId":
+            query.grade.category = parseInt(value);
             break;
-          case "teacherId":
-            query.lesson.teacherId = value;
+          case "subId":
+            query.grade.subjectId = value;
             break;
           case "search":
-            query.lesson.subject = {
+            query.grade.subject = {
               name: { contains: value },
             };
             break;
@@ -126,40 +124,38 @@ const renderRow = (item: ExamList) => (
     case "admin":
       break;
     case "teacher":
-      query.lesson.teacherId = currentUserId!;
+      //query.lesson.teacherId = currentUserId!;
       break;
     case "student":
-      query.lesson.class = {
-        students: {
-          some: {
-            id: currentUserId!,
-          },
-        },
-      };
+      // query.lesson.class = {
+      //   students: {
+      //     some: {
+      //       id: currentUserId!,
+      //     },
+      //   },
+      // };
       break;
     case "parent":
-      query.lesson.class = {
-        students: {
-          some: {
-            parentId: currentUserId!,
-          },
-        },
-      };
+      // query.lesson.class = {
+      //   students: {
+      //     some: {
+      //       parentId: currentUserId!,
+      //     },
+      //   },
+      // };
       break;
 
     default:
       break;
   }
 
-  const [data, count] = await prisma.$transaction([
+  var [data, count] = await prisma.$transaction([
     prisma.exam.findMany({
       where: query,
       include: {
-        lesson: {
+        grade: {
           select: {
-            subject: { select: { name: true } },
-            teacher: { select: { name: true, surname: true } },
-            class: { select: { name: true } },
+            category: { select: { catName: true } },
           },
         },
       },
@@ -168,6 +164,11 @@ const renderRow = (item: ExamList) => (
     }),
     prisma.exam.count({ where: query }),
   ]);
+  if (data.length === 0) {
+  //throw new Error('No exams found.');
+  data = []
+}
+
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

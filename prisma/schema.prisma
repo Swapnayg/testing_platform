@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model Admin {
   id       String @id
   username String @unique
@@ -66,12 +65,22 @@ model Parent {
   students  Student[]
 }
 
+model Category {
+  id      Int     @id @default(autoincrement())
+  catName String  @unique
+  Grade   Grade[]
+  Exam    Exam[]
+}
+
 model Grade {
-  id    Int @id @default(autoincrement())
-  level Int @unique
+  id         Int      @id @default(autoincrement())
+  level      String      @unique
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
 
   students Student[]
   classess Class[]
+  Exam     Exam[]
 }
 
 model Class {
@@ -90,40 +99,42 @@ model Class {
 }
 
 model Registration {
-  id       Int    @id @default(autoincrement())
-  name     String?
-  fatherName String?
-  dateOfBirth DateTime
-  religion String?
-  cnicNumber String @unique
-  profilePicture String?
-  email String?
-  mobileNumber String?
-  city String?
-  stateProvince String?
-  addressLine1 String?
-  instituteName String?
-  olympiadCategory String?
-  others String?
-  bankName String?
-  accountTitle String?
-  accountNumber String?
-  totalAmount String?
-  transactionId String?
-  dateOfPayment DateTime
-  paymentOption String?
-  otherName String?
+  id                 Int      @id @default(autoincrement())
+  name               String?
+  fatherName         String?
+  dateOfBirth        DateTime
+  religion           String?
+  cnicNumber         String   @unique
+  profilePicture     String?
+  email              String?
+  mobileNumber       String?
+  city               String?
+  stateProvince      String?
+  addressLine1       String?
+  instituteName      String?
+  olympiadCategory   String?
+  others             String?
+  bankName           String?
+  accountTitle       String?
+  accountNumber      String?
+  totalAmount        String?
+  transactionId      String?
+  dateOfPayment      DateTime
+  paymentOption      String?
+  otherName          String?
   transactionReceipt String?
-  applicationId String?
-  status String?
+  applicationId      String?
+  status             String?
+  rollNo             String?
+  ExamId             String?
 }
-
 
 model Subject {
   id       Int       @id @default(autoincrement())
   name     String    @unique
   teachers Teacher[]
   lessons  Lesson[]
+  Exam     Exam[]
 }
 
 model Lesson {
@@ -150,9 +161,17 @@ model Exam {
   startTime DateTime
   endTime   DateTime
 
-  lessonId Int
-  lesson   Lesson   @relation(fields: [lessonId], references: [id])
-  results  Result[]
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+  gradeId    Int
+  grade      Grade    @relation(fields: [gradeId], references: [id])
+  subjectId  Int
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+  totalMCQ   Int
+  totalMarks Int
+  results    Result[]
+  Lesson     Lesson?  @relation(fields: [lessonId], references: [id])
+  lessonId   Int?
 }
 
 model Assignment {

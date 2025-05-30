@@ -8,6 +8,8 @@ npx prisma db seed
 
 npx prisma migrate dev --name first_prisma_migration
 
+npx prisma format
+
 npx prisma generate && npm run build
 
 npm install prisma typescript tsx @types/node -save-dev
