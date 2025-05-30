@@ -11,11 +11,7 @@ import { auth } from "@clerk/nextjs/server";
 
 type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
 
-const TeacherListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const TeacherListPage = async () => {
   const { sessionClaims } = auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
   const columns = [
@@ -102,9 +98,22 @@ const TeacherListPage = async ({
       </td>
     </tr>
   );
-  const { page, ...queryParams } = searchParams;
 
+
+  const searchParams = typeof window === "undefined"
+    ? new URLSearchParams("") // fallback for SSR, replace with actual params if available
+    : new URLSearchParams(window.location.search);
+
+  const page = searchParams.get("page");
   const p = page ? parseInt(page) : 1;
+
+  // Convert searchParams to an object for queryParams
+  const queryParams: Record<string, string | undefined> = {};
+  searchParams.forEach((value, key) => {
+    if (key !== "page") {
+      queryParams[key] = value;
+    }
+  });
 
   // URL PARAMS CONDITION
 

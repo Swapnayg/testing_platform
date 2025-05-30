@@ -1,4 +1,5 @@
 import { z } from "zod";
+import {formSchema} from "@/components/MultiStepForm";
 
 export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
@@ -77,6 +78,7 @@ export const studentSchema = z.object({
 });
 
 export type StudentSchema = z.infer<typeof studentSchema>;
+export type FormSchema = z.infer<typeof formSchema>;
 
 export const examSchema = z.object({
   id: z.coerce.number().optional(),

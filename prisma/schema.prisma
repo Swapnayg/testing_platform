@@ -89,6 +89,36 @@ model Class {
   announcements Announcement[]
 }
 
+model Registration {
+  id       Int    @id @default(autoincrement())
+  name     String?
+  fatherName String?
+  dateOfBirth DateTime
+  religion String?
+  cnicNumber String @unique
+  profilePicture String?
+  email String?
+  mobileNumber String?
+  city String?
+  stateProvince String?
+  addressLine1 String?
+  instituteName String?
+  olympiadCategory String?
+  others String?
+  bankName String?
+  accountTitle String?
+  accountNumber String?
+  totalAmount String?
+  transactionId String?
+  dateOfPayment DateTime
+  paymentOption String?
+  otherName String?
+  transactionReceipt String?
+  applicationId String?
+  status String?
+}
+
+
 model Subject {
   id       Int       @id @default(autoincrement())
   name     String    @unique

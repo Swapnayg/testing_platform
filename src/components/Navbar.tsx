@@ -1,4 +1,4 @@
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, ClerkProvider } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
 
@@ -33,7 +33,9 @@ const Navbar = async () => {
           </span>
         </div>
         {/* <Image src="/avatar.png" alt="" width={36} height={36} className="rounded-full"/> */}
-        <UserButton />
+        {/* <ClerkProvider> */}
+          <UserButton />
+        {/* </ClerkProvider> */}
       </div>
     </div>
   );

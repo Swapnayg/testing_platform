@@ -11,14 +11,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-const SingleStudentPage = async ({
-  params: { id },
-}: {
-  params: { id: string };
-}) => {
+const SingleStudentPage = async () => {
   const { sessionClaims } = auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
+  const searchParams = typeof window === "undefined"
+    ? new URLSearchParams("") // fallback for SSR, replace with actual params if available
+    : new URLSearchParams(window.location.search);
+  const id = searchParams.get("id") || undefined;
   const student:
     | (Student & {
         class: Class & { _count: { lessons: number } };

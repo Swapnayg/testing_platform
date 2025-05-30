@@ -10,13 +10,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-const SingleTeacherPage = async ({
-  params: { id },
-}: {
-  params: { id: string };
-}) => {
+const SingleTeacherPage = async () => {
   const { sessionClaims } = auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const searchParams = typeof window === "undefined"
+    ? new URLSearchParams("") // fallback for SSR, replace with actual params if available
+    : new URLSearchParams(window.location.search);
+  const id = searchParams.get("id") || undefined;
 
   const teacher:
     | (Teacher & {

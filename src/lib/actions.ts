@@ -7,6 +7,7 @@ import {
   StudentSchema,
   SubjectSchema,
   TeacherSchema,
+  FormSchema
 } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -456,6 +457,69 @@ export const deleteExam = async (
       where: {
         id: parseInt(id),
         // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
+      },
+    });
+
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+
+export async function createRegistration(data: { name: string; status: "pending" | "approved" | "rejected"; fatherName: string; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any; }) {
+  try {
+    await prisma.registration.create({
+      data: {
+        name: data.name,
+        fatherName: data.fatherName || '',
+        dateOfBirth: data.dateOfBirth || '',
+        religion: data.religion || '',
+        cnicNumber: data.cnicNumber || '',
+        profilePicture: data.profilePicture || '',
+        email: data.email || '',
+        mobileNumber: data.mobileNumber || '',
+        city: data.city || '',
+        stateProvince: data.stateProvince || '',
+        addressLine1: data.addressLine1 || '',
+        instituteName: data.instituteName || '',
+        olympiadCategory: data.olympiadCategory || '',
+        others: "",
+        bankName: data.bankName || '',
+        accountTitle: data.accountTitle || '',
+        accountNumber: data.accountNumber || '',
+        totalAmount: data.totalAmount || '',
+        transactionId: data.transactionId || '',
+        dateOfPayment: data.dateOfPayment ? data.dateOfPayment.toISOString() : '',
+        paymentOption: data.paymentOption || null,
+        otherName: data.otherName || '',
+        transactionReceipt: data.transactionReceipt || '',
+        applicationId: data.applicationId || '',
+        status: data.status || '',
+      },
+    });
+
+    // revalidatePath("/list/students");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateRegistration = async (
+  currentState: CurrentState,
+  data: FormSchema
+) => {
+  try {
+    await prisma.registration.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        status: data.status,
       },
     });
 
