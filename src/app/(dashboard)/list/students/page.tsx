@@ -5,43 +5,40 @@ import TableSearch from "@/components/TableSearch";
 
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Prisma, Student } from "@prisma/client";
+import {Prisma, Student } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 
 import { auth } from "@clerk/nextjs/server";
 
-type StudentList = Student & { class: Class };
+type StudentList = Student & { };
 
 const StudentListPage = async () => {
   const { sessionClaims } = auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
-    {
-      header: "Info",
-      accessor: "info",
-    },
-    {
-      header: "Student ID",
-      accessor: "studentId",
-      className: "hidden md:table-cell",
-    },
-    {
-      header: "Grade",
-      accessor: "grade",
-      className: "hidden md:table-cell",
-    },
-    {
-      header: "Phone",
-      accessor: "phone",
-      className: "hidden lg:table-cell",
-    },
-    {
-      header: "Address",
-      accessor: "address",
-      className: "hidden lg:table-cell",
-    },
+  {
+    header: "",
+    accessor: "id",
+    className: "hidden md:table-cell",
+  },
+  {
+    header: "Father Name",
+    accessor:"fatherName",
+  },
+  {
+    header: "Email",
+    accessor: "email",
+  },
+  {
+    header: "Phone",
+    accessor: "mobileNumber",
+  },
+  {
+    header: "CNIC Number",
+    accessor: "cnicNumber",
+  },
     ...(role === "admin"
       ? [
           {
@@ -59,7 +56,7 @@ const StudentListPage = async () => {
     >
       <td className="flex items-center gap-4 p-4">
         <Image
-          src={item.img || "/noAvatar.png"}
+          src={item.profilePicture ||  "/noAvatar.png"}
           alt=""
           width={40}
           height={40}
@@ -67,27 +64,24 @@ const StudentListPage = async () => {
         />
         <div className="flex flex-col">
           <h3 className="font-semibold">{item.name}</h3>
-          <p className="text-xs text-gray-500">{item.class.name}</p>
+          <p className="text-xs text-gray-500">{item.rollNo}</p>
         </div>
       </td>
-      <td className="hidden md:table-cell">{item.username}</td>
-      <td className="hidden md:table-cell">{item.class.name[0]}</td>
-      <td className="hidden md:table-cell">{item.phone}</td>
-      <td className="hidden md:table-cell">{item.address}</td>
+      <td className="hidden md:table-cell">{item.fatherName}</td>
+      <td className="hidden md:table-cell">{item.email}</td>
+      <td className="hidden md:table-cell">{item.mobileNumber}</td>
+      <td className="hidden md:table-cell">{item.cnicNumber}</td>
       <td>
-        <div className="flex items-center gap-2">
-          <Link href={`/list/students/${item.id}`}>
-            <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-              <Image src="/view.png" alt="" width={16} height={16} />
-            </button>
-          </Link>
           {role === "admin" && (
-            // <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple">
-            //   <Image src="/delete.png" alt="" width={16} height={16} />
-            // </button>
+            <div className="flex items-center gap-2">
+            <Link href={`/list/students/${item.id}`}>
+              <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+                <Image src="/view.png" alt="" width={16} height={16} />
+              </button>
+            </Link>
             <FormContainer table="student" type="delete" id={item.id} />
+            </div>
           )}
-        </div>
       </td>
     </tr>
   );
@@ -115,14 +109,20 @@ const StudentListPage = async () => {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
-          case "teacherId":
-            query.class = {
-              lessons: {
-                some: {
-                  teacherId: value,
-                },
-              },
-            };
+          case "name":
+            (query as any).name = { contains: value };
+            break;
+          case "fatherName":
+            (query as any).fatherName = { contains: value };
+            break;
+          case "email":
+            (query as any).email = { contains: value };
+            break;
+          case "mobileNumber":
+            (query as any).mobileNumber = { contains: value };
+            break;
+          case "cnicNumber":
+            (query as any).cnicNumber = { contains: value };
             break;
           case "search":
             query.name = { contains: value };
@@ -134,17 +134,34 @@ const StudentListPage = async () => {
     }
   }
 
-  const [data, count] = await prisma.$transaction([
+  var [data, count] = await prisma.$transaction([
     prisma.student.findMany({
       where: query,
-      include: {
-        class: true,
+      select: {
+        id: true,
+        name: true,
+        fatherName: true,
+        dateOfBirth: true,
+        religion: true,
+        cnicNumber: true,
+        profilePicture: true,
+        email: true,
+        mobileNumber: true,
+        city: true,
+        stateProvince: true,
+        addressLine1: true,
+        instituteName: true,
+        rollNo: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.student.count({ where: query }),
   ]);
+  if (data.length === 0) {
+    //throw new Error('No exams found.');
+    data = []
+  }
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

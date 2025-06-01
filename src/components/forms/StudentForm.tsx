@@ -14,9 +14,7 @@ import {
 import { useFormState } from "react-dom";
 import {
   createStudent,
-  createTeacher,
   updateStudent,
-  updateTeacher,
 } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -54,7 +52,7 @@ const StudentForm = ({
   const onSubmit = handleSubmit((data) => {
     console.log("hello");
     console.log(data);
-    formAction({ ...data, img: img?.secure_url });
+    formAction({ ...data, profilePicture: img?.secure_url });
   });
 
   const router = useRouter();
@@ -83,7 +81,7 @@ const StudentForm = ({
           name="username"
           defaultValue={data?.username}
           register={register}
-          error={errors?.username}
+          error={errors?.name}
         />
         <InputField
           label="Email"
@@ -91,14 +89,6 @@ const StudentForm = ({
           defaultValue={data?.email}
           register={register}
           error={errors?.email}
-        />
-        <InputField
-          label="Password"
-          name="password"
-          type="password"
-          defaultValue={data?.password}
-          register={register}
-          error={errors?.password}
         />
       </div>
       <span className="text-xs text-gray-400 font-medium">
@@ -132,47 +122,40 @@ const StudentForm = ({
           error={errors.name}
         />
         <InputField
-          label="Last Name"
-          name="surname"
-          defaultValue={data?.surname}
+          label="Father Name"
+          name="fatherName"
+          defaultValue={data?.fatherName}
           register={register}
-          error={errors.surname}
+          error={errors.fatherName}
         />
         <InputField
           label="Phone"
-          name="phone"
-          defaultValue={data?.phone}
+          name="mobileNumber"
+          defaultValue={data?.mobileNumber}
           register={register}
-          error={errors.phone}
+          error={errors.mobileNumber}
         />
-        <InputField
+        {/* <InputField
           label="Address"
           name="address"
           defaultValue={data?.address}
           register={register}
           error={errors.address}
-        />
-        <InputField
+        /> */}
+        {/* <InputField
           label="Blood Type"
           name="bloodType"
           defaultValue={data?.bloodType}
           register={register}
           error={errors.bloodType}
-        />
+        /> */}
         <InputField
-          label="Birthday"
-          name="birthday"
-          defaultValue={data?.birthday.toISOString().split("T")[0]}
+          label="Date of Birth"
+          name="dateOfBirth"
+          defaultValue={data?.dateOfBirth.toISOString().split("T")[0]}
           register={register}
-          error={errors.birthday}
+          error={errors.dateOfBirth}
           type="date"
-        />
-        <InputField
-          label="Parent Id"
-          name="parentId"
-          defaultValue={data?.parentId}
-          register={register}
-          error={errors.parentId}
         />
         {data && (
           <InputField

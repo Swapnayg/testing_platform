@@ -11,8 +11,54 @@ import {
 } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
+import { v4 as uuidv4 } from 'uuid';
+import cron from 'node-cron';
 
 type CurrentState = { success: boolean; error: boolean };
+
+const today = new Date();
+
+cron.schedule('0 0 * * *', async () => {
+  console.log('Archiving old results...');
+  const dateOnly = new Date(today.toISOString().split('T')[0]);
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yes_dateOnly = new Date(yesterday.toISOString().split('T')[0]); 
+  await prisma.exam.updateMany({
+    where: {
+      startTime: dateOnly, // exactly today
+      endTime: {
+        gte: today, // still ongoing or ends today
+      },
+
+    },
+    data: {
+      status: 'IN_PROGRESS',
+    },
+  });
+
+  await prisma.exam.updateMany({
+    where: {
+      endTime: yes_dateOnly,
+    },
+    data: {
+      status: 'COMPLETED',
+    },
+  });
+
+  await prisma.result.updateMany({
+    where: {
+      status: "NOT_GRADED",
+      endTime: yes_dateOnly,
+    },
+    data: {
+      status: 'ABSENT',
+    },
+  });
+
+});
+
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -22,9 +68,6 @@ export const createSubject = async (
     await prisma.subject.create({
       data: {
         name: data.name,
-        teachers: {
-          connect: data.teachers.map((teacherId) => ({ id: teacherId })),
-        },
       },
     });
 
@@ -47,9 +90,6 @@ export const updateSubject = async (
       },
       data: {
         name: data.name,
-        teachers: {
-          set: data.teachers.map((teacherId) => ({ id: teacherId })),
-        },
       },
     });
 
@@ -81,172 +121,15 @@ export const deleteSubject = async (
   }
 };
 
-export const createClass = async (
-  currentState: CurrentState,
-  data: ClassSchema
-) => {
-  try {
-    await prisma.class.create({
-      data,
-    });
 
-    // revalidatePath("/list/class");
-    return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
-  }
-};
 
-export const updateClass = async (
-  currentState: CurrentState,
-  data: ClassSchema
-) => {
-  try {
-    await prisma.class.update({
-      where: {
-        id: data.id,
-      },
-      data,
-    });
 
-    // revalidatePath("/list/class");
-    return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
-  }
-};
-
-export const deleteClass = async (
-  currentState: CurrentState,
-  data: FormData
-) => {
-  const id = data.get("id") as string;
-  try {
-    await prisma.class.delete({
-      where: {
-        id: parseInt(id),
-      },
-    });
-
-    // revalidatePath("/list/class");
-    return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
-  }
-};
-
-export const createTeacher = async (
-  currentState: CurrentState,
-  data: TeacherSchema
-) => {
-  try {
-    const user = await clerkClient.users.createUser({
-      username: data.username,
-      password: data.password,
-      firstName: data.name,
-      lastName: data.surname,
-      publicMetadata:{role:"teacher"}
-    });
-
-    await prisma.teacher.create({
-      data: {
-        id: user.id,
-        username: data.username,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        subjects: {
-          connect: data.subjects?.map((subjectId: string) => ({
-            id: parseInt(subjectId),
-          })),
-        },
-      },
-    });
-
-    // revalidatePath("/list/teachers");
-    return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
-  }
-};
-
-export const updateTeacher = async (
-  currentState: CurrentState,
-  data: TeacherSchema
-) => {
-  if (!data.id) {
-    return { success: false, error: true };
-  }
-  try {
-    const user = await clerkClient.users.updateUser(data.id, {
-      username: data.username,
-      ...(data.password !== "" && { password: data.password }),
-      firstName: data.name,
-      lastName: data.surname,
-    });
-
-    await prisma.teacher.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        ...(data.password !== "" && { password: data.password }),
-        username: data.username,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        subjects: {
-          set: data.subjects?.map((subjectId: string) => ({
-            id: parseInt(subjectId),
-          })),
-        },
-      },
-    });
-    // revalidatePath("/list/teachers");
-    return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
-  }
-};
-
-export const deleteTeacher = async (
-  currentState: CurrentState,
-  data: FormData
-) => {
-  const id = data.get("id") as string;
-  try {
-    await clerkClient.users.deleteUser(id);
-
-    await prisma.teacher.delete({
-      where: {
-        id: id,
-      },
-    });
-
-    // revalidatePath("/list/teachers");
-    return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
-  }
-};
+function uuidTo6DigitNumber() {
+  const uuid = uuidv4(); // Generate UUID
+  const hash = parseInt(uuid.replace(/-/g, '').slice(0, 12), 16); // Convert part of UUID to number
+  const sixDigit = hash % 900000 + 100000; // Ensure 6 digits
+  return sixDigit;
+}
 
 export const createStudent = async (
   currentState: CurrentState,
@@ -254,39 +137,32 @@ export const createStudent = async (
 ) => {
   console.log(data);
   try {
-    const classItem = await prisma.class.findUnique({
-      where: { id: data.classId },
-      include: { _count: { select: { students: true } } },
-    });
 
-    if (classItem && classItem.capacity === classItem._count.students) {
-      return { success: false, error: true };
-    }
-
+    var rollNo = uuidTo6DigitNumber();
     const user = await clerkClient.users.createUser({
-      username: data.username,
-      password: data.password,
-      firstName: data.name,
-      lastName: data.surname,
+      username: "UIN" + rollNo.toString(),
+      password: data.cnicNumber || '',
       publicMetadata:{role:"student"}
     });
 
     await prisma.student.create({
       data: {
-        id: user.id,
-        username: data.username,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        gradeId: data.gradeId,
-        classId: data.classId,
-        parentId: data.parentId,
+        id:user.id,
+        name: data.name || '',
+        fatherName: data.fatherName || '',
+        dateOfBirth: data.dateOfBirth || '',
+        religion: data.religion || '',
+        gender: data.gender || '', // Removed because 'gender' is not a valid field in Student model
+        cnicNumber: data.cnicNumber || '',
+        profilePicture: data.profilePicture || '',
+        email: data.email || '',
+        mobileNumber: data.mobileNumber || '',
+        city: data.city || '',
+        stateProvince: data.stateProvince || '',
+        addressLine1: data.addressLine1 || '',
+        instituteName: data.instituteName || '',
+        others: "",
+        rollNo: rollNo.toString()
       },
     });
 
@@ -306,32 +182,25 @@ export const updateStudent = async (
     return { success: false, error: true };
   }
   try {
-    const user = await clerkClient.users.updateUser(data.id, {
-      username: data.username,
-      ...(data.password !== "" && { password: data.password }),
-      firstName: data.name,
-      lastName: data.surname,
-    });
 
     await prisma.student.update({
       where: {
-        id: data.id,
+        cnicNumber: data.id,
       },
       data: {
-        ...(data.password !== "" && { password: data.password }),
-        username: data.username,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        gradeId: data.gradeId,
-        classId: data.classId,
-        parentId: data.parentId,
+        name: data.name || '',
+        fatherName: data.fatherName || '',
+        dateOfBirth: data.dateOfBirth || '',
+        religion: data.religion || '',
+        cnicNumber: data.cnicNumber || '',
+        profilePicture: data.profilePicture || '',
+        email: data.email || '',
+        mobileNumber: data.mobileNumber || '',
+        city: data.city || '',
+        stateProvince: data.stateProvince || '',
+        addressLine1: data.addressLine1 || '',
+        instituteName: data.instituteName || '',
+        others: "",
       },
     });
     // revalidatePath("/list/students");
@@ -347,14 +216,35 @@ export const deleteStudent = async (
   data: FormData
 ) => {
   const id = data.get("id") as string;
+  const user = await prisma.student.findFirst({
+      where: { id },
+  });
   try {
-    await clerkClient.users.deleteUser(id);
+    if (user?.id) {
+      await clerkClient.users.deleteUser(id);
+      // First, find the registration record by studentId (cnicNumber)
+      const registration = await prisma.registration.findMany({
+        where: {
+          studentId: user.cnicNumber.toString(),
+        },
+      });
 
+      if (registration) {
+        for (var i =0; i < registration.length ; i++)
+        {
+          await prisma.registration.delete({
+            where: {
+              id: registration[i].id,
+          },
+        });
+      }
+    }
     await prisma.student.delete({
       where: {
-        id: id,
+        cnicNumber: user.cnicNumber.toString().trim(),
       },
     });
+    }
 
     // revalidatePath("/list/students");
     return { success: true, error: false };
@@ -368,33 +258,22 @@ export const createExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
+    console.log(data);
     await prisma.exam.create({
       data: {
         title: data.title,
+        categoryId: data.categoryId,
+        gradeId: data.gradeId,
+        subjectId: data.subjectId,
         startTime: data.startTime,
         endTime: data.endTime,
-        lessonId: data.lessonId,
+        totalMCQ: data.totalMCQ,
+        totalMarks: data.totalMarks,
       },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -406,22 +285,8 @@ export const updateExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
 
     await prisma.exam.update({
       where: {
@@ -429,9 +294,13 @@ export const updateExam = async (
       },
       data: {
         title: data.title,
+        categoryId: data.categoryId,
+        gradeId: data.gradeId,
+        subjectId: data.subjectId,
         startTime: data.startTime,
         endTime: data.endTime,
-        lessonId: data.lessonId,
+        totalMCQ: data.totalMCQ,
+        totalMarks: data.totalMarks,
       },
     });
 
@@ -468,25 +337,39 @@ export const deleteExam = async (
   }
 };
 
-
-export async function createRegistration(data: { name: string; status: "pending" | "approved" | "rejected"; fatherName: string; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any; }) {
+export async function createRegistration(data: { name: string; status: "pending" | "approved" | "rejected"; fatherName: string; registerdAt: Date; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any; }) {
   try {
+    var rollNo = uuidTo6DigitNumber();
+    const user = await clerkClient.users.createUser({
+      username: "UIN" + rollNo.toString(),
+      password: data.cnicNumber || '',
+      publicMetadata:{role:"student"}
+    });
+  const student =  await prisma.student.create({
+    data: {
+      id: user.id,// Ensure 'id' is provided in the data argument
+      name: data.name || '',
+      fatherName: data.fatherName || '',
+      dateOfBirth: data.dateOfBirth || '',
+      religion: data.religion || '',
+      gender: data.gender || '',
+      cnicNumber: data.cnicNumber || '',
+      profilePicture: data.profilePicture || '',
+      email: data.email || '',
+      mobileNumber: data.mobileNumber || '',
+      city: data.city || '',
+      stateProvince: data.stateProvince || '',
+      addressLine1: data.addressLine1 || '',
+      instituteName: data.instituteName || '',
+      others: "",
+      rollNo: rollNo.toString()
+    }
+  });
+
     await prisma.registration.create({
       data: {
-        name: data.name,
-        fatherName: data.fatherName || '',
-        dateOfBirth: data.dateOfBirth || '',
-        religion: data.religion || '',
-        cnicNumber: data.cnicNumber || '',
-        profilePicture: data.profilePicture || '',
-        email: data.email || '',
-        mobileNumber: data.mobileNumber || '',
-        city: data.city || '',
-        stateProvince: data.stateProvince || '',
-        addressLine1: data.addressLine1 || '',
-        instituteName: data.instituteName || '',
         olympiadCategory: data.olympiadCategory || '',
-        others: "",
+        catGrade : data.catGrade || '',
         bankName: data.bankName || '',
         accountTitle: data.accountTitle || '',
         accountNumber: data.accountNumber || '',
@@ -498,6 +381,8 @@ export async function createRegistration(data: { name: string; status: "pending"
         transactionReceipt: data.transactionReceipt || '',
         applicationId: data.applicationId || '',
         status: data.status || '',
+        registerdAt : new Date().toISOString(),
+        studentId: student.cnicNumber
       },
     });
 

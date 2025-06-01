@@ -13,56 +13,25 @@ model Admin {
 }
 
 model Student {
-  id          String       @id
-  username    String       @unique
-  name        String
-  surname     String
-  email       String?      @unique
-  phone       String?      @unique
-  address     String
-  img         String?
-  bloodType   String
-  sex         UserSex
-  createdAt   DateTime     @default(now())
-  parentId    String
-  parent      Parent       @relation(fields: [parentId], references: [id])
-  classId     Int
-  class       Class        @relation(fields: [classId], references: [id])
-  gradeId     Int
-  grade       Grade        @relation(fields: [gradeId], references: [id])
-  attendances Attendance[]
-  results     Result[]
-  birthday    DateTime
-}
-
-model Teacher {
-  id        String    @id
-  username  String    @unique
-  name      String
-  surname   String
-  email     String?   @unique
-  phone     String?   @unique
-  address   String
-  img       String?
-  bloodType String
-  sex       UserSex
-  createdAt DateTime  @default(now())
-  subjects  Subject[]
-  lessons   Lesson[]
-  classes   Class[]
-  birthday  DateTime
-}
-
-model Parent {
-  id        String    @id
-  username  String    @unique
-  name      String
-  surname   String
-  email     String?   @unique
-  phone     String    @unique
-  address   String
-  createdAt DateTime  @default(now())
-  students  Student[]
+  id             String
+  name           String?
+  fatherName     String?
+  dateOfBirth    DateTime
+  religion       String?
+  gender         String?
+  cnicNumber     String         @unique
+  profilePicture String?
+  email          String?
+  mobileNumber   String?
+  city           String?
+  stateProvince  String?
+  addressLine1   String?
+  instituteName  String?
+  others         String?
+  rollNo         String?
+  Result         Result[]
+  Attendance     Attendance[]
+  Registration   Registration[]
 }
 
 model Category {
@@ -74,46 +43,17 @@ model Category {
 
 model Grade {
   id         Int      @id @default(autoincrement())
-  level      String      @unique
+  level      String   @unique
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id])
 
-  students Student[]
-  classess Class[]
-  Exam     Exam[]
-}
-
-model Class {
-  id       Int    @id @default(autoincrement())
-  name     String @unique
-  capacity Int
-
-  supervisorId  String?
-  supervisor    Teacher?       @relation(fields: [supervisorId], references: [id])
-  lessons       Lesson[]
-  students      Student[]
-  gradeId       Int
-  grade         Grade          @relation(fields: [gradeId], references: [id])
-  events        Event[]
-  announcements Announcement[]
+  Exam Exam[]
 }
 
 model Registration {
   id                 Int      @id @default(autoincrement())
-  name               String?
-  fatherName         String?
-  dateOfBirth        DateTime
-  religion           String?
-  cnicNumber         String   @unique
-  profilePicture     String?
-  email              String?
-  mobileNumber       String?
-  city               String?
-  stateProvince      String?
-  addressLine1       String?
-  instituteName      String?
   olympiadCategory   String?
-  others             String?
+  catGrade           String?
   bankName           String?
   accountTitle       String?
   accountNumber      String?
@@ -125,76 +65,56 @@ model Registration {
   transactionReceipt String?
   applicationId      String?
   status             String?
-  rollNo             String?
   ExamId             String?
+  studentId          String
+  student            Student  @relation(fields: [studentId], references: [cnicNumber])
+  registerdAt        DateTime @default(now())
 }
 
 model Subject {
-  id       Int       @id @default(autoincrement())
-  name     String    @unique
-  teachers Teacher[]
-  lessons  Lesson[]
-  Exam     Exam[]
-}
-
-model Lesson {
-  id        Int      @id @default(autoincrement())
-  name      String
-  day       Day
-  startTime DateTime
-  endTime   DateTime
-
-  subjectId   Int
-  subject     Subject      @relation(fields: [subjectId], references: [id])
-  classId     Int
-  class       Class        @relation(fields: [classId], references: [id])
-  teacherId   String
-  teacher     Teacher      @relation(fields: [teacherId], references: [id])
-  exams       Exam[]
-  assignments Assignment[]
-  attendances Attendance[]
+  id   Int    @id @default(autoincrement())
+  name String @unique
+  Exam Exam[]
 }
 
 model Exam {
-  id        Int      @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   title     String
   startTime DateTime
   endTime   DateTime
+  status    ExamStatus @default(NOT_STARTED)
 
   categoryId Int
-  category   Category @relation(fields: [categoryId], references: [id])
+  category   Category     @relation(fields: [categoryId], references: [id])
   gradeId    Int
-  grade      Grade    @relation(fields: [gradeId], references: [id])
+  grade      Grade        @relation(fields: [gradeId], references: [id])
   subjectId  Int
-  subject    Subject  @relation(fields: [subjectId], references: [id])
+  subject    Subject      @relation(fields: [subjectId], references: [id])
   totalMCQ   Int
   totalMarks Int
   results    Result[]
-  Lesson     Lesson?  @relation(fields: [lessonId], references: [id])
-  lessonId   Int?
+  attendance Attendance[]
 }
 
-model Assignment {
-  id        Int      @id @default(autoincrement())
-  title     String
-  startDate DateTime
-  dueDate   DateTime
-
-  lessonId Int
-  lesson   Lesson   @relation(fields: [lessonId], references: [id])
-  results  Result[]
+enum ResultStatus {
+  NOT_GRADED // Exam submitted, but not yet graded
+  PASSED // Student passed the exam
+  FAILED // Student failed the exam
+  ABSENT // Student did not attend the exam
 }
 
 model Result {
-  id    Int @id @default(autoincrement())
-  score Int
+  id        Int          @id @default(autoincrement())
+  score     Int
+  status    ResultStatus @default(NOT_GRADED)
+  gradedAt  DateTime?
+  startTime DateTime
+  endTime   DateTime
 
-  examId       Int?
-  exam         Exam?       @relation(fields: [examId], references: [id])
-  assignmentId Int?
-  assignment   Assignment? @relation(fields: [assignmentId], references: [id])
-  studentId    String
-  student      Student     @relation(fields: [studentId], references: [id])
+  examId    Int?
+  exam      Exam?   @relation(fields: [examId], references: [id])
+  studentId String
+  student   Student @relation(fields: [studentId], references: [cnicNumber])
 }
 
 model Attendance {
@@ -203,9 +123,9 @@ model Attendance {
   present Boolean
 
   studentId String
-  student   Student @relation(fields: [studentId], references: [id])
-  lessonId  Int
-  lesson    Lesson  @relation(fields: [lessonId], references: [id])
+  student   Student @relation(fields: [studentId], references: [cnicNumber])
+  examId    Int
+  exam      Exam    @relation(fields: [examId], references: [id])
 }
 
 model Event {
@@ -214,9 +134,6 @@ model Event {
   description String
   startTime   DateTime
   endTime     DateTime
-
-  classId Int?
-  class   Class? @relation(fields: [classId], references: [id])
 }
 
 model Announcement {
@@ -224,9 +141,12 @@ model Announcement {
   title       String
   description String
   date        DateTime
+}
 
-  classId Int?
-  class   Class? @relation(fields: [classId], references: [id])
+enum ExamStatus {
+  NOT_STARTED // Exam has been scheduled but not yet started
+  IN_PROGRESS // Exam is currently being taken
+  COMPLETED // Exam has been finished by the participant
 }
 
 enum UserSex {

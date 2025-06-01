@@ -4,19 +4,16 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Exam, Prisma, Subject, Category} from "@prisma/client";
+import { Registration, Prisma} from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 
-type ExamList = Exam & {
-  grade: {
-    level: string;
-    category: Category;
-  };
-  subject: Subject
+type RegistrationList = Registration & {
+  catGrade: string;
+  olympiadCategory: string;
 };
 
-const ExamListPage = async () => {
+const RegistrationListPage = async () => {
 
 const { userId, sessionClaims } = auth();
 const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -25,36 +22,38 @@ const currentUserId = userId;
 
 const columns = [
   {
-    header: "Title",
-    accessor: "title",
+    header: "Full Name",
+    accessor: "name" + " " + "fatherName",
   },
   {
-    header: "Subject Name",
-    accessor: "subject.name",
-    className: "hidden md:table-cell",
+    header: "Email",
+    accessor: "email",
+  },
+  {
+    header: "Phone",
+    accessor: "mobileNumber",
+  },
+  {
+    header: "CNIC Number",
+    accessor: "cnicNumber",
   },
   {
     header: "Category",
-    accessor: "grade.category.catName",
+    accessor: "olympiadCategory",
   },
   {
     header: "Grade",
-    accessor: "grade.level",
-    className: "hidden md:table-cell",
+    accessor: "catGrade",
   },
   {
-    header: "MCQ's Count",
-    accessor: "mcqCount",
+    header: "Payment Method",
+    accessor: "paymentOption",
   },
   {
-    header: "Total Marks",
-    accessor: "totalMarks",
+    header: "Registration Date",
+    accessor: "registerdAt",
   },
-  {
-    header: "Start Date",
-    accessor: "startTime",
-  },
-  ...(role === "admin" || role === "teacher"
+  ...(role === "admin"
     ? [
         {
           header: "Actions",
@@ -64,22 +63,18 @@ const columns = [
     : []),
 ];
 
-const renderRow = (item: ExamList) => (
+const renderRow = (item: RegistrationList) => (
   <tr
     key={item.id}
     className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
   >
-    <td className="flex items-center gap-4 p-4">{item.title}</td>
-    <td className="hidden md:table-cell">{item.subject.name}</td>
-    <td>{item.grade.category.catName}</td>
-    <td className="hidden md:table-cell">{item.grade.level}</td>
-    <td>{item.totalMCQ}</td>
-    <td>{item.totalMarks}</td>
-    <td>{new Intl.DateTimeFormat("en-US").format(item.startTime)}</td>
-    {(role === "admin" || role === "teacher") && (
+    <td>{item.olympiadCategory}</td>
+    <td>{item.catGrade}</td>
+    <td>{item.paymentOption}</td>
+    <td>{new Intl.DateTimeFormat("en-US").format(item.registerdAt)}</td>
+    {(role === "admin") && (
       <td className="flex items-center gap-2">
-        <FormContainer table="exam" type="update" data={item} />
-        <FormContainer table="exam" type="delete" id={item.id} />
+
       </td>
     )}
   </tr>
@@ -102,23 +97,35 @@ const renderRow = (item: ExamList) => (
 
   // URL PARAMS CONDITION
 
-  const query: Prisma.ExamWhereInput = {};
+  const query: Prisma.RegistrationWhereInput = {};
 
-  query.grade = {};
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
+          case "name":
+            (query as any).name = { contains: value };
+            break;
+          case "fatherName":
+            (query as any).fatherName = { contains: value };
+            break;
+          case "email":
+            (query as any).email = { contains: value };
+            break;
+          case "mobileNumber":
+            (query as any).mobileNumber = { contains: value };
+            break;
+          case "cnicNumber":
+            (query as any).cnicNumber = { contains: value };
+            break;
+          case "paymentOption":
+            (query as any).paymentOption = { contains: value };
+            break;
+          case "catGrade":
+            (query as any).catGrade = { contains: value };
+            break;
           case "category":
-            if (!query.grade.category) query.grade.category = {};
-            query.grade.category.catName = value;
-            break;
-          case "subject":
-            if (!query.subject?.name) query.subject = {};
-            query.subject.name = value;
-            break;
-          case "search":
-            query.title = value
+            (query as any).olympiadCategory = { contains: value };
             break;
           default:
             break;
@@ -132,50 +139,24 @@ const renderRow = (item: ExamList) => (
   switch (role) {
     case "admin":
       break;
-    case "teacher":
-      //query.lesson.teacherId = currentUserId!;
-      break;
-    case "student":
-      // query.lesson.class = {
-      //   students: {
-      //     some: {
-      //       id: currentUserId!,
-      //     },
-      //   },
-      // };
-      break;
-    case "parent":
-      // query.lesson.class = {
-      //   students: {
-      //     some: {
-      //       parentId: currentUserId!,
-      //     },
-      //   },
-      // };
-      break;
-
     default:
       break;
   }
 
   var [data, count] = await prisma.$transaction([
-    prisma.exam.findMany({
+    prisma.registration.findMany({
       where: query,
-      include: {
-        grade: {
-          select: {
-            level: true,
-            category: { select: { catName: true } },
-          },
-        },
-        subject: {
-          select: { id: true, name: true },
-        },
+      select: {
+        id: true,
+        paymentOption: true,
+        olympiadCategory: true,
+        catGrade: true,
+        registerdAt: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.exam.count({ where: query }),
+    prisma.registration.count({ where: query }),
   ]);
   if (data.length === 0) {
   //throw new Error('No exams found.');
@@ -211,4 +192,4 @@ const renderRow = (item: ExamList) => (
   );
 };
 
-export default ExamListPage;
+export default RegistrationListPage;
