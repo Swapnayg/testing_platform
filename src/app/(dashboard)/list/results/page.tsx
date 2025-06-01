@@ -142,8 +142,6 @@ const renderRow = (item: ResultList) => (
       break;
     case "teacher":
       query.OR = [
-        { exam: { lesson: { teacherId: currentUserId! } } },
-        { assignment: { lesson: { teacherId: currentUserId! } } },
       ];
       break;
 
@@ -151,11 +149,6 @@ const renderRow = (item: ResultList) => (
       query.studentId = currentUserId!;
       break;
 
-    case "parent":
-      query.student = {
-        parentId: currentUserId!,
-      };
-      break;
     default:
       break;
   }
@@ -164,26 +157,8 @@ const renderRow = (item: ResultList) => (
     prisma.result.findMany({
       where: query,
       include: {
-        student: { select: { name: true, surname: true } },
+        student: { select: { name: true } },
         exam: {
-          include: {
-            lesson: {
-              select: {
-                class: { select: { name: true } },
-                teacher: { select: { name: true, surname: true } },
-              },
-            },
-          },
-        },
-        assignment: {
-          include: {
-            lesson: {
-              select: {
-                class: { select: { name: true } },
-                teacher: { select: { name: true, surname: true } },
-              },
-            },
-          },
         },
       },
       take: ITEM_PER_PAGE,
@@ -193,22 +168,9 @@ const renderRow = (item: ResultList) => (
   ]);
 
   const data = dataRes.map((item) => {
-    const assessment = item.exam || item.assignment;
-
-    if (!assessment) return null;
-
-    const isExam = "startTime" in assessment;
 
     return {
-      id: item.id,
-      title: assessment.title,
-      studentName: item.student.name,
-      studentSurname: item.student.surname,
-      teacherName: assessment.lesson.teacher.name,
-      teacherSurname: assessment.lesson.teacher.surname,
-      score: item.score,
-      className: assessment.lesson.class.name,
-      startTime: isExam ? assessment.startTime : assessment.startDate,
+      
     };
   });
 

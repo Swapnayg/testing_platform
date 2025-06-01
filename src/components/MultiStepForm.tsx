@@ -145,7 +145,10 @@ const MultiStepForm = () => {
     const formData  = methods.getValues();
     console.log(formData);
     setIsSubmitting(true);
-    const res = await createRegistration(formData)
+    const res = await createRegistration({
+      ...formData,
+      registerdAt: new Date()
+    })
     if (res.success) {
       await new Promise(resolve => setTimeout(resolve, 2000));
       setIsSubmitting(false);

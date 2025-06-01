@@ -4,11 +4,11 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Prisma, Subject, Teacher } from "@prisma/client";
+import { Prisma, Subject } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 
-type SubjectList = Subject & { teachers: Teacher[] };
+type SubjectList = Subject & { };
 
 const SubjectListPage = async () => {
   const { sessionClaims } = auth();
@@ -37,7 +37,6 @@ const SubjectListPage = async () => {
     >
       <td className="flex items-center gap-4 p-4">{item.name}</td>
       <td className="hidden md:table-cell">
-        {item.teachers.map((teacher) => teacher.name).join(",")}
       </td>
       <td>
         <div className="flex items-center gap-2">
@@ -88,9 +87,6 @@ const SubjectListPage = async () => {
   const [data, count] = await prisma.$transaction([
     prisma.subject.findMany({
       where: query,
-      include: {
-        teachers: true,
-      },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),

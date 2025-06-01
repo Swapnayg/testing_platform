@@ -76,6 +76,7 @@ const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
     subjectId: data.subjectId ? Number(data.subjectId) : 0,
     lessonId: data.lessonId ? Number(data.lessonId) : 0,
     id: data.id ? Number(data.id) : undefined,
+    status: data.status as string,
   };
 
   formAction(parsedData);

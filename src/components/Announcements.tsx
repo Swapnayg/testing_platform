@@ -17,8 +17,6 @@ const Announcements = async () => {
     where: {
       ...(role !== "admin" && {
         OR: [
-          { classId: null },
-          { class: roleConditions[role as keyof typeof roleConditions] || {} },
         ],
       }),
     },
