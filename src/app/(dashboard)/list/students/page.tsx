@@ -8,44 +8,62 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import {Prisma, Student } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
-
 import { auth } from "@clerk/nextjs/server";
+import type { Metadata } from 'next';
 
 type StudentList = Student & { };
 
-const StudentListPage = async () => {
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}): Promise<Metadata> {
+  const { page } = await searchParams;
+  return {
+    title: `Students - Page ${page ?? 1}`,
+    description: `Viewing students on page ${page ?? 1}`,
+  };
+}
+
+
+export default async function StudentListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { sessionClaims } = auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const role = (sessionClaims?.metadata as { role?: string; })?.role;
 
   const columns = [
-  {
-    header: "",
-    accessor: "id",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Father Name",
-    accessor:"fatherName",
-  },
-  {
-    header: "Email",
-    accessor: "email",
-  },
-  {
-    header: "Phone",
-    accessor: "mobileNumber",
-  },
-  {
-    header: "CNIC Number",
-    accessor: "cnicNumber",
-  },
+    {
+      header: "",
+      accessor: "id",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Father Name",
+      accessor: "fatherName",
+    },
+    {
+      header: "Email",
+      accessor: "email",
+    },
+    {
+      header: "Phone",
+      accessor: "mobileNumber",
+    },
+    {
+      header: "CNIC Number",
+      accessor: "cnicNumber",
+    },
     ...(role === "admin"
       ? [
-          {
-            header: "Actions",
-            accessor: "action",
-          },
-        ]
+        {
+          header: "Actions",
+          accessor: "action",
+        },
+      ]
       : []),
   ];
 
@@ -56,12 +74,11 @@ const StudentListPage = async () => {
     >
       <td className="flex items-center gap-4 p-4">
         <Image
-          src={item.profilePicture ||  "/noAvatar.png"}
+          src={item.profilePicture || "/noAvatar.png"}
           alt=""
           width={40}
           height={40}
-          className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
-        />
+          className="md:hidden xl:block w-10 h-10 rounded-full object-cover" />
         <div className="flex flex-col">
           <h3 className="font-semibold">{item.name}</h3>
           <p className="text-xs text-gray-500">{item.rollNo}</p>
@@ -72,37 +89,25 @@ const StudentListPage = async () => {
       <td className="hidden md:table-cell">{item.mobileNumber}</td>
       <td className="hidden md:table-cell">{item.cnicNumber}</td>
       <td>
-          {role === "admin" && (
-            <div className="flex items-center gap-2">
+        {role === "admin" && (
+          <div className="flex items-center gap-2">
             <Link href={`/list/students/${item.cnicNumber}`}>
               <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
                 <Image src="/view.png" alt="" width={16} height={16} />
               </button>
             </Link>
             <FormContainer table="student" type="delete" id={item.id} />
-            </div>
-          )}
+          </div>
+        )}
       </td>
     </tr>
   );
+  const { page, ...queryParams } = await searchParams;
 
-    const searchParams = typeof window === "undefined"
-    ? new URLSearchParams("") // fallback for SSR, replace with actual params if available
-    : new URLSearchParams(window.location.search);
-
-  const page = searchParams.get("page");
   const p = page ? parseInt(page) : 1;
 
-  // Convert searchParams to an object for queryParams
-  const queryParams: Record<string, string | undefined> = {};
-  searchParams.forEach((value, key) => {
-    if (key !== "page") {
-      queryParams[key] = value;
-    }
-  });
 
   // URL PARAMS CONDITION
-
   const query: Prisma.StudentWhereInput = {};
 
   if (queryParams) {
@@ -125,7 +130,9 @@ const StudentListPage = async () => {
             (query as any).cnicNumber = { contains: value };
             break;
           case "search":
-            query.name = { contains: value };
+            if (typeof value === "string" && value.trim() !== "") {
+              (query as any).name = { contains: value };
+            }
             break;
           default:
             break;
@@ -160,7 +167,7 @@ const StudentListPage = async () => {
   ]);
   if (data.length === 0) {
     //throw new Error('No exams found.');
-    data = []
+    data = [];
   }
 
   return (
@@ -192,6 +199,4 @@ const StudentListPage = async () => {
       <Pagination page={p} count={count} />
     </div>
   );
-};
-
-export default StudentListPage;
+}

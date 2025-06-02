@@ -7,6 +7,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Exam, Prisma, Subject, Category} from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
+import type { Metadata } from 'next';
 
 type ExamList = Exam & {
   grade: {
@@ -16,7 +17,25 @@ type ExamList = Exam & {
   subject: Subject
 };
 
-const ExamListPage = async () => {
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}): Promise<Metadata> {
+  const { page } = await searchParams;
+  return {
+    title: `Students - Page ${page ?? 1}`,
+    description: `Viewing students on page ${page ?? 1}`,
+  };
+}
+
+
+export default async function ExamListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
 
 const { userId, sessionClaims } = auth();
 const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -85,20 +104,8 @@ const renderRow = (item: ExamList) => (
   </tr>
 );
 
-  const searchParams = typeof window === "undefined"
-    ? new URLSearchParams("") // fallback for SSR, replace with actual params if available
-    : new URLSearchParams(window.location.search);
-
-  const page = searchParams.get("page");
+  const { page, ...queryParams } = await searchParams;
   const p = page ? parseInt(page) : 1;
-
-  // Convert searchParams to an object for queryParams
-  const queryParams: Record<string, string | undefined> = {};
-  searchParams.forEach((value, key) => {
-    if (key !== "page") {
-      queryParams[key] = value;
-    }
-  });
 
   // URL PARAMS CONDITION
 
@@ -110,15 +117,16 @@ const renderRow = (item: ExamList) => (
       if (value !== undefined) {
         switch (key) {
           case "category":
+            if (!query.grade) query.grade = {};
             if (!query.grade.category) query.grade.category = {};
-            query.grade.category.catName = value;
+            (query.grade.category as any).catName = value;
             break;
           case "subject":
-            if (!query.subject?.name) query.subject = {};
-            query.subject.name = value;
+            if (!query.subject) query.subject = {};
+            (query.subject as any).name = value;
             break;
           case "search":
-            query.title = value
+            query.title = { contains: value as string };
             break;
           default:
             break;
@@ -211,4 +219,3 @@ const renderRow = (item: ExamList) => (
   );
 };
 
-export default ExamListPage;
