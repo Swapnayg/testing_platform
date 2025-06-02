@@ -4,7 +4,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Exam, Prisma, Subject, Category} from "@prisma/client";
+import { Exam, Prisma, Subject, Category, ExamStatus } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from 'next';
@@ -21,12 +21,15 @@ type ExamList = Exam & {
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }): Promise<Metadata> {
-  const { page } = await searchParams;
+  const params = await searchParams;
+  const page = params.page ?? '1';
+  const search = params.search ?? 'none';
+
   return {
-    title: `Students - Page ${page ?? 1}`,
-    description: `Viewing students on page ${page ?? 1}`,
+    title: `Students - Page ${page}`,
+    description: `Search results for "${search}" on page ${page}`,
   };
 }
 
@@ -34,9 +37,8 @@ export async function generateMetadata({
 export default async function ExamListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-
 const { userId, sessionClaims } = auth();
 const role = (sessionClaims?.metadata as { role?: string })?.role;
 const currentUserId = userId;
@@ -88,8 +90,8 @@ const renderRow = (item: ExamList) => (
     key={item.id}
     className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
   >
-    <td className="flex items-center gap-4 p-4">{item.title}</td>
-    <td className="hidden md:table-cell">{item.subject.name}</td>
+    <td className="flex items-center gap-4 p-4"> { item.title!.charAt(0).toLocaleUpperCase() + item.title!.slice(1)}</td>
+    <td className="hidden md:table-cell">{ item.subject.name!.charAt(0).toLocaleUpperCase() + item.subject.name!.slice(1)}</td>
     <td>{item.grade.category.catName}</td>
     <td className="hidden md:table-cell">{item.grade.level}</td>
     <td>{item.totalMCQ}</td>
@@ -103,87 +105,69 @@ const renderRow = (item: ExamList) => (
     )}
   </tr>
 );
+  const params = await searchParams;
+  const page = parseInt(params.page || '1', 10);
+  const queryParams = params.search || '';
 
-  const { page, ...queryParams } = await searchParams;
-  const p = page ? parseInt(page) : 1;
+  const p = page;
 
-  // URL PARAMS CONDITION
+  console.log(queryParams);
 
-  const query: Prisma.ExamWhereInput = {};
+  
 
-  query.grade = {};
-  if (queryParams) {
-    for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "category":
-            if (!query.grade) query.grade = {};
-            if (!query.grade.category) query.grade.category = {};
-            (query.grade.category as any).catName = value;
-            break;
-          case "subject":
-            if (!query.subject) query.subject = {};
-            (query.subject as any).name = value;
-            break;
-          case "search":
-            query.title = { contains: value as string };
-            break;
-          default:
-            break;
-        }
-      }
-    }
-  }
+  const where = {
+    OR: [
+        { title: { contains: queryParams.trim() } },
+        { grade: {
+            level: { contains: queryParams.trim() },
+            category: { catName: { contains: queryParams.trim()  } }
+          }
+        },
+        { subject: { name: { contains: queryParams.trim()  } } },
+        ...(["NOT_STARTED", "IN_PROGRESS", "COMPLETED"].includes(queryParams.trim())
+      ? [{ status: { equals: queryParams.trim() as ExamStatus } }]
+      : []),
+      
+      ...( !isNaN(Number(queryParams.trim()))
+      ? [
+          { totalMCQ: Number(queryParams.trim()) },      // example numeric field
+          { totalMarks: Number(queryParams.trim()) },     // another example field
+        ]
+      : []),
 
-  // ROLE CONDITIONS
 
-  switch (role) {
-    case "admin":
-      break;
-    case "teacher":
-      //query.lesson.teacherId = currentUserId!;
-      break;
-    case "student":
-      // query.lesson.class = {
-      //   students: {
-      //     some: {
-      //       id: currentUserId!,
-      //     },
-      //   },
-      // };
-      break;
-    case "parent":
-      // query.lesson.class = {
-      //   students: {
-      //     some: {
-      //       parentId: currentUserId!,
-      //     },
-      //   },
-      // };
-      break;
-
-    default:
-      break;
-  }
-
+      ],
+  };
+  
   var [data, count] = await prisma.$transaction([
     prisma.exam.findMany({
-      where: query,
-      include: {
+      where,
+      select: {
+        id: true,
+        title:true,
+        status:true,
+        totalMCQ:true,
+        totalMarks:true,
         grade: {
           select: {
             level: true,
-            category: { select: { catName: true } },
-          },
+            category: {
+              select: {
+                catName: true
+              }
+            }
+          }
         },
         subject: {
-          select: { id: true, name: true },
+          select: {
+            name:true
         },
+      }
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.exam.count({ where: query }),
+    prisma.exam.count({ where }),
   ]);
   if (data.length === 0) {
   //throw new Error('No exams found.');
@@ -199,12 +183,12 @@ const renderRow = (item: ExamList) => (
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
+            {/* <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/filter.png" alt="" width={14} height={14} />
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
+            </button> */}
             {(role === "admin" || role === "teacher") && (
               <FormContainer table="exam" type="create" />
             )}
