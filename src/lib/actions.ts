@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import nodemailer from 'nodemailer';
 import {
   ClassSchema,
   ExamSchema,
@@ -138,7 +139,10 @@ export const createStudent = async (
   console.log(data);
   try {
 
+
     var rollNo = uuidTo6DigitNumber();
+
+    
     const user = await clerkClient.users.createUser({
       username: "UIN" + rollNo.toString(),
       password: data.cnicNumber || '',
@@ -162,9 +166,76 @@ export const createStudent = async (
         addressLine1: data.addressLine1 || '',
         instituteName: data.instituteName || '',
         others: "",
-        rollNo: rollNo.toString()
+        rollNo: "UIN" + rollNo.toString(),
       },
     });
+
+
+    const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER!,
+      pass: process.env.GMAIL_PASS!,
+    },
+  });
+
+
+  const logoUrl = `${process.env.APP_URL}/favicon.ico`;
+  const loginUrl = `${process.env.APP_URL}/`;
+  const studentCnic = "UIN" + rollNo.toString();
+  const studentPassword = data.cnicNumber || '';
+
+  const htmlTemplate = `<div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: auto;">
+  <!-- Logo -->
+  <div style="text-align: center; margin-bottom: 20px;">
+    <img src="` + logoUrl + `" alt="School Logo" style="max-height: 60px;" />
+  </div>
+
+  <h2 style="color: #4CAF50;">Welcome to the Student Portal 🎓</h2>
+
+  <p>Dear Student,</p>
+
+  <p>You have been successfully registered on the <strong>Student Portal</strong>. Below are your login details:</p>
+
+  <table style="margin: 15px 0; border-collapse: collapse; width: 100%;">
+    <tr>
+      <td style="padding: 8px; font-weight: bold; width: 30%;">🔗 Login URL:</td>
+      <td style="padding: 8px;">
+        <a href="` + loginUrl + `" target="_blank" style="color: #1a73e8;">` + loginUrl + `</a>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; font-weight: bold;">👤 Username (CNIC):</td>
+      <td style="padding: 8px;"> ` + studentCnic + `</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; font-weight: bold;">🔐 Password:</td>
+      <td style="padding: 8px;"> ` + studentPassword + `</td>
+    </tr>
+  </table>
+
+  <p>✅ Please log in using the above credentials. You will be asked to change your password upon first login.</p>
+
+  <p>If you experience any issues, contact us at <a href="mailto:support@yourschool.edu">support@yourschool.edu</a>.</p>
+
+  <br />
+  <p>Best regards,<br /><strong>Your School Administration</strong></p>
+
+  <hr style="margin-top: 30px;" />
+  <p style="font-size: 12px; color: #888;">This is an automated message. Please do not reply directly to this email.</p>
+</div>
+
+    `;
+
+
+  const info = await transporter.sendMail({
+    from: process.env.GMAIL_USER!,
+    to: data.email || '',
+    subject: '🎓 Welcome Aboard! Your Portal Login Details',
+    html: htmlTemplate,
+  });
+
+  console.log('Email sent:', info.messageId);
 
     // revalidatePath("/list/students");
     return { success: true, error: false };
@@ -185,14 +256,13 @@ export const updateStudent = async (
 
     await prisma.student.update({
       where: {
-        cnicNumber: data.id,
+        cnicNumber: data.cnicNumber,
       },
       data: {
         name: data.name || '',
         fatherName: data.fatherName || '',
         dateOfBirth: data.dateOfBirth || '',
         religion: data.religion || '',
-        cnicNumber: data.cnicNumber || '',
         profilePicture: data.profilePicture || '',
         email: data.email || '',
         mobileNumber: data.mobileNumber || '',
@@ -362,7 +432,7 @@ export async function createRegistration(data: { name: string; status: "pending"
       addressLine1: data.addressLine1 || '',
       instituteName: data.instituteName || '',
       others: "",
-      rollNo: rollNo.toString()
+      rollNo: "UIN" + rollNo.toString(),
     }
   });
 

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import BigCalendar from "@/components/BigCalender";
@@ -11,20 +12,32 @@ import { Item } from "@radix-ui/react-select";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+import { GetServerSideProps } from 'next';
 
-const SingleStudentPage = async () => {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  return {
+    title: `Student ID: ${id}`,
+    description: `Details for student ${id}`,
+  };
+}
+
+export default async function SingleStudentPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const { sessionClaims } = auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-  const searchParams = typeof window === "undefined"
-    ? new URLSearchParams("") // fallback for SSR, replace with actual params if available
-    : new URLSearchParams(window.location.search);
-  const id = searchParams.get("id") || undefined;
   const student:
     | (Student)
-    | null = await prisma.student.findFirst({
-    where: { id },
+    | null = await prisma.student.findUnique({
+    where: { cnicNumber: id },
     select: {
       id: true,
       name: true,
@@ -56,10 +69,10 @@ return (
         {/* TOP */}
         <div className="flex flex-col lg:flex-row gap-4">
           {/* USER INFO CARD */}
-          <div className="bg-lamaSky py-6 px-4 rounded-md flex-1 flex gap-4">
-            <div className="w-1/3">
+          <div className="bg-rose-200 w-1/3 py-6 px-4 rounded-md flex-1 flex gap-3">
+           <div className="w-1/3 py-10">
               <Image
-                src="https://images.pexels.com/photos/5414817/pexels-photo-5414817.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                src={student.profilePicture || "/noAvatar.png"}
                 alt=""
                 width={144}
                 height={144}
@@ -67,30 +80,53 @@ return (
               />
             </div>
             <div className="w-2/3 flex flex-col justify-between gap-4">
-              <h1 className="text-xl font-semibold">Cameron Moran</h1>
+              <div className="flex items-center gap-4">
+                <h1 className="text-xl font-semibold">
+                  {student.name!.charAt(0).toLocaleUpperCase() + student.name!.slice(1)}  {student.fatherName!.charAt(0).toLocaleUpperCase() + student.fatherName!.slice(1)}
+                </h1>
+                 
+                {role === "admin" && (
+                  <FormContainer table="student" type="update" data={student} />
+                )}
+              </div>
               <p className="text-sm text-gray-500">
-                Lorem ipsum, dolor sit amet consectetur adipisicing elit.
+                {student.rollNo!}
               </p>
               <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
-                  <Image src="/blood.png" alt="" width={14} height={14} />
-                  <span>A+</span>
+                  <Image src="/maleFemale.png" alt="" width={14} height={14} />
+                  <span>{student.gender!.charAt(0).toLocaleUpperCase() + student.gender!.slice(1)}</span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/date.png" alt="" width={14} height={14} />
-                  <span>January 2025</span>
+                  <span>
+                    {new Intl.DateTimeFormat("en-GB").format(student.dateOfBirth)}
+                  </span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/mail.png" alt="" width={14} height={14} />
-                  <span>user@gmail.com</span>
+                  <span>{student.email!.charAt(0).toLocaleUpperCase() + student.email!.slice(1) || "-"}</span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/phone.png" alt="" width={14} height={14} />
-                  <span>+1 234 567</span>
+                  <span>{student.mobileNumber || "-"}</span>
+                </div>
+
+                <div className="w-full md:w-1/2 lg:w-full 2xl:w-1/2 flex items-center gap-2">
+                  <Image src="/id-card.png" alt="" width={14} height={14} />
+                  <span>{student.cnicNumber!.charAt(0).toLocaleUpperCase() + student.cnicNumber!.slice(1) || "-"}</span>
+                </div>
+                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
+                  <Image src="/religion.png" alt="" width={14} height={14} />
+                  <span>{student.religion!.charAt(0).toLocaleUpperCase() + student.religion!.slice(1) || "-"}</span>
+                </div>
+                 <div className="w-full flex items-center gap-2">
+                  <Image src="/location-pin.png" alt="" width={14} height={14} />
+                  <span>{student.addressLine1!.charAt(0).toLocaleUpperCase() + student.addressLine1!.slice(1) || "-"} {student.city!.charAt(0).toLocaleUpperCase() + student.city!.slice(1) || "-"} {student.stateProvince!.charAt(0).toLocaleUpperCase() + student.stateProvince!.slice(1) || "-"}</span>
                 </div>
               </div>
             </div>
-          </div>
+            </div>
           {/* SMALL CARDS */}
           <div className="flex-1 flex gap-4 justify-between flex-wrap">
             {/* CARD */}
@@ -186,4 +222,3 @@ return (
   );
 };
 
-export default SingleStudentPage;

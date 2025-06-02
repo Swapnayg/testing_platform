@@ -59,8 +59,7 @@ const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
     toast.error("All Fields are required.");
     return;
   }
-  console.log(new Date(data.endTime as string).getTime());
-  console.log(new Date(data.startTime as string).getTime());
+  
   if (new Date(data.endTime as string).getTime() <= new Date(data.startTime as string).getTime()) {
     toast.error("End Date must be greater than Start Date.");
     return;
