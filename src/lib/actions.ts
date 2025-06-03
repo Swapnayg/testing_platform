@@ -622,9 +622,15 @@ export const updateReject = async (
 
 
 export const updateAccept = async (
+  formData: FormData,
+  fileName: string,
   id: number // or string, depending on your schema
 ) => {
   try {
+    const file = formData.get('pdf') as File;
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     const register = await prisma.registration.findUnique({
       where: { id },
     });
@@ -773,6 +779,14 @@ export const updateAccept = async (
           to: user.email || '',
           subject: 'Olympiad Payment Rejected – Action Required to Complete Registration',
           html: htmlTemplate,
+          attachments: [
+         {
+          filename: fileName,
+          content: buffer,
+          contentType: "application/pdf",
+        },
+      ],
+
         });
 
         console.log('Email sent:', info.messageId);
