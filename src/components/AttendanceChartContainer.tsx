@@ -23,7 +23,6 @@ const AttendanceChartContainer = async () => {
     },
   });
 
-  // console.log(data)
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
@@ -35,7 +34,7 @@ const AttendanceChartContainer = async () => {
       Thu: { present: 0, absent: 0 },
       Fri: { present: 0, absent: 0 },
     };
-
+if (resData.length > 0) {
   resData.forEach((item) => {
     const itemDate = new Date(item.date);
     const dayOfWeek = itemDate.getDay();
@@ -50,12 +49,22 @@ const AttendanceChartContainer = async () => {
       }
     }
   });
+}
+else {
+  // 🔁 Generate dummy data if no records are found
+  daysOfWeek.forEach((day) => {
+    attendanceMap[day].present = Math.floor(Math.random() * 10);
+    attendanceMap[day].absent = Math.floor(Math.random() * 5);
+  });
+}
 
-  const data = daysOfWeek.map((day) => ({
-    name: day,
-    present: attendanceMap[day].present,
-    absent: attendanceMap[day].absent,
-  }));
+const data = daysOfWeek.map((day) => ({
+  name: day,
+  present: attendanceMap[day].present,
+  absent: attendanceMap[day].absent,
+}));
+
+
 
   return (
     <div className="bg-white rounded-lg p-4 h-full">
@@ -63,7 +72,7 @@ const AttendanceChartContainer = async () => {
         <h1 className="text-lg font-semibold">Attendance</h1>
         <Image src="/moreDark.png" alt="" width={20} height={20} />
       </div>
-      <AttendanceChart data={data}/>
+      <AttendanceChart/>
     </div>
   );
 };

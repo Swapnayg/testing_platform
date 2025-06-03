@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 import type { Metadata } from 'next';
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
@@ -5,6 +7,7 @@ import BigCalendar from "@/components/BigCalender";
 import FormContainer from "@/components/FormContainer";
 import Performance from "@/components/Performance";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
+import RegistrationTable from '@/components/RegistrationTable';
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { Student } from "@prisma/client";
@@ -34,6 +37,7 @@ export default async function SingleStudentPage({
   const { id } = await params;
   const { sessionClaims } = auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
+
   const student:
     | (Student)
     | null = await prisma.student.findUnique({
@@ -58,9 +62,32 @@ export default async function SingleStudentPage({
     }
   });
 
+  const registrations = await prisma.registration.findMany({
+    where: {
+      studentId: id,
+      status: 'PENDING',
+    },
+    orderBy: {
+      id: 'desc', // optional, if you have a timestamp field
+    },
+    select:
+    {
+      id: true,
+      olympiadCategory:true,
+      catGrade:true,
+      paymentOption:true,
+      otherName:true,
+      transactionId:true,
+      totalAmount:true,
+      dateOfPayment:true,
+      transactionReceipt:true,
+    }
+  });
+
   if (!student) {
     return notFound();
   }
+  console.log(registrations);
 
 return (
  <div className="flex-1 p-4 flex flex-col gap-4 xl:flex-row">
@@ -191,6 +218,22 @@ return (
         <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
           <h1>Student&apos;s Schedule</h1>
           <BigCalendar data={[]} />
+        </div>
+
+        <div className="mt-4 bg-white rounded-md p-4 h-[800px] w-full">
+          <h1>Payment Details</h1>
+          <RegistrationTable registrations={registrations.map(r => ({
+            ...r,
+            id:r.id ?? "",
+            olympiadCategory: r.olympiadCategory ?? "",
+            catGrade: r.catGrade ?? "",
+            totalAmount: r.totalAmount ?? "",
+            transactionId: r.transactionId ?? "",
+            paymentOption: r.paymentOption ?? "",
+            otherName: r.otherName === null ? "" : r.otherName,
+            dateOfPayment: r.dateOfPayment ? r.dateOfPayment.toISOString() : "",
+            transactionReceipt:  r.transactionReceipt ?? "",
+          }))} />
         </div>
       </div>
       {/* RIGHT */}

@@ -19,6 +19,14 @@ type CurrentState = { success: boolean; error: boolean };
 
 const today = new Date();
 
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER!,
+    pass: process.env.GMAIL_PASS!,
+  },
+});
+
 cron.schedule('0 0 * * *', async () => {
   console.log('Archiving old results...');
   const dateOnly = new Date(today.toISOString().split('T')[0]);
@@ -32,7 +40,6 @@ cron.schedule('0 0 * * *', async () => {
       endTime: {
         gte: today, // still ongoing or ends today
       },
-
     },
     data: {
       status: 'IN_PROGRESS',
@@ -169,16 +176,6 @@ export const createStudent = async (
         rollNo: "UIN" + rollNo.toString(),
       },
     });
-
-
-    const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER!,
-      pass: process.env.GMAIL_PASS!,
-    },
-  });
-
 
   const logoUrl = `${process.env.APP_URL}/favicon.ico`;
   const loginUrl = `${process.env.APP_URL}/`;
@@ -394,7 +391,7 @@ export const deleteExam = async (
   try {
     await prisma.exam.delete({
       where: {
-        id: parseInt(id),
+        id: id,
         // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
       },
     });
@@ -407,7 +404,7 @@ export const deleteExam = async (
   }
 };
 
-export async function createRegistration(data: { name: string; status: "pending" | "approved" | "rejected"; fatherName: string; registerdAt: Date; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any; }) {
+export async function createRegistration(data: { name: string; status: "PENDING" | "APPROVED" | "REJECTED"; fatherName: string; registerdAt: Date; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any; }) {
   try {
     var rollNo = uuidTo6DigitNumber();
     const user = await clerkClient.users.createUser({
@@ -415,6 +412,7 @@ export async function createRegistration(data: { name: string; status: "pending"
       password: data.cnicNumber || '',
       publicMetadata:{role:"student"}
     });
+  
   const student =  await prisma.student.create({
     data: {
       id: user.id,// Ensure 'id' is provided in the data argument
@@ -435,8 +433,22 @@ export async function createRegistration(data: { name: string; status: "pending"
       rollNo: "UIN" + rollNo.toString(),
     }
   });
+  const examList = await prisma.exam.findMany({
+    where: {
+      startTime: {
+        gt: new Date(),
+      },
+      category: {
+        catName: data.olympiadCategory || '',
+      },
+      grade: {
+      level:  data.catGrade || '',
+      },
+    },
+    });
+    console.log(examList);
 
-    await prisma.registration.create({
+    const newRegistration = await prisma.registration.create({
       data: {
         olympiadCategory: data.olympiadCategory || '',
         catGrade : data.catGrade || '',
@@ -456,6 +468,14 @@ export async function createRegistration(data: { name: string; status: "pending"
       },
     });
 
+
+    await prisma.examOnRegistration.createMany({
+        data: examList.map((exam: { id: any; }) => ({
+        examId: exam.id,
+        registrationId: newRegistration.id,
+      })),
+      skipDuplicates: true,
+    });
     // revalidatePath("/list/students");
     return { success: true, error: false };
   } catch (err) {
@@ -464,20 +484,300 @@ export async function createRegistration(data: { name: string; status: "pending"
   }
 };
 
-export const updateRegistration = async (
-  currentState: CurrentState,
-  data: FormSchema
+
+export const updateReject = async (
+  id: number // or string, depending on your schema
 ) => {
   try {
-    await prisma.registration.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        status: data.status,
-      },
+    const register = await prisma.registration.findUnique({
+      where: { id },
     });
+    if (register?.id) {
+      const user = await prisma.student.findUnique({
+        where: { cnicNumber: register.studentId },
+      });
+      if (user?.id) {
 
+        await prisma.registration.update({
+          where: {
+            id: id,
+          },
+          data: {
+            status: "REJECTED",
+          },
+        });
+        const logoUrl = `${process.env.APP_URL}/favicon.ico`;
+        const loginUrl = `${process.env.APP_URL}/`;
+        const studentCnic =  user.rollNo || '';
+        const studentPassword = user.cnicNumber || '';
+
+        const htmlTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment Rejected</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f6f8fa;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .header {
+      background-color: #4b0082;
+      padding: 20px;
+      color: white;
+      text-align: center;
+    }
+    .logo {
+      max-width: 120px;
+      margin-bottom: 10px;
+    }
+    .content {
+      padding: 30px;
+      line-height: 1.6;
+      color: #333333;
+    }
+    .btn {
+      background-color: #4b0082;
+      color: white !important;
+      text-decoration: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      display: inline-block;
+      margin-top: 20px;
+    }
+    .footer {
+      font-size: 12px;
+      text-align: center;
+      color: #999999;
+      padding: 15px;
+    }
+    .login-details {
+      background-color: #f2f2f2;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 15px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="`+logoUrl+`" alt="Olympiad Logo" class="logo" />
+      <h2>Olympiad Portal</h2>
+    </div>
+    <div class="content">
+      <h3>Dear Student,</h3>
+      <p>We regret to inform you that your recent payment for the Olympiad registration has been <strong>rejected</strong> due to issues in the submitted receipt or transaction.</p>
+
+      <p>Please log in to your student dashboard and re-upload a valid payment receipt or contact the support team for assistance.</p>
+
+      <div class="login-details">
+        <p><strong>Login Portal:</strong> <a href="`+loginUrl+`" target="_blank">`+loginUrl+`</a></p>
+        <p><strong>Username:</strong> `+studentCnic+`</p>
+        <p><strong>Password:</strong> `+studentPassword+`</p>
+      </div>
+
+      <a href="`+loginUrl+`" class="btn">Go to Student Portal</a>
+
+      <p>If you believe this was an error, please reach out to our support team at <a href="mailto:support@yourdomain.com">support@yourdomain.com</a>.</p>
+
+      <p>Thank you,<br />Olympiad Registration Team</p>
+    </div>
+    <div class="footer">
+      &copy; 2025 Olympiad Organization. All rights reserved.
+    </div>
+  </div>
+</body>
+</html> `;
+
+
+  const info = await transporter.sendMail({
+    from: process.env.GMAIL_USER!,
+    to: user.email || '',
+    subject: 'Olympiad Payment Rejected – Action Required to Complete Registration',
+    html: htmlTemplate,
+  });
+
+  console.log('Email sent:', info.messageId);
+      }  
+    }
+    // revalidatePath("/list/subjects");
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+
+export const updateAccept = async (
+  id: number // or string, depending on your schema
+) => {
+  try {
+    const register = await prisma.registration.findUnique({
+      where: { id },
+    });
+    if (register?.id) {
+      const user = await prisma.student.findUnique({
+        where: { cnicNumber: register.studentId },
+      });
+      if (user?.id) {
+        const examList = await prisma.examOnRegistration.findMany({
+          where: {
+            registrationId :id
+          }, 
+        });
+        
+        if (examList.length === 0) {
+          console.log('No exams found for this registration');
+          return;
+        }
+        const examIds = examList.map(er => er.examId);
+        const exams = await prisma.exam.findMany({
+          where: { id: { in: examIds } },
+        });
+
+        try {
+         for (const ex of exams) { 
+            await prisma.result.create({
+            data: {
+              examId: ex.id,
+              studentId: user.cnicNumber,
+              status: "NOT_GRADED",
+              score: 0,
+              startTime: new Date(ex.startTime),
+              endTime: new Date(ex.endTime),
+            },
+        });
+      }   
+      } catch (error) {
+      }
+
+      await prisma.registration.update({
+        where: {
+          id: id,
+        },
+        data: {
+          status: "APPROVED",
+        },
+      });
+      const logoUrl = `${process.env.APP_URL}/favicon.ico`;
+      const loginUrl = `${process.env.APP_URL}/`;
+      const studentCnic =  user.rollNo || '';
+      const studentPassword = user.cnicNumber || '';
+
+      const htmlTemplate = `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Payment Accepted</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            padding: 20px;
+          }
+          .container {
+            max-width: 600px;
+            background: #ffffff;
+            margin: auto;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          .header {
+            background-color: #28a745; /* ✅ GREEN */
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+          }
+          .header img {
+            max-width: 100px;
+            margin-bottom: 10px;
+          }
+          .content {
+            padding: 30px;
+            color: #333333;
+            line-height: 1.6;
+          }
+          .login-box {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-family: monospace;
+          }
+          .btn {
+            background-color: #28a745;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 20px;
+          }
+          .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #999999;
+            padding: 15px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <img src="`+logoUrl+`" alt="Olympiad Logo" />
+            <h2>Olympiad Registration Confirmed</h2>
+          </div>
+          <div class="content">
+            <p>Dear Student,</p>
+            <p>We are pleased to inform you that your payment for the Olympiad registration has been <strong>successfully accepted</strong>.</p>
+            <p>You can now log in to your student dashboard to view your exams, results, and other details.</p>
+
+            <div class="login-box">
+              <p><strong>Login Portal:</strong> <a href="`+loginUrl+`" target="_blank">`+loginUrl+`</a></p>
+              <p><strong>Username:</strong> `+studentCnic+`</p>
+              <p><strong>Password:</strong> `+studentPassword+`</p>
+            </div>
+
+            <a href="`+loginUrl+`" class="btn">Go to Student Portal</a>
+
+            <p>If you have any questions or need assistance, feel free to contact our support team at <a href="mailto:support@yourdomain.com">support@yourdomain.com</a>.</p>
+
+            <p>Best regards,<br />Olympiad Registration Team</p>
+          </div>
+          <div class="footer">
+            &copy; 2025 Olympiad Organization. All rights reserved.
+          </div>
+        </div>
+      </body>
+      </html>
+      `;
+
+
+        const info = await transporter.sendMail({
+          from: process.env.GMAIL_USER!,
+          to: user.email || '',
+          subject: 'Olympiad Payment Rejected – Action Required to Complete Registration',
+          html: htmlTemplate,
+        });
+
+        console.log('Email sent:', info.messageId);
+      }  
+    }
     // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {

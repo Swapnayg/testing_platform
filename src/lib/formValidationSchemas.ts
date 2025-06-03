@@ -75,7 +75,7 @@ export type StudentSchema = z.infer<typeof studentSchema>;
 export type FormSchema = z.infer<typeof formSchema>;
 
 export const examSchema = z.object({
-  id: z.coerce.number().optional(),
+  id: z.string().optional(),
   title: z.string().min(1, { message: "Title name is required!" }),
   startTime: z.coerce.date({ message: "Start time is required!" }),
   endTime: z.coerce.date({ message: "End time is required!" }),

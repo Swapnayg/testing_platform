@@ -1,46 +1,65 @@
+import Announcements from "@/components/Announcements";
+import AttendanceChartContainer from "@/components/AttendanceChartContainer";
+import CountChartContainer from "@/components/CountChartContainer";
+import EventCalendarContainer from "@/components/EventCalendarContainer";
+import FinanceChart from "@/components/FinanceChart";
+import UserCard from "@/components/UserCard";
+import type { Metadata } from 'next';
+import AttendanceChart from "@/components/AttendanceChart";
+import EventCalendar from "@/components/EventCalendar";
 
-//import Announcements from "@/components/Announcements";
-// import AttendanceChartContainer from "@/components/AttendanceChartContainer";
-// import CountChartContainer from "@/components/CountChartContainer";
-// import EventCalendarContainer from "@/components/EventCalendarContainer";
-// import FinanceChart from "@/components/FinanceChart";
-// import UserCard from "@/components/UserCard";
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const page = params.page ?? '1';
+  const search = params.search ?? 'none';
 
-const AdminPage = () => {
+  return {
+    title: `Admin - Page ${search}`,
+    description: `Admin results for "${search}" on page ${page}`,
+  };
+}
+
+
+export default async function AdminPage ({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) {
+  const params = await searchParams;
   return (
     <div className="p-4 flex gap-4 flex-col md:flex-row">
       {/* LEFT */}
       <div className="w-full lg:w-2/3 flex flex-col gap-8">
         {/* USER CARDS */}
         <div className="flex gap-4 justify-between flex-wrap">
-          {/* <UserCard type="admin" />
-          <UserCard type="teacher" />
+          <UserCard type="admin" />
           <UserCard type="student" />
-          <UserCard type="parent" /> */}
         </div>
         {/* MIDDLE CHARTS */}
         <div className="flex gap-4 flex-col lg:flex-row">
           {/* COUNT CHART */}
           <div className="w-full lg:w-1/3 h-[450px]">
-            {/* <CountChartContainer /> */}
+            <CountChartContainer />
           </div>
           {/* ATTENDANCE CHART */}
           <div className="w-full lg:w-2/3 h-[450px]">
-            {/* <AttendanceChartContainer /> */}
+            <AttendanceChart />
           </div>
         </div>
         {/* BOTTOM CHART */}
         <div className="w-full h-[500px]">
-          {/* <FinanceChart /> */}
+          <FinanceChart />
         </div>
       </div>
       {/* RIGHT */}
       <div className="w-full lg:w-1/3 flex flex-col gap-8">
-        {/* <EventCalendarContainer searchParams={searchParams}/> */}
-        {/* <Announcements /> */}
+        <EventCalendar />
+        <Announcements />
       </div>
     </div>
   );
 };
-
-export default AdminPage;

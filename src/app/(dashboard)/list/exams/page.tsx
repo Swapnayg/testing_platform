@@ -28,7 +28,7 @@ export async function generateMetadata({
   const search = params.search ?? 'none';
 
   return {
-    title: `Students - Page ${page}`,
+    title: `Exams - Page ${page}`,
     description: `Search results for "${search}" on page ${page}`,
   };
 }
@@ -110,10 +110,6 @@ const renderRow = (item: ExamList) => (
   const queryParams = params.search || '';
 
   const p = page;
-
-  console.log(queryParams);
-
-  
 
   const where = {
     OR: [

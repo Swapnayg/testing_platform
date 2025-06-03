@@ -59,27 +59,33 @@ const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
     toast.error("All Fields are required.");
     return;
   }
-  
-  if (new Date(data.endTime as string).getTime() <= new Date(data.startTime as string).getTime()) {
-    toast.error("End Date must be greater than Start Date.");
-    return;
+  if (new Date(data.startTime as string).getTime() > new Date().getTime()) {
+    if (new Date(data.endTime as string).getTime() <= new Date(data.startTime as string).getTime()) {
+      toast.error("End Date must be greater than Start Date.");
+    }
+    else
+    {
+    const parsedData = {
+      title: data.title as string,
+      startTime: new Date(data.startTime as string),
+      endTime: new Date(data.endTime as string),
+      totalMCQ: data.totalMCQ ? Number(data.totalMCQ) : 0,
+      totalMarks: data.totalMarks ? Number(data.totalMarks) : 0,
+      categoryId: data.categoryId ? Number(data.categoryId) : 0,
+      gradeId: data.gradeId ? Number(data.gradeId) : 0,
+      subjectId: data.subjectId ? Number(data.subjectId) : 0,
+      lessonId: data.lessonId ? Number(data.lessonId) : 0,
+      id: data.id ? String(data.id) : undefined,
+      status: data.status as string,
+    };
+
+    formAction(parsedData);
+    }
   }
-  const parsedData = {
-    title: data.title as string,
-    startTime: new Date(data.startTime as string),
-    endTime: new Date(data.endTime as string),
-    totalMCQ: data.totalMCQ ? Number(data.totalMCQ) : 0,
-    totalMarks: data.totalMarks ? Number(data.totalMarks) : 0,
-    categoryId: data.categoryId ? Number(data.categoryId) : 0,
-    gradeId: data.gradeId ? Number(data.gradeId) : 0,
-    subjectId: data.subjectId ? Number(data.subjectId) : 0,
-    lessonId: data.lessonId ? Number(data.lessonId) : 0,
-    id: data.id ? Number(data.id) : undefined,
-    status: data.status as string,
-  };
-
-  formAction(parsedData);
-
+  else
+  {
+    toast.error("Start Date must be greater than Today's Date.");
+  }
 };
 
   const [selectedCategoryId, setSelectedCategoryId] = useState(1);

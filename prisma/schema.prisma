@@ -50,8 +50,14 @@ model Grade {
   Exam Exam[]
 }
 
+enum RegistrationStatus {
+  APPROVED
+  PENDING
+  REJECTED
+}
+
 model Registration {
-  id                 Int      @id @default(autoincrement())
+  id                 Int                @id @default(autoincrement())
   olympiadCategory   String?
   catGrade           String?
   bankName           String?
@@ -64,12 +70,23 @@ model Registration {
   otherName          String?
   transactionReceipt String?
   applicationId      String?
-  status             String?
-  ExamId             String?
+  status             RegistrationStatus // <- enum used here
   studentId          String
-  student            Student  @relation(fields: [studentId], references: [cnicNumber])
-  registerdAt        DateTime @default(now())
+  student            Student            @relation(fields: [studentId], references: [cnicNumber])
+  registerdAt        DateTime           @default(now())
+  exams              ExamOnRegistration[] 
 }
+
+model ExamOnRegistration {
+  examId         String
+  registrationId Int
+
+  exam           Exam         @relation(fields: [examId], references: [id])
+  registration   Registration @relation(fields: [registrationId], references: [id])
+
+  @@id([examId, registrationId]) // composite primary key
+}
+
 
 model Subject {
   id   Int    @id @default(autoincrement())
@@ -78,22 +95,23 @@ model Subject {
 }
 
 model Exam {
-  id        Int        @id @default(autoincrement())
+  id        String     @id @default(uuid())
   title     String
   startTime DateTime
   endTime   DateTime
   status    ExamStatus @default(NOT_STARTED)
 
-  categoryId Int
-  category   Category     @relation(fields: [categoryId], references: [id])
-  gradeId    Int
-  grade      Grade        @relation(fields: [gradeId], references: [id])
-  subjectId  Int
-  subject    Subject      @relation(fields: [subjectId], references: [id])
-  totalMCQ   Int
-  totalMarks Int
-  results    Result[]
-  attendance Attendance[]
+  categoryId   Int
+  category     Category       @relation(fields: [categoryId], references: [id])
+  gradeId      Int
+  grade        Grade          @relation(fields: [gradeId], references: [id])
+  subjectId    Int
+  subject      Subject        @relation(fields: [subjectId], references: [id])
+  totalMCQ     Int
+  totalMarks   Int
+  results      Result[]
+  attendance   Attendance[]
+  registrations ExamOnRegistration[]
 }
 
 enum ResultStatus {
@@ -111,7 +129,7 @@ model Result {
   startTime DateTime
   endTime   DateTime
 
-  examId    Int?
+  examId    String?
   exam      Exam?   @relation(fields: [examId], references: [id])
   studentId String
   student   Student @relation(fields: [studentId], references: [cnicNumber])
@@ -124,8 +142,8 @@ model Attendance {
 
   studentId String
   student   Student @relation(fields: [studentId], references: [cnicNumber])
-  examId    Int
-  exam      Exam    @relation(fields: [examId], references: [id])
+  examId    String?
+  exam      Exam?   @relation(fields: [examId], references: [id])
 }
 
 model Event {

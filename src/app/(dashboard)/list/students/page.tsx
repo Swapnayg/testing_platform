@@ -11,7 +11,8 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from 'next';
 
-type StudentList = Student & { };
+type StudentList = Student & {registrationCount: number;  };
+
 
 export async function generateMetadata({
   searchParams,
@@ -100,6 +101,14 @@ export default async function StudentListPage({
               </button>
             </Link>
             <FormContainer table="student" type="delete" id={item.id} />
+            {item.registrationCount > 0 && (
+
+             <Link href={`/list/students/${item.cnicNumber}`}>
+              <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+                <Image src="/atm-card.png" alt="" width={16} height={16} />
+              </button>
+            </Link>
+            )}
           </div>
         )}
       </td>
@@ -111,7 +120,6 @@ export default async function StudentListPage({
 
   const p = page;
 
-  console.log(queryParams);
 
 
 
@@ -131,7 +139,7 @@ export default async function StudentListPage({
     ],
   };
 
-  var [data, count] = await prisma.$transaction([
+  var [students, count] = await prisma.$transaction([
     prisma.student.findMany({
       where,
       select: {
@@ -155,11 +163,28 @@ export default async function StudentListPage({
     }),
     prisma.student.count({ where }),
   ]);
+
+    var data = await Promise.all(
+    students.map(async (student) => {
+    const registrationCount = await prisma.registration.count({
+      where: {
+        studentId: student.cnicNumber,
+        status: 'PENDING', // <-- Customize this condition as needed
+      },
+    });
+
+    return {
+      ...student,
+      registrationCount,
+    };
+  })
+  );
   if (data.length === 0) {
     //throw new Error('No exams found.');
     data = [];
   }
 
+  
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}

@@ -17,7 +17,7 @@ const PersonalInfoStep = () => {
   const religion = watch('religion');
   const email = watch('email');
   const confirmEmail = watch('confirmEmail');
-  const status =  watch('status') || 'pending';
+  const status =  watch('status') || 'PENDING';
 
   const generateApplicationId = () => {
       const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

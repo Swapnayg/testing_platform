@@ -14,6 +14,7 @@ CREATE TABLE `Student` (
     `fatherName` VARCHAR(191) NULL,
     `dateOfBirth` DATETIME(3) NOT NULL,
     `religion` VARCHAR(191) NULL,
+    `gender` VARCHAR(191) NULL,
     `cnicNumber` VARCHAR(191) NOT NULL,
     `profilePicture` VARCHAR(191) NULL,
     `email` VARCHAR(191) NULL,
@@ -25,7 +26,6 @@ CREATE TABLE `Student` (
     `others` VARCHAR(191) NULL,
     `rollNo` VARCHAR(191) NULL,
 
-    UNIQUE INDEX `Student_id_key`(`id`),
     UNIQUE INDEX `Student_cnicNumber_key`(`cnicNumber`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -63,8 +63,9 @@ CREATE TABLE `Registration` (
     `otherName` VARCHAR(191) NULL,
     `transactionReceipt` VARCHAR(191) NULL,
     `applicationId` VARCHAR(191) NULL,
-    `status` VARCHAR(191) NULL,
-    `ExamId` VARCHAR(191) NULL,
+    `status` ENUM('APPROVED', 'PENDING', 'REJECTED') NOT NULL,
+    `examId` VARCHAR(191) NULL,
+    `studentId` VARCHAR(191) NOT NULL,
     `registerdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     PRIMARY KEY (`id`)
@@ -81,10 +82,11 @@ CREATE TABLE `Subject` (
 
 -- CreateTable
 CREATE TABLE `Exam` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `id` VARCHAR(191) NOT NULL,
     `title` VARCHAR(191) NOT NULL,
     `startTime` DATETIME(3) NOT NULL,
     `endTime` DATETIME(3) NOT NULL,
+    `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
     `categoryId` INTEGER NOT NULL,
     `gradeId` INTEGER NOT NULL,
     `subjectId` INTEGER NOT NULL,
@@ -98,7 +100,11 @@ CREATE TABLE `Exam` (
 CREATE TABLE `Result` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `score` INTEGER NOT NULL,
-    `examId` INTEGER NULL,
+    `status` ENUM('NOT_GRADED', 'PASSED', 'FAILED', 'ABSENT') NOT NULL DEFAULT 'NOT_GRADED',
+    `gradedAt` DATETIME(3) NULL,
+    `startTime` DATETIME(3) NOT NULL,
+    `endTime` DATETIME(3) NOT NULL,
+    `examId` VARCHAR(191) NULL,
     `studentId` VARCHAR(191) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -110,7 +116,7 @@ CREATE TABLE `Attendance` (
     `date` DATETIME(3) NOT NULL,
     `present` BOOLEAN NOT NULL,
     `studentId` VARCHAR(191) NOT NULL,
-    `examId` INTEGER NOT NULL,
+    `examId` VARCHAR(191) NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -140,6 +146,12 @@ CREATE TABLE `Announcement` (
 ALTER TABLE `Grade` ADD CONSTRAINT `Grade_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `Registration` ADD CONSTRAINT `Registration_examId_fkey` FOREIGN KEY (`examId`) REFERENCES `Exam`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Registration` ADD CONSTRAINT `Registration_studentId_fkey` FOREIGN KEY (`studentId`) REFERENCES `Student`(`cnicNumber`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `Exam` ADD CONSTRAINT `Exam_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -152,10 +164,10 @@ ALTER TABLE `Exam` ADD CONSTRAINT `Exam_subjectId_fkey` FOREIGN KEY (`subjectId`
 ALTER TABLE `Result` ADD CONSTRAINT `Result_examId_fkey` FOREIGN KEY (`examId`) REFERENCES `Exam`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Result` ADD CONSTRAINT `Result_studentId_fkey` FOREIGN KEY (`studentId`) REFERENCES `Student`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Result` ADD CONSTRAINT `Result_studentId_fkey` FOREIGN KEY (`studentId`) REFERENCES `Student`(`cnicNumber`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Attendance` ADD CONSTRAINT `Attendance_studentId_fkey` FOREIGN KEY (`studentId`) REFERENCES `Student`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Attendance` ADD CONSTRAINT `Attendance_studentId_fkey` FOREIGN KEY (`studentId`) REFERENCES `Student`(`cnicNumber`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Attendance` ADD CONSTRAINT `Attendance_examId_fkey` FOREIGN KEY (`examId`) REFERENCES `Exam`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Attendance` ADD CONSTRAINT `Attendance_examId_fkey` FOREIGN KEY (`examId`) REFERENCES `Exam`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

@@ -3,53 +3,41 @@ import Image from "next/image";
 import {
   BarChart,
   Bar,
-  Rectangle,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
+  CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
 
-const AttendanceChart = ({
-  data,
-}: {
-  data: { name: string; present: number; absent: number }[];
-}) => {
+
+const data = [
+  { name: "Mon", present: 5, absent: 2 },
+  { name: "Tue", present: 4, absent: 3 },
+  { name: "Wed", present: 6, absent: 1 },
+  { name: "Thu", present: 3, absent: 4 },
+  { name: "Fri", present: 5, absent: 0 },
+];
+
+
+const AttendanceChart = () => {
   return (
-    <ResponsiveContainer width="100%" height="90%">
-      <BarChart width={500} height={300} data={data}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ddd" />
-        <XAxis
-          dataKey="name"
-          axisLine={false}
-          tick={{ fill: "#d1d5db" }}
-          tickLine={false}
-        />
-        <YAxis axisLine={false} tick={{ fill: "#d1d5db" }} tickLine={false} />
-        <Tooltip
-          contentStyle={{ borderRadius: "10px", borderColor: "lightgray" }}
-        />
-        <Legend
-          align="left"
-          verticalAlign="top"
-          wrapperStyle={{ paddingTop: "20px", paddingBottom: "40px" }}
-        />
-        <Bar
-          dataKey="present"
-          fill="#FAE27C"
-          legendType="circle"
-          radius={[10, 10, 0, 0]}
-        />
-        <Bar
-          dataKey="absent"
-          fill="#C3EBFA"
-          legendType="circle"
-          radius={[10, 10, 0, 0]}
-        />
-      </BarChart>
-    </ResponsiveContainer>
+<div className="w-full h-[400px] bg-white p-4 rounded-xl shadow">
+      <h2 className="text-lg font-bold mb-4">Weekly Attendance</h2>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" tick={{ fill: "#6B7280" }} />
+          <YAxis tick={{ fill: "#6B7280" }} />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="present" fill="#34D399" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="absent" fill="#F87171" radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+
   );
 };
 
