@@ -4,6 +4,8 @@
 import { useState } from 'react';
 import {updateReject, updateAccept} from "@/lib/actions";
 import jsPDF from 'jspdf';
+import prisma from "@/lib/prisma";
+import { Student, Exam, ExamOnRegistration } from "@prisma/client";
 
 interface Registration {
   id: number;
@@ -16,6 +18,7 @@ interface Registration {
   dateOfPayment: string;
   transactionReceipt?: string;
 }
+
 
 export default function RegistrationTable({ registrations }: { registrations: Registration[] }) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -82,9 +85,15 @@ export default function RegistrationTable({ registrations }: { registrations: Re
     doc.setTextColor(0, 0, 0); // Reset to black
     doc.setFont("helvetica", "normal");
   };
-    const generatePDFDocument = () => {
+    const generatePDFDocument = async (id: number)  => {
     const doc = new jsPDF();
-    
+    const register = await prisma.registration.findUnique({
+      where: { id: id }
+    });
+    const student = await prisma.student.findUnique({
+      where: { cnicNumber: register?.studentId }
+    });
+
     // Page 1 - Student Information
     doc.setFillColor(70, 130, 180); // Steel blue background
     doc.rect(0, 0, 210, 40, 'F');
@@ -104,16 +113,22 @@ export default function RegistrationTable({ registrations }: { registrations: Re
     yPosition = addColoredSection(doc, 'STUDENT INFORMATION', yPosition, [52, 152, 219]); // Blue
     
     const studentFields = [
-      { label: 'Roll No:', value: "rollNo" },
-      { label: 'CNIC Number:', value: "CNIC" },
-      { label: 'Name:', value: "Name" },
-      { label: 'Father Name:', value: "Father" },
-      { label: 'Category/Class:', value: "Category" },
-      { label: 'School/College Name:', value: "School" }
+      { label: 'Roll No:', value: student?.rollNo },
+      { label: 'CNIC Number:', value: student?.cnicNumber},
+      { label: 'Name:', value: student?.name},
+      { label: 'Father Name:', value: student?.fatherName },
+      { label: 'Category/Class:', value: register?.olympiadCategory  + " " + register?.catGrade },
+      { label: 'School/College Name:', value: student?.instituteName}
     ];
     
     studentFields.forEach((field, index) => {
-      yPosition = addTableRow(doc, field.label, field.value, yPosition, index % 2 === 0);
+      return yPosition = addTableRow(
+        doc,
+        field.label,
+        field.value !== undefined && field.value !== null ? String(field.value) : '',
+        yPosition,
+        index % 2 === 0
+      );
     });
     
     yPosition += 15;
@@ -359,7 +374,7 @@ const exams = [
 
   const handleAccept = async (id: number) => {
     try {
-    const doc = generatePDFDocument(id);
+    const doc = await generatePDFDocument(id);
     const pdfBlob = doc.output('blob');
     const fileName = `Test-slip-${id || 'student'}-${Date.now()}.pdf`;
 
