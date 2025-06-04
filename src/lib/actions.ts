@@ -1119,8 +1119,8 @@ export const updateAccept = async (
       {
         formattedExams = exams.map(exam => ({
           subject: exam.subject?.name || '',
-          startTime:new Date(exam.startTime.toLocaleString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })),
-          endTime: new Date(exam.endTime.toLocaleString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })),
+          startTime: new Date(exam.startTime).toLocaleString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }),
+          endTime: new Date(exam.endTime).toLocaleString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }),
           totalMCQ: exam.totalMCQ?.toString() || '',
           totalMarks: exam.totalMarks?.toString() || '',
         }));
@@ -1130,7 +1130,7 @@ export const updateAccept = async (
         const info = await transporter.sendMail({
           from: process.env.GMAIL_USER!,
           to: user.email || '',
-          subject: 'Olympiad Payment Rejected – Action Required to Complete Registration',
+          subject: 'Payment Confirmation: Your Registration Has Been Approved',
           html: htmlTemplate,
           attachments: [
          {
