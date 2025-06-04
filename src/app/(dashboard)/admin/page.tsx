@@ -18,7 +18,7 @@ export async function generateMetadata({
   const search = params.search ?? 'none';
 
   return {
-    title: `Admin`,
+    title: `Admin - Page ${search}`,
     description: `Admin results for "${search}" on page ${page}`,
   };
 }

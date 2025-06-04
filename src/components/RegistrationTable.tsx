@@ -3,9 +3,6 @@
 
 import { useState } from 'react';
 import {updateReject, updateAccept} from "@/lib/actions";
-import jsPDF from 'jspdf';
-import prisma from "@/lib/prisma";
-import { Student, Exam, ExamOnRegistration } from "@prisma/client";
 
 interface Registration {
   id: number;
@@ -19,19 +16,15 @@ interface Registration {
   transactionReceipt?: string;
 }
 
-
 export default function RegistrationTable({ registrations }: { registrations: Registration[] }) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleAccept = async (id: number) => {
-    try {
     const res = await updateAccept(id)
+    console.log(res)
     if(res && res.success)
     {
         window.location.reload(); 
-    } 
-    } catch (error: any) {
-      console.error('Error generating PDF:', error);
     }
   };
 
