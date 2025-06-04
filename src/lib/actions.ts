@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import nodemailer from 'nodemailer';
+import jsPDF from 'jspdf';
 import {
   ClassSchema,
   ExamSchema,
@@ -621,6 +622,17 @@ export const updateReject = async (
 };
 
 
+export async function generatePDFDocument(): Promise<Blob> {
+  const doc = new jsPDF();
+
+  doc.text('Hello, this is your generated PDF!', 10, 10);
+
+  const pdfBlob = doc.output('blob');
+  return pdfBlob;
+}
+
+
+
 export const updateAccept = async (
   id: number // or string, depending on your schema
 ) => {
@@ -766,13 +778,19 @@ export const updateAccept = async (
       </body>
       </html>
       `;
-
-
+        const fileName = `Test-slip-${user.rollNo || 'student'}-${Date.now()}.pdf`;
         const info = await transporter.sendMail({
           from: process.env.GMAIL_USER!,
           to: user.email || '',
           subject: 'Olympiad Payment Rejected – Action Required to Complete Registration',
           html: htmlTemplate,
+          attachments: [
+         {
+          filename: fileName,
+          content: buffer,
+          contentType: "application/pdf",
+        },
+      ],
         });
 
         console.log('Email sent:', info.messageId);
