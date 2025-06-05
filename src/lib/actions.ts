@@ -952,7 +952,6 @@ export const updateAccept = async (
         
         if (examList.length === 0) {
           console.log('No exams found for this registration');
-          return;
         }
         const examIds = examList.map(er => er.examId);
         const exams = await prisma.exam.findMany({
