@@ -4,12 +4,9 @@ import { revalidatePath } from "next/cache";
 import nodemailer from 'nodemailer';
 import jsPDF from 'jspdf';
 import {
-  ClassSchema,
   ExamSchema,
   StudentSchema,
   SubjectSchema,
-  TeacherSchema,
-  FormSchema
 } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -1085,20 +1082,20 @@ export const updateAccept = async (
         }));
       }
       const buffer = await generatePDFDocument(id, formattedExams);
-        const fileName = `Test-slip-${user.rollNo || 'student'}-${Date.now()}.pdf`;
-        const info = await transporter.sendMail({
-          from: process.env.GMAIL_USER!,
-          to: user.email || '',
-          subject: 'Payment Confirmation: Your Registration Has Been Approved',
-          html: htmlTemplate,
-          attachments: [
-         {
+      const fileName = `Test-slip-${user.rollNo || 'student'}-${Date.now()}.pdf`;
+      const info = await transporter.sendMail({
+        from: process.env.GMAIL_USER!,
+        to: user.email || '',
+        subject: 'Payment Confirmation: Your Registration Has Been Approved',
+        html: htmlTemplate,
+        attachments: [
+        {
           filename: fileName,
           content: buffer,
           contentType: "application/pdf",
         },
       ],
-        });
+      });
 
         console.log('Email sent:', info.messageId);
       }  

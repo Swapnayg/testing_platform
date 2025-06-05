@@ -9,7 +9,7 @@ export async function GET(request) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
-  console.log("✅ Exam Cron job triggered at", new Date());
+  console.log("✅ Every Day 12 pm Exam Cron job triggered at", new Date());
 
  
   return new Response(JSON.stringify({ message: "Cron executed" }), {

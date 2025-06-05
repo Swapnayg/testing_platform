@@ -32,6 +32,7 @@ model Student {
   Result         Result[]
   Attendance     Attendance[]
   Registration   Registration[]
+  attempts       QuizAttempt[]
 }
 
 model Category {
@@ -39,6 +40,30 @@ model Category {
   catName String  @unique
   Grade   Grade[]
   Exam    Exam[]
+}
+
+model QuizAttempt {
+  id          String    @id @default(uuid())
+  student     Student   @relation(fields: [studentId], references: [cnicNumber])
+  studentId   String
+  quiz        Quiz      @relation(fields: [quizId], references: [id])
+  quizId      String
+  answers     Answer[]
+  score       Int?
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+}
+
+model Answer {
+  id               String      @id @default(uuid())
+  attempt          QuizAttempt @relation(fields: [attemptId], references: [id])
+  attemptId        String
+  question         Question    @relation(fields: [questionId], references: [id])
+  questionId       String
+  selectedOption   Option?     @relation(fields: [selectedOptionId], references: [id])
+  selectedOptionId String?
+  responseText     String? // For open-ended/numerical responses
+  responseNumber   Float? // For numerical answers
 }
 
 model Grade {
@@ -57,7 +82,7 @@ enum RegistrationStatus {
 }
 
 model Registration {
-  id                 Int                @id @default(autoincrement())
+  id                 Int                  @id @default(autoincrement())
   olympiadCategory   String?
   catGrade           String?
   bankName           String?
@@ -72,26 +97,42 @@ model Registration {
   applicationId      String?
   status             RegistrationStatus // <- enum used here
   studentId          String
-  student            Student            @relation(fields: [studentId], references: [cnicNumber])
-  registerdAt        DateTime           @default(now())
-  exams              ExamOnRegistration[] 
+  student            Student              @relation(fields: [studentId], references: [cnicNumber])
+  registerdAt        DateTime             @default(now())
+  exams              ExamOnRegistration[]
 }
 
 model ExamOnRegistration {
   examId         String
   registrationId Int
 
-  exam           Exam         @relation(fields: [examId], references: [id])
-  registration   Registration @relation(fields: [registrationId], references: [id])
+  exam         Exam         @relation(fields: [examId], references: [id])
+  registration Registration @relation(fields: [registrationId], references: [id])
 
   @@id([examId, registrationId]) // composite primary key
 }
-
 
 model Subject {
   id   Int    @id @default(autoincrement())
   name String @unique
   Exam Exam[]
+}
+
+enum AnswerLength {
+  SHORT
+  LONG
+}
+
+enum AnswerContent {
+  FACTUAL
+  OPINION
+}
+
+enum AnswerFormat {
+  MULTIPLE_CHOICE
+  OPEN_ENDED
+  NUMERICAL
+  TRUE_FALSE
 }
 
 model Exam {
@@ -100,18 +141,55 @@ model Exam {
   startTime DateTime
   endTime   DateTime
   status    ExamStatus @default(NOT_STARTED)
+  createdAt DateTime   @default(now())
 
-  categoryId   Int
-  category     Category       @relation(fields: [categoryId], references: [id])
-  gradeId      Int
-  grade        Grade          @relation(fields: [gradeId], references: [id])
-  subjectId    Int
-  subject      Subject        @relation(fields: [subjectId], references: [id])
-  totalMCQ     Int
-  totalMarks   Int
-  results      Result[]
-  attendance   Attendance[]
+  categoryId    Int
+  category      Category             @relation(fields: [categoryId], references: [id])
+  gradeId       Int
+  grade         Grade                @relation(fields: [gradeId], references: [id])
+  subjectId     Int
+  subject       Subject              @relation(fields: [subjectId], references: [id])
+  totalMCQ      Int
+  totalMarks    Int
+  results       Result[]
+  attendance    Attendance[]
   registrations ExamOnRegistration[]
+  quizzes       Quiz[]
+}
+
+model Quiz {
+  id          String        @id @default(uuid())
+  title       String
+  exam        Exam          @relation(fields: [examId], references: [id])
+  examId      String
+  questions   Question[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  QuizAttempt QuizAttempt[]
+}
+
+model Question {
+  id        String        @id @default(uuid())
+  text      String
+  quiz      Quiz          @relation(fields: [quizId], references: [id])
+  quizId    String
+  options   Option[] // For MCQ/True-False; empty for open-ended
+  answer    String? // Optional correct answer text or key
+  length    AnswerLength
+  content   AnswerContent
+  format    AnswerFormat
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  Answer    Answer[]
+}
+
+model Option {
+  id         String   @id @default(uuid())
+  text       String
+  isCorrect  Boolean  @default(false)
+  question   Question @relation(fields: [questionId], references: [id])
+  questionId String
+  Answer     Answer[]
 }
 
 enum ResultStatus {
