@@ -14,7 +14,6 @@ import {
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import { v4 as uuidv4 } from 'uuid';
-import cron from 'node-cron';
 
 type CurrentState = { success: boolean; error: boolean };
 
@@ -28,45 +27,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-cron.schedule('0 0 * * *', async () => {
-  console.log('Archiving old results...');
-  const dateOnly = new Date(today.toISOString().split('T')[0]);
-  const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yes_dateOnly = new Date(yesterday.toISOString().split('T')[0]); 
-  await prisma.exam.updateMany({
-    where: {
-      startTime: dateOnly, // exactly today
-      endTime: {
-        gte: today, // still ongoing or ends today
-      },
-    },
-    data: {
-      status: 'IN_PROGRESS',
-    },
-  });
-
-  await prisma.exam.updateMany({
-    where: {
-      endTime: yes_dateOnly,
-    },
-    data: {
-      status: 'COMPLETED',
-    },
-  });
-
-  await prisma.result.updateMany({
-    where: {
-      status: "NOT_GRADED",
-      endTime: yes_dateOnly,
-    },
-    data: {
-      status: 'ABSENT',
-    },
-  });
-
-});
 
 
 export const createSubject = async (
