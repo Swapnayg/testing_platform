@@ -1,10 +1,10 @@
 // app/api/cron/daily/route.js
 
 export async function GET(request) {
-  const token = request.headers.get("authorization");
-  const expected = `Bearer ${process.env.CRON_SECRET}`;
+  const { searchParams } = new URL(request.url);
+  const secret = searchParams.get("secret");
 
-  if (token !== expected) {
+  if (secret !== process.env.CRON_SECRET) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
