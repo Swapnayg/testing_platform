@@ -1,7 +1,6 @@
 // app/api/cron/daily/route.js
 
 import nodemailer from 'nodemailer';
-import jsPDF from 'jspdf';
 import prisma from "@/lib/prisma";
 import { generatePDFDocument1 } from "@/lib/actions";
 

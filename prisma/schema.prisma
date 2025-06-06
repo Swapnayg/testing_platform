@@ -118,21 +118,14 @@ model Subject {
   Exam Exam[]
 }
 
-enum AnswerLength {
-  SHORT
-  LONG
-}
 
-enum AnswerContent {
-  FACTUAL
-  OPINION
-}
 
 enum AnswerFormat {
-  MULTIPLE_CHOICE
-  OPEN_ENDED
-  NUMERICAL
-  TRUE_FALSE
+  multiple_choice
+  short_text
+  long_text
+  numerical
+  true_false
 }
 
 model Exam {
@@ -175,14 +168,13 @@ model Question {
   quizId    String
   options   Option[]      // For MCQ/True-False; empty for open-ended
   answer    String?       // Optional correct answer text or key
-  length    AnswerLength
-  content   AnswerContent
   format    AnswerFormat
   marks     Float           // Marks awarded for the question
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   Answer    Answer[]
 }
+
 
 model Option {
   id         String   @id @default(uuid())

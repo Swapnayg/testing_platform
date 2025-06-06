@@ -1,17 +1,18 @@
-"use client";
+/* eslint-disable react/no-unescaped-entities */
+"use client"
 import React, { useState, useEffect } from 'react';
 import { useForm, FormProvider, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/components/ui2/button';
-import { Input } from '@/components/ui2/input';
-import { Label } from '@/components/ui2/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui2/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Eye, BookOpen, Hash, Award, ArrowRight, ArrowLeft, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import QuestionBuilder from './QuestionBuilder';
 import QuizReview from './QuizReview';
 import { DateTimePicker } from './DateTimePicker';
-import { quizSchema, type QuizFormData } from '@/lib/formValidationSchemas';
+import { quizSchema, type QuizFormData } from "@/lib/formValidationSchemas";
 import { PrismaQuizData } from '@/types/quiz';
 
 const QuizBuilderForm: React.FC = () => {
@@ -132,31 +133,47 @@ const QuizBuilderForm: React.FC = () => {
         return;
       }
       
+      // Cast to QuizFormData since validation passed
       setReviewData(formData as QuizFormData);
       setCurrentStep(3);
     }
   };
 
   const handleSubmitQuiz = async () => {
+    console.log("fired");
+
     if (!reviewData) return;
-    
+    console.log(1);
     try {
       const prismaData = formatForPrisma(reviewData);
       console.log('Quiz data formatted for Prisma:', JSON.stringify(prismaData, null, 2));
       
+      // Show success toast
       toast({
-        title: "Quiz Saved Successfully!",
-        description: "Your quiz has been saved. Check the console for the Prisma-formatted data.",
+        title: "🎉 Quiz Saved Successfully!",
+        description: `Your quiz "${reviewData.title}" has been saved with ${reviewData.totalQuestions} questions and ${reviewData.totalMarks} total marks.`,
+        variant: "default",
       });
       
+      // Reset form after successful save
       setReviewData(null);
       setCurrentStep(1);
       methods.reset();
+      
+      // Show additional info toast after a delay
+      setTimeout(() => {
+        toast({
+          title: "📋 Development Note",
+          description: "Quiz data has been logged to the console for development purposes.",
+          variant: "default",
+        });
+      }, 2000);
+      
     } catch (error) {
       console.error('Error saving quiz:', error);
       toast({
-        title: "Error",
-        description: "Failed to save quiz. Please try again.",
+        title: "❌ Error Saving Quiz",
+        description: "Failed to save quiz. Please try again or check the console for more details.",
         variant: "destructive",
       });
     }
@@ -289,7 +306,6 @@ const QuizBuilderForm: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* ... keep existing code (date pickers and next button) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label className="text-slate-700 font-semibold">Start Date & Time *</Label>
@@ -391,7 +407,7 @@ const QuizBuilderForm: React.FC = () => {
                       </Button>
                       {fields.length >= totalQuestions && (
                         <p className="text-slate-600 mt-2 text-sm">
-                          Youve reached the maximum number of questions ({totalQuestions})
+                          You've reached the maximum number of questions ({totalQuestions})
                         </p>
                       )}
                     </CardContent>
