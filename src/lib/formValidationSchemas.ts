@@ -89,3 +89,46 @@ export const examSchema = z.object({
 });
 
 export type ExamSchema = z.infer<typeof examSchema>;
+
+
+export const questionSchema = z.object({
+  id: z.string(),
+  type: z.enum(['multiple_choice', 'short_text', 'long_text', 'numerical', 'true_false']),
+  question: z.string().min(1, 'Question is required'),
+  required: z.boolean(),
+  options: z.array(z.string()).optional(),
+  correctAnswer: z.union([z.string(), z.number(), z.boolean()]).refine((val) => {
+    if (typeof val === 'string') return val.trim().length > 0;
+    if (typeof val === 'number') return !isNaN(val);
+    return typeof val === 'boolean';
+  }, 'Correct answer is required'),
+  marks: z.number().min(1, 'Marks must be at least 1'),
+});
+
+export const quizSchema = z.object({
+  title: z.string().min(1, 'Quiz title is required').max(100, 'Title too long'),
+  subject: z.string().min(1, 'Subject is required').max(50, 'Subject too long'),
+  totalMarks: z.number().min(1, 'Total marks must be at least 1'),
+  totalQuestions: z.number().min(1, 'Total questions must be at least 1'),
+  startDate: z.date({
+    required_error: 'Start date is required',
+  }),
+  endDate: z.date({
+    required_error: 'End date is required',
+  }),
+  questions: z.array(questionSchema).min(1, 'At least one question is required'),
+}).refine((data) => data.endDate > data.startDate, {
+  message: 'End date must be after start date',
+  path: ['endDate'],
+}).refine((data) => data.questions.length === data.totalQuestions, {
+  message: 'Number of questions must match total questions',
+  path: ['totalQuestions'],
+}).refine((data) => {
+  const totalMarks = data.questions.reduce((sum, q) => sum + q.marks, 0);
+  return totalMarks === data.totalMarks;
+}, {
+  message: 'Sum of question marks must equal total marks',
+  path: ['totalMarks'],
+});
+
+export type QuizFormData = z.infer<typeof quizSchema>;

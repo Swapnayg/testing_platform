@@ -48,12 +48,12 @@ const menuItems = [
       //   href: "/list/lessons",
       //   visible: ["admin", "teacher"],
       // },
-      // {
-      //   icon: "/online-registration.png",
-      //   label: "Registrations",
-      //   href: "/list/registrations",
-      //   visible: ["admin" ],
-      // },
+      {
+        icon: "/brain.png",
+        label: "Quizz builder",
+        href: "/list/quizzBuilder",
+        visible: ["admin" ],
+      },
       {
         icon: "/exam.png",
         label: "Exams",

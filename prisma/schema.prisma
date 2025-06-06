@@ -173,11 +173,12 @@ model Question {
   text      String
   quiz      Quiz          @relation(fields: [quizId], references: [id])
   quizId    String
-  options   Option[] // For MCQ/True-False; empty for open-ended
-  answer    String? // Optional correct answer text or key
+  options   Option[]      // For MCQ/True-False; empty for open-ended
+  answer    String?       // Optional correct answer text or key
   length    AnswerLength
   content   AnswerContent
   format    AnswerFormat
+  marks     Float           // Marks awarded for the question
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   Answer    Answer[]
