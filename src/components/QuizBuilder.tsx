@@ -28,9 +28,9 @@ const QuizBuilder = () => {
   const { toast } = useToast();
 
   const steps = [
-    { id: 1, name: 'Quiz Metadata', description: 'Basic quiz information' },
-    { id: 2, name: 'Questions', description: 'Create your questions' },
-    { id: 3, name: 'Review', description: 'Review and submit' },
+    { number: 1, name: 'Quiz Information', description: '' },
+    { number: 2, name: 'Questions', description: '' },
+    { number: 3, name: 'Review', description: '' },
   ];
 
   // Validation function to check if a question is complete
@@ -139,56 +139,45 @@ const QuizBuilder = () => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Quiz Builder</h1>
-        <p className="text-slate-600">Create engaging quizzes with multiple question types</p>
+        {/* Header */}
+        <Card className="mb-8 bg-slate-800 text-white border-0 shadow-lg flex justify-center items-center min-h-[150px]">
+  <CardHeader className="text-center">
+    <CardTitle className="text-3xl font-bold mb-2">Quiz Builder</CardTitle>
+    <p className="text-slate-300">Create engaging quizzes with ease</p>
+  </CardHeader>
+</Card>
+
       </div>
 
       {/* Step Indicators */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-center space-x-8">
           {steps.map((step, index) => (
-            <React.Fragment key={step.id}>
-              <div className="flex items-center">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                    step.id < currentStep
-                      ? 'bg-slate-600 text-white'
-                      : step.id === currentStep
-                      ? 'bg-slate-600 text-white'
-                      : 'bg-slate-200 text-slate-400'
-                  }`}
-                >
-                  {step.id < currentStep ? <Check size={18} /> : step.id}
-                </div>
-                <div>
-                  <p className={`font-medium ${
-                    step.id <= currentStep ? 'text-slate-900' : 'text-slate-400'
-                  }`}>
-                    {step.name}
-                  </p>
-                  <p className="text-sm text-slate-500">{step.description}</p>
-                </div>
+             <React.Fragment key={step.number}>
+            <div className={`flex items-center ${currentStep >= step.number ? 'text-slate-800' : 'text-slate-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                currentStep >= step.number ? 'bg-slate-800 border-slate-800 text-white' : 'border-slate-400'
+              }`}>
+                {step.number}
               </div>
-              
-              {/* Connecting line between steps */}
-              {index < steps.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-4 ${
-                  step.id < currentStep ? 'bg-slate-600' : 'bg-slate-200'
-                }`} />
-              )}
-            </React.Fragment>
+              <span className="ml-2 font-medium">{step.name}</span>
+            </div>
+            {index < steps.length - 1 && (
+              <div className={`w-16 h-0.5 ${currentStep >= step.number + 1 ? 'bg-slate-800' : 'bg-slate-300'}`}></div>
+            )}
+          </React.Fragment>
           ))}
         </div>
       </div>
 
       {/* Step Content */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-slate-900">
+     
+        {/* <CardHeader>
+          {/* <CardTitle className="text-slate-900">
             Step {currentStep}: {steps[currentStep - 1].name}
           </CardTitle>
-        </CardHeader>
-        <CardContent>
+        </CardHeader> */}
+      
           {currentStep === 1 && (
             <MetadataStep quizData={quizData} setQuizData={setQuizData} />
           )}
@@ -202,11 +191,10 @@ const QuizBuilder = () => {
           {currentStep === 3 && (
             <ReviewStep quizData={quizData} questions={questions} />
           )}
-        </CardContent>
-      </Card>
+       
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-between mt-5">
         {currentStep > 1 && (
           <Button
             variant="outline"

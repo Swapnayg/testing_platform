@@ -50,7 +50,7 @@ const menuItems = [
       // },
       {
         icon: "/brain.png",
-        label: "Quizz builder",
+        label: "Quiz builder",
         href: "/list/quizzBuilder",
         visible: ["admin" ],
       },
