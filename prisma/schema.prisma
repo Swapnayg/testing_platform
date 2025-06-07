@@ -55,12 +55,12 @@ model QuizAttempt {
 }
 
 model Answer {
-  id               String      @id @default(uuid())
-  attempt          QuizAttempt @relation(fields: [attemptId], references: [id])
+  id               String          @id @default(uuid())
+  attempt          QuizAttempt     @relation(fields: [attemptId], references: [id])
   attemptId        String
-  question         Question    @relation(fields: [questionId], references: [id])
+  question         Question        @relation(fields: [questionId], references: [id])
   questionId       String
-  selectedOption   Option?     @relation(fields: [selectedOptionId], references: [id])
+  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
   selectedOptionId String?
   responseText     String? // For open-ended/numerical responses
   responseNumber   Float? // For numerical answers
@@ -118,16 +118,6 @@ model Subject {
   Exam Exam[]
 }
 
-
-
-enum AnswerFormat {
-  multiple_choice
-  short_text
-  long_text
-  numerical
-  true_false
-}
-
 model Exam {
   id        String     @id @default(uuid())
   title     String
@@ -151,38 +141,69 @@ model Exam {
 }
 
 model Quiz {
-  id          String        @id @default(uuid())
-  title       String
-  exam        Exam          @relation(fields: [examId], references: [id])
-  examId      String
+  id             String   @id @default(cuid())
+  title          String
+  category       String
+  grade          String
+  subject        String
+  totalQuestions Int      @map("total_questions")
+  totalMarks     Int      @map("total_marks")
+  startDateTime  DateTime @map("start_date_time")
+  endDateTime    DateTime @map("end_date_time")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  exam   Exam   @relation(fields: [examId], references: [id])
+  examId String
+
+  // Relations
   questions   Question[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
   QuizAttempt QuizAttempt[]
+
+  @@map("quizzes")
 }
 
 model Question {
-  id        String        @id @default(uuid())
-  text      String
-  quiz      Quiz          @relation(fields: [quizId], references: [id])
-  quizId    String
-  options   Option[]      // For MCQ/True-False; empty for open-ended
-  answer    String?       // Optional correct answer text or key
-  format    AnswerFormat
-  marks     Float           // Marks awarded for the question
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  Answer    Answer[]
+  id            String       @id @default(cuid())
+  quizId        String       @map("quiz_id")
+  type          QuestionType
+  text          String
+  marks         Float
+  correctAnswer String?      @map("correct_answer")
+  orderIndex    Int          @map("order_index")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  quiz    Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options QuestionOption[]
+  Answer  Answer[]
+
+  @@map("questions")
 }
 
-
-model Option {
-  id         String   @id @default(uuid())
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String   @map("question_id")
   text       String
-  isCorrect  Boolean  @default(false)
-  question   Question @relation(fields: [questionId], references: [id])
-  questionId String
-  Answer     Answer[]
+  isCorrect  Boolean  @map("is_correct")
+  orderIndex Int      @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  Answer   Answer[]
+
+  @@map("question_options")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE @map("multiple_choice")
+  TRUE_FALSE      @map("true_false")
+  SHORT_TEXT      @map("short_text")
+  LONG_TEXT       @map("long_text")
+  NUMERICAL       @map("numerical")
 }
 
 enum ResultStatus {

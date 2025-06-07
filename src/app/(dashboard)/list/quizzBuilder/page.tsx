@@ -4,7 +4,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Registration, Prisma} from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
-import QuizBuilderForm from '@/components/QuizBuilderForm';
+import QuizBuilder from "@/components/QuizBuilder";
 
 
 const QuizzListPage = async () => {
@@ -28,7 +28,7 @@ const currentUserId = userId;
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
-         <QuizBuilderForm />;
+         <QuizBuilder />;
     </div>
   );
 };

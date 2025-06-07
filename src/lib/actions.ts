@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { QuizData, Question } from '@/components/quiz/types';
 import nodemailer from 'nodemailer';
 import jsPDF from 'jspdf';
 import {
@@ -1344,5 +1345,79 @@ export const updateAccept = async (
   } catch (err) {
     console.log(err);
     return { success: false, error: true };
+  }
+};
+
+
+export interface CreateQuizData {
+  quiz: QuizData;
+  questions: Question[];
+}
+
+export const saveQuizToDatabase = async (data: CreateQuizData) => {
+  try {
+    // Create the quiz first
+    const createdQuiz = await prisma.quiz.create({
+      data: {
+        title: data.quiz.title,
+        grade: data.quiz.grade || '',
+        subject: data.quiz.subject || '',
+        totalQuestions: data.quiz.totalQuestions,
+        totalMarks: data.quiz.totalMarks,
+        startDateTime: data.quiz.startDateTime ? new Date(data.quiz.startDateTime) : new Date(),
+        endDateTime: data.quiz.endDateTime ? new Date(data.quiz.endDateTime) : new Date(),
+        // Provide valid values for category and exam as required by your schema
+        category: data.quiz.category, // Replace with actual categoryId
+        examId: data.quiz.examId ,         // Replace with actual examId
+      },
+    });
+
+    console.log('Quiz created:', createdQuiz);
+
+    // Create questions for the quiz
+    const questionPromises = data.questions.map(async (question, index) => {
+      const createdQuestion = await prisma.question.create({
+        data: {
+          quizId: createdQuiz.id,
+          type: question.type.toUpperCase().replace('-', '_') as any,
+          text: question.text,
+          marks: question.marks,
+          correctAnswer: question.correctAnswer || null,
+          orderIndex: index + 1,
+        },
+      });
+
+      console.log('Question created:', createdQuestion);
+
+      // Create options if it's a multiple choice question
+      if (question.options && question.options.length > 0) {
+        const optionPromises = question.options.map(async (option, optionIndex) => {
+          return await prisma.questionOption.create({
+            data: {
+              questionId: createdQuestion.id,
+              text: option.text,
+              isCorrect: option.isCorrect,
+              orderIndex: optionIndex + 1,
+            },
+          });
+        });
+
+        const createdOptions = await Promise.all(optionPromises);
+        console.log('Options created for question:', createdOptions);
+      }
+
+      return createdQuestion;
+    });
+
+    const createdQuestions = await Promise.all(questionPromises);
+    console.log('All questions created:', createdQuestions);
+
+    return {
+      quiz: createdQuiz,
+      questions: createdQuestions,
+    };
+  } catch (error) {
+    console.error('Error saving quiz to database:', error);
+    throw error;
   }
 };
