@@ -162,11 +162,11 @@ const QuestionForm = ({ onSubmit, marksPerQuestion }: QuestionFormProps) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white border-slate-300">
-                <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
-                <SelectItem value="true-false">True/False</SelectItem>
-                <SelectItem value="short-text">Short Text</SelectItem>
-                <SelectItem value="long-text">Long Text</SelectItem>
-                <SelectItem value="numerical">Numerical</SelectItem>
+                <SelectItem value="MULTIPLE_CHOICE">Multiple Choice</SelectItem>
+                <SelectItem value="TRUE_FALSE">True/False</SelectItem>
+                <SelectItem value="SHORT_TEXT">Short Text</SelectItem>
+                <SelectItem value="LONG_TEXT">Long Text</SelectItem>
+                <SelectItem value="NUMERICAL">Numerical</SelectItem>
               </SelectContent>
             </Select>
           </div>

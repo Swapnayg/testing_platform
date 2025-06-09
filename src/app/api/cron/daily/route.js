@@ -21,19 +21,30 @@ export async function GET(request) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
-  console.log("✅Every Day 12 pm Cron job triggered at", new Date());
+    console.log("✅Every Day 12 pm Cron job triggered at", new Date());
 
-  const today = new Date();
-  const dateOnly = new Date(today.toISOString().split('T')[0]);
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yes_dateOnly = new Date(yesterday.toISOString().split('T')[0]); 
+    const today = new Date();
+
+    // Get start of yesterday
+    const yesterdayStart = new Date(today);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    yesterdayStart.setHours(0, 0, 0, 0);
+
+    // Get end of yesterday
+    const yesterdayEnd = new Date(today);
+    yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+    yesterdayEnd.setHours(23, 59, 59, 999);
+
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
     await prisma.exam.updateMany({
       where: {
-        startTime: dateOnly, // exactly today
-        endTime: {
-          gte: today, // still ongoing or ends today
+        status:"NOT_STARTED",
+        startTime: {
+            gte: new Date(tomorrow.setHours(0, 0, 0, 0)), // tomorrow 00:00:00
+            lt: new Date(tomorrow.setHours(23, 59, 59, 999)), // tomorrow 23:59:59
         },
       },
       data: {
@@ -43,7 +54,11 @@ export async function GET(request) {
   
     await prisma.exam.updateMany({
       where: {
-        endTime: yes_dateOnly,
+        status:"IN_PROGRESS",
+        endTime: {
+            gte: yesterdayStart,
+            lte: yesterdayEnd,
+        },
       },
       data: {
         status: 'COMPLETED',
@@ -53,7 +68,10 @@ export async function GET(request) {
     await prisma.result.updateMany({
       where: {
         status: "NOT_GRADED",
-        endTime: yes_dateOnly,
+        endTime: {
+            gte: yesterdayStart,
+            lte: yesterdayEnd,
+        },
       },
       data: {
         status: 'ABSENT',
