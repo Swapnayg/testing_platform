@@ -44,9 +44,9 @@ model Category {
 
 model QuizAttempt {
   id          String    @id @default(uuid())
-  student     Student   @relation(fields: [studentId], references: [cnicNumber])
+  student     Student   @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
   studentId   String
-  quiz        Quiz      @relation(fields: [quizId], references: [id])
+  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
   quizId      String
   answers     Answer[]
   score       Int?
@@ -56,11 +56,11 @@ model QuizAttempt {
 
 model Answer {
   id               String          @id @default(uuid())
-  attempt          QuizAttempt     @relation(fields: [attemptId], references: [id])
+  attempt          QuizAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   attemptId        String
-  question         Question        @relation(fields: [questionId], references: [id])
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
   questionId       String
-  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
+  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: Cascade)
   selectedOptionId String?
   responseText     String? // For open-ended/numerical responses
   responseNumber   Float? // For numerical answers
@@ -70,7 +70,7 @@ model Grade {
   id         Int      @id @default(autoincrement())
   level      String   @unique
   categoryId Int
-  category   Category @relation(fields: [categoryId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   Exam Exam[]
 }
@@ -97,7 +97,7 @@ model Registration {
   applicationId      String?
   status             RegistrationStatus // <- enum used here
   studentId          String
-  student            Student              @relation(fields: [studentId], references: [cnicNumber])
+  student            Student              @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
   registerdAt        DateTime             @default(now())
   exams              ExamOnRegistration[]
 }
@@ -106,8 +106,8 @@ model ExamOnRegistration {
   examId         String
   registrationId Int
 
-  exam         Exam         @relation(fields: [examId], references: [id])
-  registration Registration @relation(fields: [registrationId], references: [id])
+  exam         Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
   @@id([examId, registrationId]) // composite primary key
 }
@@ -127,11 +127,11 @@ model Exam {
   createdAt DateTime   @default(now())
 
   categoryId    Int
-  category      Category             @relation(fields: [categoryId], references: [id])
+  category      Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   gradeId       Int
-  grade         Grade                @relation(fields: [gradeId], references: [id])
+  grade         Grade                @relation(fields: [gradeId], references: [id], onDelete: Cascade)
   subjectId     Int
-  subject       Subject              @relation(fields: [subjectId], references: [id])
+  subject       Subject              @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   totalMCQ      Int
   totalMarks    Int
   results       Result[]
@@ -153,7 +153,7 @@ model Quiz {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  exam   Exam   @relation(fields: [examId], references: [id])
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
   examId String
 
   // Relations
@@ -222,9 +222,9 @@ model Result {
   endTime   DateTime
 
   examId    String?
-  exam      Exam?   @relation(fields: [examId], references: [id])
+  exam      Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
   studentId String
-  student   Student @relation(fields: [studentId], references: [cnicNumber])
+  student   Student @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
 }
 
 model Attendance {
@@ -233,9 +233,9 @@ model Attendance {
   present Boolean
 
   studentId String
-  student   Student @relation(fields: [studentId], references: [cnicNumber])
+  student   Student @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
   examId    String?
-  exam      Exam?   @relation(fields: [examId], references: [id])
+  exam      Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
 }
 
 model Event {

@@ -6,8 +6,8 @@ export interface QuizData {
   subject: string;
   totalQuestions: number;
   totalMarks: number;
-  startDateTime: string;
-  endDateTime: string;
+  startDateTime: Date;
+  endDateTime: Date;
   examId: string;
 }
 
@@ -19,7 +19,7 @@ export interface MultipleChoiceOption {
 
 export interface Question {
   id: string;
-  type: 'multiple-choice' | 'short-text' | 'long-text' | 'numerical' | 'true-false';
+  type: 'MULTIPLE_CHOICE' | 'SHORT_TEXT' | 'LONG_TEXT' | 'NUMERICAL' | 'TRUE_FALSE';
   text: string;
   marks: number;
   correctAnswer?: string;

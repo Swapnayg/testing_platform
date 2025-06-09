@@ -24,7 +24,7 @@ interface ValidationErrors {
 }
 
 const QuestionForm = ({ onSubmit, marksPerQuestion }: QuestionFormProps) => {
-  const [questionType, setQuestionType] = useState<Question['type']>('multiple-choice');
+  const [questionType, setQuestionType] = useState<Question['type']>('MULTIPLE_CHOICE');
   const [questionText, setQuestionText] = useState('');
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [trueFalseAnswer, setTrueFalseAnswer] = useState<'true' | 'false'>('true');
@@ -79,7 +79,7 @@ const QuestionForm = ({ onSubmit, marksPerQuestion }: QuestionFormProps) => {
     }
 
     // Validate based on question type
-    if (questionType === 'multiple-choice') {
+    if (questionType === 'MULTIPLE_CHOICE') {
       const hasCorrectOption = options.some(option => option.isCorrect);
       const allOptionsFilled = options.every(option => option.text.trim());
       
@@ -90,7 +90,7 @@ const QuestionForm = ({ onSubmit, marksPerQuestion }: QuestionFormProps) => {
       if (!hasCorrectOption) {
         newErrors.noCorrectOption = 'Please mark one option as correct';
       }
-    } else if (questionType !== 'true-false') {
+    } else if (questionType !== 'TRUE_FALSE') {
       if (!correctAnswer.trim()) {
         newErrors.correctAnswer = 'Correct answer is required';
       }
@@ -123,9 +123,9 @@ const QuestionForm = ({ onSubmit, marksPerQuestion }: QuestionFormProps) => {
       type: questionType,
       text: questionText,
       marks: marksPerQuestion,
-      correctAnswer: questionType === 'multiple-choice' ? undefined : 
-                    questionType === 'true-false' ? trueFalseAnswer : correctAnswer,
-      options: questionType === 'multiple-choice' ? options : undefined,
+      correctAnswer: questionType === 'MULTIPLE_CHOICE' ? undefined : 
+                    questionType === 'TRUE_FALSE' ? trueFalseAnswer : correctAnswer,
+      options: questionType === 'MULTIPLE_CHOICE' ? options : undefined,
     };
 
     onSubmit(question);
@@ -191,7 +191,7 @@ const QuestionForm = ({ onSubmit, marksPerQuestion }: QuestionFormProps) => {
             )}
           </div>
 
-          {questionType === 'multiple-choice' ? (
+          {questionType === 'MULTIPLE_CHOICE' ? (
             <div>
               <Label className="text-slate-700">Options (Select the correct answer)</Label>
               <div className="space-y-3 mt-2">
@@ -245,7 +245,7 @@ const QuestionForm = ({ onSubmit, marksPerQuestion }: QuestionFormProps) => {
                 )}
               </div>
             </div>
-          ) : questionType === 'true-false' ? (
+          ) : questionType === 'TRUE_FALSE' ? (
             <div>
               <Label className="text-slate-700">Correct Answer</Label>
               <RadioGroup
@@ -266,7 +266,7 @@ const QuestionForm = ({ onSubmit, marksPerQuestion }: QuestionFormProps) => {
           ) : (
             <div>
               <Label htmlFor="correctAnswer" className="text-slate-700">Correct Answer *</Label>
-              {questionType === 'long-text' ? (
+              {questionType === 'LONG_TEXT' ? (
                 <Textarea
                   id="correctAnswer"
                   value={correctAnswer}
@@ -280,11 +280,11 @@ const QuestionForm = ({ onSubmit, marksPerQuestion }: QuestionFormProps) => {
               ) : (
                 <Input
                   id="correctAnswer"
-                  type={questionType === 'numerical' ? 'number' : 'text'}
+                  type={questionType === 'NUMERICAL' ? 'number' : 'text'}
                   value={correctAnswer}
                   onChange={(e) => handleCorrectAnswerChange(e.target.value)}
                   placeholder={
-                    questionType === 'numerical'
+                    questionType === 'NUMERICAL'
                       ? 'Enter the correct number'
                       : 'Enter the correct answer'
                   }

@@ -1,61 +1,222 @@
 
-import React, { useEffect } from 'react';
+"use client"
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui2/input';
 import { Label } from '@/components/ui2/label';
+import prisma from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui2/card';
-import { QuizData } from './types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui2/select';
+import { QuizData ,Question} from './types';
+import { QuizExistsDialog } from '../QuizPrompt';
+// date-fns is useful for manipulating dates
 
 interface MetadataStepProps {
   quizData: QuizData;
   setQuizData: (data: QuizData) => void;
+  questions: Question[];
+  setQuestions:React.Dispatch<React.SetStateAction<Question[]>>
 }
 
-const MetadataStep = ({ quizData, setQuizData }: MetadataStepProps) => {
+const MetadataStep = ({ quizData, setQuizData ,questions, setQuestions}: MetadataStepProps) => {
+  const [quizCount, setquizCount] = useState(0);
+  const [examValue, setExamValue] = useState("");
+  const [randomQuestions, setRandomQuestions] = useState<Question[]>([]);
+  const [showPrompt, setShowPrompt] = useState(false);
   const handleInputChange = (field: keyof QuizData, value: string | number) => {
     setQuizData({ ...quizData, [field]: value });
   };
+  type ExamType = {
+    id: string;
+    title: string;
+    totalMarks?: number;
+    startTime?: Date;
+    endTime?: Date;
+    status?: string;
+    createdAt?: Date;
+    categoryId?: string;
+    gradeId?: string;
+    subjectId?: string;
+    totalMCQ?: number;
+    category?: string;
+    level?: string;
+    subject?: string;
+  };
+  const [exams, setExams] = useState<ExamType[]>([]);
+
+
+  const formatDateTime = (dateInput: string | Date) => {
+    const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    return date.toLocaleString('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+  };
+
+
+
+  const handleExamOnchange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    createQuiz(selectedId);
+    setExamValue(selectedId);
+  };
+
+const handleConfirm = () => {
+    setShowPrompt(false);
+    const selectedExam = exams.find((exam) => exam.id === examValue);
+    setQuizData({
+      title: selectedExam?.title !== undefined ? String(selectedExam.title) : "",
+      category: selectedExam?.category !== undefined ? String(selectedExam?.category) : "",
+      grade: selectedExam?.level !== undefined ? String(selectedExam?.level) : "",
+      subject: selectedExam?.subject !== undefined ? String(selectedExam?.subject) : "",
+      totalQuestions: selectedExam && selectedExam.totalMCQ !== undefined ? Number(selectedExam.totalMCQ) : 0,
+      totalMarks: selectedExam && selectedExam.totalMarks !== undefined ? Number(selectedExam.totalMarks) : 0,
+      startDateTime: selectedExam?.startTime ? new Date(selectedExam.startTime) : new Date(),
+      endDateTime: selectedExam?.endTime ? new Date(selectedExam.endTime) : new Date(),
+      examId: examValue,
+    });
+    const randomQuestions1: Question[] = [];
+    randomQuestions.forEach((question2) => {
+      const question: Question = {
+        id: question2.id,
+        type:question2.type,
+        text: question2.text,
+        marks: question2.marks,
+      };
+
+      if (question2.type === 'MULTIPLE_CHOICE') {
+        var options_data: any[] = [];
+        if (question2.options) {
+          question2.options.forEach((option2) => {
+            options_data.push({id: option2.id, text: option2.text, isCorrect: option2.isCorrect})
+          });
+        }
+        question.options = options_data;
+      } else if (question2.type === 'TRUE_FALSE') {
+        question.correctAnswer = question2.correctAnswer;
+      } else if (question2.type === 'SHORT_TEXT') {
+        question.correctAnswer =  question2.correctAnswer;
+      } else if (question2.type === 'LONG_TEXT') {
+        question.correctAnswer = question2.correctAnswer;
+      } else if (question2.type === 'NUMERICAL') {
+        question.correctAnswer =  question2.correctAnswer;
+      }
+      randomQuestions1.push(question);
+    });
+    setQuestions(randomQuestions1);
+  };
+
+  const handleCancel = () => {
+    setShowPrompt(false);
+  };
+
+const createQuiz = async (exmId: string) => {
+  const res = await fetch('/api/exams/quizzCount', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      examId: exmId,
+    }),
+  });
+
+  // Read response data
+  const data = await res.json();
+  if (!data.lattestQuiz) {
+    const selectedExam = exams.find((exam) => exam.id === exmId);
+    setQuizData({
+      title: selectedExam?.title !== undefined ? String(selectedExam.title) : "",
+      category: selectedExam?.category !== undefined ? String(selectedExam?.category) : "",
+      grade: selectedExam?.level !== undefined ? String(selectedExam?.level) : "",
+      subject: selectedExam?.subject !== undefined ? String(selectedExam?.subject) : "",
+      totalQuestions: selectedExam && selectedExam.totalMCQ !== undefined ? Number(selectedExam.totalMCQ) : 0,
+      totalMarks: selectedExam && selectedExam.totalMarks !== undefined ? Number(selectedExam.totalMarks) : 0,
+      startDateTime: selectedExam?.startTime ? new Date(selectedExam.startTime) : new Date(),
+      endDateTime: selectedExam?.endTime ? new Date(selectedExam.endTime) : new Date(),
+      examId: exmId,
+    });
+    setQuestions([]);
+  } else {
+    setShowPrompt(true);
+    setRandomQuestions(data.questions)
+  }
+};
+
+
+  const capitalizeWords = (str: string) =>
+  str.replace(/\b\w/g, (char) => char.toUpperCase());
 
   // Auto-populate dates on component mount
   useEffect(() => {
-    if (!quizData.startDateTime || !quizData.endDateTime) {
-      const now = new Date();
-      const endDate = new Date();
-      endDate.setDate(now.getDate() + 5);
-      
-      // Format for datetime-local input (YYYY-MM-DDTHH:MM)
-      const formatDateTime = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-      };
+  fetch("/api/exams/upcoming")
+    .then((res) => res.json())
+    .then((data) => {
+      const formattedExams = data.map((exam: any) => ({
+        id: exam.id,
+        title: capitalizeWords(exam.title),
+        totalMarks: exam.totalMarks,
+        startTime: new Date(exam.startTime),
+        endTime: new Date(exam.endTime),
+        status: exam.status,
+        createdAt: new Date(exam.createdAt),
+        categoryId: exam.categoryId,
+        gradeId: exam.gradeId,
+        subjectId: exam.subjectId,
+        totalMCQ: exam.totalMCQ,
+        category: exam.grade.category.catName,
+        level: exam.grade.level,
+        subject: exam.subject?.name ?? "", // Ensure subject is always present
+      }));
+      setExams(formattedExams);
+    });
 
-      setQuizData({
-        ...quizData,
-        startDateTime: formatDateTime(now),
-        endDateTime: formatDateTime(endDate)
-      });
-    }
-  }, [quizData, setQuizData]);
+}, [quizData, setQuizData]);
 
   return (
     <div className="space-y-6">
+       <QuizExistsDialog
+        open={showPrompt}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
+
+
       <Card>
         <CardHeader>
           <CardTitle className="text-slate-800">Basic Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-slate-700">Exam</Label>
+
+          <select
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+            onChange={handleExamOnchange} value={quizData.examId}
+          >
+            <option value="" key="" className='relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50'> Select an Exam</option>
+            {exams.map((exam: { id: string; title: string }) => (
+              <option className='relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
+                value={exam.id}
+                key={exam.id}
+              >
+                {exam.title}
+              </option>
+            ))}
+          </select>
+          </div>
           <div>
             <Label htmlFor="title" className="text-slate-700">Quiz Title *</Label>
             <Input
               id="title"
               value={quizData.title}
+              readOnly
               onChange={(e) => handleInputChange('title', e.target.value)}
               placeholder="Enter quiz title"
               className="border-slate-300 focus:border-slate-500"
             />
+          </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -64,6 +225,7 @@ const MetadataStep = ({ quizData, setQuizData }: MetadataStepProps) => {
               <Input
                 id="category"
                 value={quizData.category}
+                readOnly
                 onChange={(e) => handleInputChange('category', e.target.value)}
                 placeholder="e.g., Science"
                 className="border-slate-300 focus:border-slate-500"
@@ -75,6 +237,7 @@ const MetadataStep = ({ quizData, setQuizData }: MetadataStepProps) => {
               <Input
                 id="grade"
                 value={quizData.grade}
+                readOnly
                 onChange={(e) => handleInputChange('grade', e.target.value)}
                 placeholder="e.g., 10th Grade"
                 className="border-slate-300 focus:border-slate-500"
@@ -86,6 +249,7 @@ const MetadataStep = ({ quizData, setQuizData }: MetadataStepProps) => {
               <Input
                 id="subject"
                 value={quizData.subject}
+                readOnly
                 onChange={(e) => handleInputChange('subject', e.target.value)}
                 placeholder="e.g., Physics"
                 className="border-slate-300 focus:border-slate-500"
@@ -108,6 +272,7 @@ const MetadataStep = ({ quizData, setQuizData }: MetadataStepProps) => {
                 type="number"
                 min="1"
                 value={quizData.totalQuestions}
+                readOnly
                 onChange={(e) => handleInputChange('totalQuestions', parseInt(e.target.value) || 0)}
                 className="border-slate-300 focus:border-slate-500"
               />
@@ -120,6 +285,7 @@ const MetadataStep = ({ quizData, setQuizData }: MetadataStepProps) => {
                 type="number"
                 min="1"
                 value={quizData.totalMarks}
+                readOnly
                 onChange={(e) => handleInputChange('totalMarks', parseInt(e.target.value) || 0)}
                 className="border-slate-300 focus:border-slate-500"
               />
@@ -132,11 +298,14 @@ const MetadataStep = ({ quizData, setQuizData }: MetadataStepProps) => {
               <Input
                 id="startDateTime"
                 type="datetime-local"
-                value={quizData.startDateTime}
+                value={
+                  quizData.startDateTime instanceof Date
+                    ? quizData.startDateTime.toISOString().slice(0, 16)
+                    : quizData.startDateTime
+                }
                 readOnly
                 className="border-slate-300 bg-slate-50 text-slate-600"
               />
-              <p className="text-xs text-slate-500 mt-1">Auto-set to today</p>
             </div>
 
             <div>
@@ -144,11 +313,14 @@ const MetadataStep = ({ quizData, setQuizData }: MetadataStepProps) => {
               <Input
                 id="endDateTime"
                 type="datetime-local"
-                value={quizData.endDateTime}
+                 value={
+                  quizData.endDateTime instanceof Date
+                    ? quizData.endDateTime.toISOString().slice(0, 16)
+                    : quizData.endDateTime
+                }
                 readOnly
                 className="border-slate-300 bg-slate-50 text-slate-600"
               />
-              <p className="text-xs text-slate-500 mt-1">Auto-set to 5 days from today</p>
             </div>
           </div>
 

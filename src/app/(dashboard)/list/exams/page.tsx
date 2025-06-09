@@ -96,7 +96,7 @@ const renderRow = (item: ExamList) => (
     <td className="hidden md:table-cell">{item.grade.level}</td>
     <td>{item.totalMCQ}</td>
     <td>{item.totalMarks}</td>
-    <td>{new Intl.DateTimeFormat("en-US").format(item.startTime)}</td>
+    <td>{new Intl.DateTimeFormat().format(item.startTime)}</td>
     {(role === "admin" || role === "teacher") && (
       <td className="flex items-center gap-2">
         <FormContainer table="exam" type="update" data={item} />
@@ -144,6 +144,8 @@ const renderRow = (item: ExamList) => (
         status:true,
         totalMCQ:true,
         totalMarks:true,
+        startTime:true,
+        endTime:true,
         grade: {
           select: {
             level: true,

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-async-client-component */
 "use client"
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -19,10 +20,12 @@ const QuizBuilder = () => {
     subject: '',
     totalQuestions: 5,
     totalMarks: 100,
-    startDateTime: '',
-    endDateTime: '',
+    startDateTime: new Date(),
+    endDateTime: new Date(),
     examId:'',
   });
+
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -40,7 +43,7 @@ const QuizBuilder = () => {
     }
 
     switch (question.type) {
-      case 'multiple-choice':
+      case 'MULTIPLE_CHOICE':
         if (!question.options || question.options.length < 2) {
           return false;
         }
@@ -48,12 +51,12 @@ const QuizBuilder = () => {
         const hasCorrectOption = question.options.some(option => option.isCorrect);
         return hasAllOptionsFilled && hasCorrectOption;
 
-      case 'true-false':
+      case 'TRUE_FALSE':
         return question.correctAnswer === 'true' || question.correctAnswer === 'false';
 
-      case 'short-text':
-      case 'long-text':
-      case 'numerical':
+      case 'SHORT_TEXT':
+      case 'LONG_TEXT':
+      case 'NUMERICAL':
         return question.correctAnswer !== undefined && question.correctAnswer.trim() !== '';
 
       default:
@@ -94,8 +97,8 @@ const QuizBuilder = () => {
       subject: '',
       totalQuestions: 5,
       totalMarks: 100,
-      startDateTime: '',
-      endDateTime: '',
+      startDateTime: new Date(),
+      endDateTime: new Date(),
       examId:'',
     });
     setQuestions([]);
@@ -112,9 +115,9 @@ const QuizBuilder = () => {
       };
 
       console.log('Saving quiz to database...');
-     // const savedData = await saveQuizToDatabase(completeQuizData);
+      const savedData = await saveQuizToDatabase(completeQuizData);
       
-      //console.log('Quiz saved successfully:', savedData);
+      console.log('Quiz saved successfully:', savedData);
       
       toast({
         title: "Quiz Saved Successfully! 🎉",
@@ -179,7 +182,7 @@ const QuizBuilder = () => {
         </CardHeader> */}
       
           {currentStep === 1 && (
-            <MetadataStep quizData={quizData} setQuizData={setQuizData} />
+            <MetadataStep quizData={quizData} setQuizData={setQuizData} questions={questions} setQuestions={setQuestions}  />
           )}
           {currentStep === 2 && (
             <QuestionsStep

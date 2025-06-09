@@ -98,7 +98,7 @@ const EditQuestionForm = ({ question, onSubmit, onCancel, marksPerQuestion }: Ed
     }
 
     // Validate based on question type
-    if (questionType === 'multiple-choice') {
+    if (questionType === 'MULTIPLE_CHOICE') {
       const hasCorrectOption = options.some(option => option.isCorrect);
       const allOptionsFilled = options.every(option => option.text.trim());
       
@@ -109,7 +109,7 @@ const EditQuestionForm = ({ question, onSubmit, onCancel, marksPerQuestion }: Ed
       if (!hasCorrectOption) {
         newErrors.noCorrectOption = 'Please mark one option as correct';
       }
-    } else if (questionType !== 'true-false') {
+    } else if (questionType !== 'TRUE_FALSE') {
       if (!correctAnswer.trim()) {
         newErrors.correctAnswer = 'Correct answer is required';
       }
@@ -131,9 +131,9 @@ const EditQuestionForm = ({ question, onSubmit, onCancel, marksPerQuestion }: Ed
       type: questionType,
       text: questionText,
       marks: marksPerQuestion,
-      correctAnswer: questionType === 'multiple-choice' ? undefined : 
-                    questionType === 'true-false' ? trueFalseAnswer : correctAnswer,
-      options: questionType === 'multiple-choice' ? options : undefined,
+      correctAnswer: questionType === 'MULTIPLE_CHOICE' ? undefined : 
+                    questionType === 'TRUE_FALSE' ? trueFalseAnswer : correctAnswer,
+      options: questionType === 'MULTIPLE_CHOICE' ? options : undefined,
     };
 
     onSubmit(updatedQuestion);
@@ -169,11 +169,11 @@ const EditQuestionForm = ({ question, onSubmit, onCancel, marksPerQuestion }: Ed
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white border-slate-300">
-                <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
-                <SelectItem value="true-false">True/False</SelectItem>
-                <SelectItem value="short-text">Short Text</SelectItem>
-                <SelectItem value="long-text">Long Text</SelectItem>
-                <SelectItem value="numerical">Numerical</SelectItem>
+                <SelectItem value="MULTIPLE_CHOICE">Multiple Choice</SelectItem>
+                <SelectItem value="TRUE_FALSE">True/False</SelectItem>
+                <SelectItem value="SHORT_TEXT">Short Text</SelectItem>
+                <SelectItem value="LONG_TEXT">Long Text</SelectItem>
+                <SelectItem value="NUMERICAL">Numerical</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -198,7 +198,7 @@ const EditQuestionForm = ({ question, onSubmit, onCancel, marksPerQuestion }: Ed
             )}
           </div>
 
-          {questionType === 'multiple-choice' ? (
+          {questionType === 'MULTIPLE_CHOICE' ? (
             <div>
               <Label className="text-slate-700">Options (Select the correct answer)</Label>
               <div className="space-y-3 mt-2">
@@ -252,7 +252,7 @@ const EditQuestionForm = ({ question, onSubmit, onCancel, marksPerQuestion }: Ed
                 )}
               </div>
             </div>
-          ) : questionType === 'true-false' ? (
+          ) : questionType === 'TRUE_FALSE' ? (
             <div>
               <Label className="text-slate-700">Correct Answer</Label>
               <RadioGroup
@@ -273,7 +273,7 @@ const EditQuestionForm = ({ question, onSubmit, onCancel, marksPerQuestion }: Ed
           ) : (
             <div>
               <Label htmlFor="correctAnswer" className="text-slate-700">Correct Answer *</Label>
-              {questionType === 'long-text' ? (
+              {questionType === 'LONG_TEXT' ? (
                 <Textarea
                   id="correctAnswer"
                   value={correctAnswer}
@@ -287,11 +287,11 @@ const EditQuestionForm = ({ question, onSubmit, onCancel, marksPerQuestion }: Ed
               ) : (
                 <Input
                   id="correctAnswer"
-                  type={questionType === 'numerical' ? 'number' : 'text'}
+                  type={questionType === 'NUMERICAL' ? 'number' : 'text'}
                   value={correctAnswer}
                   onChange={(e) => handleCorrectAnswerChange(e.target.value)}
                   placeholder={
-                    questionType === 'numerical'
+                    questionType === 'NUMERICAL'
                       ? 'Enter the correct number'
                       : 'Enter the correct answer'
                   }

@@ -1357,6 +1357,11 @@ export interface CreateQuizData {
 export const saveQuizToDatabase = async (data: CreateQuizData) => {
   try {
     // Create the quiz first
+    await prisma.quiz.deleteMany({
+     where: {
+        examId: data.quiz.examId ,
+      },
+    });
     const createdQuiz = await prisma.quiz.create({
       data: {
         title: data.quiz.title,

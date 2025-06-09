@@ -1,0 +1,45 @@
+import prisma from "@/lib/prisma";
+import { subHours } from "date-fns";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const nowMinusOneHour = subHours(new Date(), 1);
+
+  const exams = await prisma.exam.findMany({
+    where: {
+      startTime: {
+        gte: nowMinusOneHour,
+      },
+    },
+    select: {
+      id: true,
+      title: true,
+      totalMarks: true,
+      startTime: true,
+      endTime: true,
+      status: true,
+      createdAt: true,
+      categoryId: true,
+      gradeId: true,
+      subjectId: true,
+      totalMCQ: true,
+      grade: {
+        select: {
+          level: true,
+          category: {
+            select: {
+              catName: true,
+            }
+          }
+        }
+      },
+      subject: {
+        select: {
+          name: true,
+        }
+      },
+    },
+  });
+
+  return NextResponse.json(exams);
+}

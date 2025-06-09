@@ -29,7 +29,7 @@ const QuestionsStep = ({ questions, setQuestions, quizData }: QuestionsStepProps
 
     // Check based on question type
     switch (question.type) {
-      case 'multiple-choice':
+      case 'MULTIPLE_CHOICE':
         // Must have at least 2 options, all options filled, and one marked as correct
         if (!question.options || question.options.length < 2) {
           return false;
@@ -38,13 +38,13 @@ const QuestionsStep = ({ questions, setQuestions, quizData }: QuestionsStepProps
         const hasCorrectOption = question.options.some(option => option.isCorrect);
         return hasAllOptionsFilled && hasCorrectOption;
 
-      case 'true-false':
+      case 'TRUE_FALSE':
         // Must have a correct answer selected
         return question.correctAnswer === 'true' || question.correctAnswer === 'false';
 
-      case 'short-text':
-      case 'long-text':
-      case 'numerical':
+      case 'SHORT_TEXT':
+      case 'LONG_TEXT':
+      case 'NUMERICAL':
         // Must have a correct answer provided
         return question.correctAnswer !== undefined && question.correctAnswer.trim() !== '';
 
@@ -66,74 +66,6 @@ const QuestionsStep = ({ questions, setQuestions, quizData }: QuestionsStepProps
   };
 
   const validationStatus = getValidationStatus();
-
-  const generateRandomQuiz = () => {
-    const questionTypes: Question['type'][] = ['multiple-choice', 'true-false', 'short-text', 'long-text', 'numerical'];
-    const randomQuestions: Question[] = [];
-
-    const sampleQuestions = {
-      'multiple-choice': [
-        'What is the capital of France?',
-        'Which planet is closest to the Sun?',
-        'What is 2 + 2?',
-      ],
-      'true-false': [
-        'The Earth is flat.',
-        'Water boils at 100°C at sea level.',
-        'There are 7 continents on Earth.',
-      ],
-      'short-text': [
-        'What is the chemical symbol for water?',
-        'Name the largest ocean on Earth.',
-        'What is the main gas in Earth\'s atmosphere?',
-      ],
-      'long-text': [
-        'Explain the process of photosynthesis.',
-        'Describe the water cycle.',
-        'What are the main causes of climate change?',
-      ],
-      'numerical': [
-        'What is 15 + 27?',
-        'How many sides does a hexagon have?',
-        'What is 8 × 7?',
-      ]
-    };
-
-    for (let i = 0; i < Math.min(5, quizData.totalQuestions); i++) {
-      const type = questionTypes[i % questionTypes.length];
-      const questionsForType = sampleQuestions[type];
-      const questionText = questionsForType[Math.floor(Math.random() * questionsForType.length)];
-      
-      const question: Question = {
-        id: `random-${Date.now()}-${i}`,
-        type,
-        text: questionText,
-        marks: marksPerQuestion,
-      };
-
-      if (type === 'multiple-choice') {
-        const options = [
-          { id: '1', text: 'Paris', isCorrect: true },
-          { id: '2', text: 'London', isCorrect: false },
-          { id: '3', text: 'Berlin', isCorrect: false },
-          { id: '4', text: 'Madrid', isCorrect: false },
-        ];
-        question.options = options;
-      } else if (type === 'true-false') {
-        question.correctAnswer = Math.random() > 0.5 ? 'true' : 'false';
-      } else if (type === 'short-text') {
-        question.correctAnswer = 'H2O';
-      } else if (type === 'long-text') {
-        question.correctAnswer = 'Plants use sunlight, carbon dioxide, and water to produce glucose and oxygen.';
-      } else if (type === 'numerical') {
-        question.correctAnswer = '42';
-      }
-
-      randomQuestions.push(question);
-    }
-
-    setQuestions(randomQuestions);
-  };
 
   const addQuestion = (question: Question) => {
     const questionWithMarks = {
@@ -174,13 +106,7 @@ const QuestionsStep = ({ questions, setQuestions, quizData }: QuestionsStepProps
           </p>
         </div>
         
-        <Button
-          onClick={generateRandomQuiz}
-          variant="outline"
-          className="border-slate-300 text-slate-700 hover:bg-slate-50"
-        >
-          🔀 Generate Random Quiz
-        </Button>
+
       </div>
 
       {/* Validation Status */}
@@ -316,7 +242,7 @@ const QuestionsStep = ({ questions, setQuestions, quizData }: QuestionsStepProps
                       )}
                       {question.correctAnswer && !question.options && (
                         <div className="bg-green-50 border border-green-200 p-2 rounded">
-                          <strong>Correct Answer:</strong> {question.type === 'true-false' ? (question.correctAnswer === 'true' ? 'True' : 'False') : question.correctAnswer}
+                          <strong>Correct Answer:</strong> {question.type === 'TRUE_FALSE' ? (question.correctAnswer === 'true' ? 'True' : 'False') : question.correctAnswer}
                         </div>
                       )}
                       {!isComplete && (
