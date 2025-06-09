@@ -49,16 +49,22 @@ const menuItems = [
       //   visible: ["admin", "teacher"],
       // },
       {
+        icon: "/exam.png",
+        label: "Exams",
+        href: "/list/exams",
+        visible: ["admin", "teacher", "parent"],
+      },
+      {
         icon: "/brain.png",
         label: "Quiz builder",
         href: "/list/quizzBuilder",
         visible: ["admin" ],
       },
       {
-        icon: "/exam.png",
-        label: "Exams",
-        href: "/list/exams",
-        visible: ["admin", "teacher", "student", "parent"],
+        icon: "/myquiz.png",
+        label: "My Quiz",
+        href: "/list/myquiz",
+        visible: ["student"],
       },
       // {
       //   icon: "/assignment.png",

@@ -23,6 +23,7 @@ export async function GET(request) {
 
   console.log("✅Every Day 12 pm Cron job triggered at", new Date());
 
+  const today = new Date();
   const dateOnly = new Date(today.toISOString().split('T')[0]);
     const now = new Date();
     const yesterday = new Date(now);
