@@ -86,7 +86,7 @@ export async function GET(request) {
                 }
             },
             grade: {
-                include: {
+                select: {
                     level:true,
                     category: {
                         select:{
@@ -96,7 +96,7 @@ export async function GET(request) {
                 },
             },
             registrations: {
-                include: {
+                select: {
                     catGrade:true,
                     olympiadCategory:true,
                     status:true,
