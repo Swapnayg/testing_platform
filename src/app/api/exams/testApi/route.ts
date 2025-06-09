@@ -1,9 +1,7 @@
-// app/api/cron/daily/route.js
 
 import nodemailer from 'nodemailer';
 import prisma from "@/lib/prisma";
 import { generatePDFDocument1 } from "@/lib/actions";
-
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -13,54 +11,9 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
 
-  if (secret !== process.env.CRON_SECRET) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  }
-
-  console.log("✅Every Day 12 pm Cron job triggered at", new Date());
-
-  const today = new Date();
-  const dateOnly = new Date(today.toISOString().split('T')[0]);
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yes_dateOnly = new Date(yesterday.toISOString().split('T')[0]); 
-    await prisma.exam.updateMany({
-      where: {
-        startTime: dateOnly, // exactly today
-        endTime: {
-          gte: today, // still ongoing or ends today
-        },
-      },
-      data: {
-        status: 'IN_PROGRESS',
-      },
-    });
-  
-    await prisma.exam.updateMany({
-      where: {
-        endTime: yes_dateOnly,
-      },
-      data: {
-        status: 'COMPLETED',
-      },
-    });
-  
-    await prisma.result.updateMany({
-      where: {
-        status: "NOT_GRADED",
-        endTime: yes_dateOnly,
-      },
-      data: {
-        status: 'ABSENT',
-      },
-    });
-
-const startOfDay = new Date();
+export async function GET() {
+    const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date();
@@ -97,9 +50,9 @@ const startOfDay = new Date();
             },  
         },
     });
-    const examResults = [];
-    const regId = [];
-    const studentList = [];
+    const examResults: { id: string; title: string; startTime: string; endTime: string; category: any; grade: any; subject: string; totalMCQ: number; totalMarks: number; studentId: any; regsId: any; }[] = [];
+    const regId: any[] = [];
+    const studentList: { examregId: any; name: string | null; fatherName: string | null; cnicNumber: string; rollNo: string | null; email: string | null; category: any; grade: any; instituteName: string | null; }[] = [];
     examsToday.forEach(async exam => {
         const { grade } = exam;
         const examCategory = grade.category.catName;
@@ -307,7 +260,6 @@ const startOfDay = new Date();
         });
         console.log('Email sent:', info.messageId);
     });
-
   return new Response(JSON.stringify({ message: "Cron executed" }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
