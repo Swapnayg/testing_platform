@@ -1189,6 +1189,8 @@ export const updateAccept = async (
               studentId: user.cnicNumber,
               status: "NOT_GRADED",
               score: 0,
+              totalScore:ex.totalMarks,
+              grade:'',
               startTime: new Date(ex.startTime),
               endTime: new Date(ex.endTime),
             },

@@ -42,53 +42,42 @@ model Category {
   Exam    Exam[]
 }
 
-
 model QuizAttempt {
-  id           String   @id @default(cuid())
-  quizId       String
-  studentId          String
-  student      Student   @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
-  studentName  String
-  startTime    DateTime @default(now())
-  endTime      DateTime?
-  isCompleted  Boolean  @default(false)
-  isSubmitted  Boolean  @default(false)
-  totalScore   Int?
-  timeSpent    Int?     // in seconds
-  
-  quiz         Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  answers      Answer[]
+  id          String    @id @default(cuid())
+  quizId      String
+  studentId   String
+  student     Student   @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
+  studentName String
+  startTime   DateTime  @default(now())
+  endTime     DateTime?
+  isCompleted Boolean   @default(false)
+  isSubmitted Boolean   @default(false)
+  totalScore  Int?
+  timeSpent   Int? // in seconds
+
+  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers     Answer[]
   submittedAt DateTime?
 
   @@map("quiz_attempts")
 }
 
 model Answer {
-  id            String      @id @default(cuid())
-  attemptId     String
-  questionId    String
-  answerText    String
-  isCorrect     Boolean?
-  pointsEarned  Int         @default(0)
-  answeredAt    DateTime    @default(now())
-  
-  attempt       QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question      Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
+  id           String   @id @default(cuid())
+  attemptId    String
+  questionId   String
+  answerText   String
+  isCorrect    Boolean?
+  pointsEarned Int      @default(0)
+  answeredAt   DateTime @default(now())
+
+  attempt          QuizAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  QuestionOption   QuestionOption? @relation(fields: [questionOptionId], references: [id])
+  questionOptionId String?
+
   @@unique([attemptId, questionId])
   @@map("answers")
-}
-
-model Answer {
-  id               String          @id @default(uuid())
-  attempt          QuizAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  attemptId        String
-  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  questionId       String
-  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: Cascade)
-  selectedOptionId String?
-  responseText     String? // For open-ended/numerical responses
-  responseNumber   Float? // For numerical answers
 }
 
 model Grade {
@@ -239,14 +228,14 @@ enum ResultStatus {
 }
 
 model Result {
-  id        Int          @id @default(autoincrement())
-  totalScore     Int
-  score     Int
-  grade     String
-  status    ResultStatus @default(NOT_GRADED)
-  gradedAt  DateTime?
-  startTime DateTime
-  endTime   DateTime
+  id         Int          @id @default(autoincrement())
+  totalScore Int
+  score      Int
+  grade      String
+  status     ResultStatus @default(NOT_GRADED)
+  gradedAt   DateTime?
+  startTime  DateTime
+  endTime    DateTime
 
   examId    String?
   exam      Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
