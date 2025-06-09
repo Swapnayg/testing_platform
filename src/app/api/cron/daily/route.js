@@ -73,7 +73,7 @@ export async function GET(request) {
                 lte: endOfDay,
             },
         },
-        include: {
+        select: {
             id:true,
             title:true,
             startTime:true,
