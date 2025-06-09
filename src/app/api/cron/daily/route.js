@@ -116,8 +116,8 @@ export async function GET(request) {
         const matchingRegistrations = exam.registrations.filter(reg => {
             return (
                 reg.status === 'APPROVED' &&
-                reg.grade.level === examGradeLevel &&
-                reg.grade.category.catName === examCategory
+                reg.catGrade === examGradeLevel &&
+                reg.olympiadCategory === examCategory
             );
         });
         if (matchingRegistrations.length > 0) {
