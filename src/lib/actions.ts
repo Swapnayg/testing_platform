@@ -646,6 +646,7 @@ const addColoredSection = (doc: jsPDF, title: string, yPos: number, bgColor: [nu
 export async function generatePDFDocument1(id: number, exams: any[], student: { rollNo: any; cnicNumber: any; name: any; fatherName: any; category: string; grade: string; instituteName: any; }): Promise<Buffer> {
 const doc = new jsPDF();
     // Page 1 - Student Information
+    console.log(exams)
     doc.setFillColor(52, 152, 219); // Steel blue background
     doc.rect(0, 0, 210, 40, 'F');
     

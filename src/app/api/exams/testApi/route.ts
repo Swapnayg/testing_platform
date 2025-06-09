@@ -1,9 +1,6 @@
-// app/api/cron/daily/route.js
-
 import nodemailer from 'nodemailer';
 import prisma from "@/lib/prisma";
 import { generatePDFDocument1 } from "@/lib/actions";
-
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -13,21 +10,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  if (secret !== process.env.CRON_SECRET) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  }
 
-    console.log("✅Every Day 12 pm Cron job triggered at", new Date());
-
-    const today = new Date();
+export async function GET() {
 
     // Get start of yesterday
+    const today = new Date();
     const yesterdayStart = new Date(today);
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
     yesterdayStart.setHours(0, 0, 0, 0);
@@ -36,50 +26,6 @@ export async function GET(request) {
     const yesterdayEnd = new Date(today);
     yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
     yesterdayEnd.setHours(23, 59, 59, 999);
-
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    await prisma.exam.updateMany({
-      where: {
-        status:"NOT_STARTED",
-        startTime: {
-            gte: new Date(tomorrow.setHours(0, 0, 0, 0)), // tomorrow 00:00:00
-            lt: new Date(tomorrow.setHours(23, 59, 59, 999)), // tomorrow 23:59:59
-        },
-      },
-      data: {
-        status: 'IN_PROGRESS',
-      },
-    });
-  
-    await prisma.exam.updateMany({
-      where: {
-        status:"IN_PROGRESS",
-        endTime: {
-            gte: yesterdayStart,
-            lte: yesterdayEnd,
-        },
-      },
-      data: {
-        status: 'COMPLETED',
-      },
-    });
-  
-    await prisma.result.updateMany({
-      where: {
-        status: "NOT_GRADED",
-        endTime: {
-            gte: yesterdayStart,
-            lte: yesterdayEnd,
-        },
-      },
-      data: {
-        status: 'ABSENT',
-      },
-    });
-
     const examsToday = await prisma.exam.findMany({
         where: {
             createdAt: {
@@ -111,9 +57,9 @@ export async function GET(request) {
             },  
         },
     });
-    var examResults = [];
-    var regId = [];
-    var studentList = [];
+    var examResults: { id: string; title: string; startTime: string; endTime: string; category: string | null; grade: string | null; subject: string; totalMCQ: number; totalMarks: number; studentId: string; regsId: number; }[] = [];
+    var regId: number[] = [];
+    var studentList: { examregId: number; name: string | null; fatherName: string | null; cnicNumber: string; rollNo: string | null; email: string | null; category: string | null; grade: string | null; instituteName: string | null; }[] = [];
     examsToday.forEach(async exam => {
         const { grade } = exam;
         const examCategory = grade.category.catName;
