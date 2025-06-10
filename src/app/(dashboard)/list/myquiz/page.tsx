@@ -1,27 +1,23 @@
-"use client"
-import React, { useState } from 'react';
-import QuizStartPage from '@/components/QuizStartPage';
-import QuizInterface from '@/components/QuizInterface';
+/* eslint-disable @next/next/no-async-client-component */
+import React from 'react';
+import { auth,getAuth, clerkClient } from "@clerk/nextjs/server";
+import QuizStart from '@/components/quizstart';
+import { string } from 'zod';
 
-const Index = () => {
-  const [currentView, setCurrentView] = useState<'start' | 'quiz'>('start');
-  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
+export default async function Index() {
+const { userId, sessionClaims } = auth();
+const role = (sessionClaims?.metadata as { role?: string })?.role;
+const currentUserId = userId;
+const client = clerkClient();
 
-  const handleStartQuiz = (quizId: string) => {
-    setSelectedQuizId(quizId);
-    setCurrentView('quiz');
-  };
-
-  const handleBackToStart = () => {
-    setCurrentView('start');
-    setSelectedQuizId(null);
-  };
-
-  if (currentView === 'quiz' && selectedQuizId) {
-    return <QuizInterface quizId={selectedQuizId} onBackToStart={handleBackToStart} />;
-  }
-
-  return <QuizStartPage onStartQuiz={handleStartQuiz} />;
+let user = null;
+var username = "";
+if (userId) {
+  user = await client.users.getUser(userId);
+  username = user.username?.toString() ?? "";
+}
+  return (
+    <QuizStart username={username} />
+  );
 };
 
-export default Index;
