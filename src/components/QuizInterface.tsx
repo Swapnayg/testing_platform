@@ -67,12 +67,12 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
 
   const getQuestionsbyId = async () => {
     try {
-      const response = await fetch('/api/quizz', {
+      const response = await fetch('/api/getQuestions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({type:"questions",quizid:quizId}), // data you want to send
+          body: JSON.stringify({quizid:quizId}), // data you want to send
         });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

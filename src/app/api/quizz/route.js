@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from "@/lib/prisma";
 import { $Enums } from "@prisma/client";
 
-
-
-
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -13,11 +10,6 @@ export async function GET(request) {
     const rollNo = searchParams.get('rollNo');
 
     switch (type) {
-      case 'all':
-        // GET 1: Fetch all students
-        const allStudents = await prisma.student.findMany();
-        return NextResponse.json(allStudents, { status: 200 });
-
       case 'byId':
 
         const student = await prisma.student.findFirst({
@@ -121,51 +113,6 @@ export async function POST(request) {
 
         return NextResponse.json(quizAttempt, { status: 201 });
 
-      case 'questions':
-        // POST 2: Get questions by ID
-        const { quizid } = body;
-        if (!quizid) {
-          return NextResponse.json({ message: 'Quiz is required' }, { status: 400 });
-        }
-        const quiz = await prisma.quiz.findUnique({
-            where: { id: quizid },
-            include: {
-                questions: {
-                    orderBy: { id: 'asc' },
-                    include:{
-                        options:{
-                            orderBy: { id: 'asc' },
-                        }
-                    }
-                }
-            }
-        });
-        if (!quiz) return null;
-        const questions = quiz.questions.map((question, index) => {
-          const options = question.options.filter(opt => opt.questionId === question.id).map(opt => opt.text);
-          return {
-            id: question.id,
-            questionNumber: parseInt(index + 1),
-            questionText: question.text,
-            questionType: question.type,
-            options:  options?.length > 0 ? options : undefined,
-            points: question.marks,
-            correctAnswer: question.correctAnswer
-          };
-        }).sort((a, b) => a.questionNumber - b.questionNumber);
-
-        var quizData =  {
-          id: quiz.id,
-          title: quiz.title,
-          timeLimit: 30, // 30 minutes
-          questions,
-          category: quiz.category,
-          grade: quiz.grade,
-          subject: quiz.subject,
-          totalMarks: quiz.totalMarks
-        };
-
-        return NextResponse.json(quizData, { status: 200 });
       case 'answers':
         const {aquizId,arollNo, data } = body;
         if (!aquizId || !arollNo)  {
