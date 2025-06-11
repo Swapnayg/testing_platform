@@ -1,79 +1,99 @@
 
-import React from 'react';
+import { useEffect, useState } from 'react'
 import { Clock, BookOpen, Award, Users, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
-interface Quiz {
-  id: string;
-  title: string;
-  description: string;
-  subject: string;
-  timeLimit: number;
-  totalQuestions: number;
-  totalMarks: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-}
+import prisma from "@/lib/prisma";
+import { Quiz,Exam,Student, Prisma } from "@prisma/client";
+import { any } from 'zod';
+import { QuizService } from '@/lib/quizService';
+import QuizInterface from '@/components/QuizInterface';
 
 interface QuizStartPageProps {
-  onStartQuiz: (quizId: string) => void;
+  username:string,
 }
 
-const QuizStartPage: React.FC<QuizStartPageProps> = ({ onStartQuiz }) => {
-  // Mock quiz data - replace with actual data fetching
-  const quizzes: Quiz[] = [
-    {
-      id: "quiz-1",
-      title: "Advanced Mathematics Quiz",
-      description: "Test your knowledge in calculus, algebra, and geometry. This comprehensive quiz covers fundamental mathematical concepts and problem-solving techniques.",
-      subject: "Mathematics",
-      timeLimit: 30,
-      totalQuestions: 10,
-      totalMarks: 100,
-      difficulty: "Hard"
-    },
-    {
-      id: "quiz-2",
-      title: "Science Fundamentals",
-      description: "Explore the basics of physics, chemistry, and biology. Perfect for testing your understanding of scientific principles and natural phenomena.",
-      subject: "Science",
-      timeLimit: 25,
-      totalQuestions: 8,
-      totalMarks: 80,
-      difficulty: "Medium"
-    },
-    {
-      id: "quiz-3",
-      title: "World Geography Challenge",
-      description: "Test your knowledge of world capitals, countries, landmarks, and geographical features from around the globe.",
-      subject: "Geography",
-      timeLimit: 20,
-      totalQuestions: 12,
-      totalMarks: 60,
-      difficulty: "Easy"
-    }
-  ];
+const QuizStartPage: React.FC<QuizStartPageProps> =  ({ username}) => {
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Easy': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'Medium': return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'Hard': return 'bg-rose-100 text-rose-800 border-rose-200';
-      default: return 'bg-slate-100 text-slate-800 border-slate-200';
+  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [buttonTexts, setButtonTexts] = useState<{ id: any; text: string }[]>([]);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizId, setQuizId] = useState("");
+  const [totalMarks, settotalMarks] = useState(0);
+  const [isCompleted, setisCompleted] = useState(false);
+
+  const getStudentByRollNo = async (rollNo: string) => {
+  try {
+    const response = await fetch(`/api/quizz?type=byRoll&rollNo=${encodeURIComponent(rollNo)}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+    const results = await response.json();
+    return results;
+  } catch (error) {
+    return null;
+  }
+};
+useEffect(() => {
+  const fetchStudentQuizzes = async () => {
+    const data = await getStudentByRollNo(username.toUpperCase());
+    data.forEach(async (d: any) => {
+      var text = '';
+      var id = '';
+      if (new Date(d.exam.startTime) > new Date()) {
+        text = "Upcoming";
+        id = d.exam.id;
+      }
+      else{
+        const res = await fetch(`/api/quizz?type=byId&rollNo=${encodeURIComponent(username.toUpperCase())}&id=${d.exam.quizzes[0].id}`);
+        const answers = await res.json();
+        text = answers.length === 0 ? 'Start Quiz' : (answers.length === 1 && answers[0]?.answers?.length === 0) ? 'Start Again' : 'Completed';
+        id = d.exam.quizzes[0].id;
+      }
+      const newButton = { id: id, text: text };
+      setButtonTexts((prev) => [...prev, newButton]);
+    });
+    setQuizzes(data);
   };
 
-  const getSubjectIcon = (subject: string) => {
-    switch (subject.toLowerCase()) {
-      case 'mathematics': return '📐';
-      case 'science': return '🔬';
-      case 'geography': return '🌍';
+  if (username) {
+    fetchStudentQuizzes();
+
+  }
+}, [username]);
+
+
+const handleStartQuiz = (quizId: string,marks:number ) => {
+  setShowQuiz(true);
+  setQuizId(quizId);
+  settotalMarks(marks);
+};
+
+const getTextById = (id: any) => {
+  const item = buttonTexts.find((entry) => entry.id === id);
+  return item?.text ?? "Default Text";
+};
+
+  function getSubjectIcon(subject: string) {
+    switch (subject) {
+      case 'Mathematics': return '📐';
+      case 'Science': return '🔬';
+      case 'English': return '✍️';
+      case 'History': return '🕰️';
+      case 'Geography': return '🌍';
+      case 'Physics': return '🌌';
+      case 'Chemistry': return '🧪';
+      case 'Biology': return '🌿';
+      case 'Computer Science': return '💻';
+      case 'Art': return '🎨';
       default: return '📚';
     }
-  };
+  }
 
   return (
+    <div>
+      {!showQuiz ? (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 shadow-sm">
@@ -88,63 +108,63 @@ const QuizStartPage: React.FC<QuizStartPageProps> = ({ onStartQuiz }) => {
       {/* Quiz Grid */}
       <div className="container mx-auto px-6 py-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {quizzes.map((quiz) => (
-            <Card key={quiz.id} className="group hover:shadow-lg transition-all duration-200 border-slate-200 bg-white">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-2xl">{getSubjectIcon(quiz.subject)}</span>
-                    <Badge variant="outline" className="text-xs font-medium text-slate-600 border-slate-300">
-                      {quiz.subject}
-                    </Badge>
+          {quizzes.map((quiz) => {
+            const btnText = getTextById(quiz.exam.quizzes[0].id) || 'Loading...';
+            const isCompleted = btnText === 'Completed';
+            return (
+              <Card key={quiz.id} className="group hover:shadow-lg transition-all duration-200 border-slate-200 bg-white">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">{getSubjectIcon(quiz.exam.subject.name)}</span>
+                      <Badge variant="outline" className="text-xs font-medium text-slate-600 border-slate-300">
+                        {quiz.exam.subject.name}
+                      </Badge>
+                    </div>
                   </div>
-                  <Badge className={`text-xs font-medium ${getDifficultyColor(quiz.difficulty)}`}>
-                    {quiz.difficulty}
-                  </Badge>
-                </div>
-                <CardTitle className="text-xl font-semibold text-slate-900 group-hover:text-slate-700 transition-colors">
-                  {quiz.title}
-                </CardTitle>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <p className="text-slate-600 text-sm leading-relaxed line-clamp-3">
-                  {quiz.description}
-                </p>
+                  <CardTitle className="text-xl font-semibold text-slate-900 group-hover:text-slate-700 transition-colors">
+                    {quiz.exam.title.toUpperCase()}
+                  </CardTitle>
+                </CardHeader>
                 
-                <div className="grid grid-cols-2 gap-4 py-3 border-t border-slate-100">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Clock className="w-4 h-4 text-slate-500" />
-                    <span className="text-slate-700 font-medium">{quiz.timeLimit} min</span>
+                <CardContent className="space-y-4">
+                  
+                  <div className="grid grid-cols-2 gap-4 py-3 border-t border-slate-100">
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Clock className="w-4 h-4 text-slate-500" />
+                      <span className="text-slate-700 font-medium">{60} min</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm">
+                      <BookOpen className="w-4 h-4 text-slate-500" />
+                      <span className="text-slate-700 font-medium">{quiz.exam.totalMCQ} questions</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Award className="w-4 h-4 text-slate-500" />
+                      <span className="text-slate-700 font-medium">{quiz.exam.totalMarks} marks</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <BookOpen className="w-4 h-4 text-slate-500" />
-                    <span className="text-slate-700 font-medium">{quiz.totalQuestions} questions</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Award className="w-4 h-4 text-slate-500" />
-                    <span className="text-slate-700 font-medium">{quiz.totalMarks} marks</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Users className="w-4 h-4 text-slate-500" />
-                    <span className="text-slate-700 font-medium">Solo</span>
-                  </div>
-                </div>
-                
-                <Button 
-                  onClick={() => onStartQuiz(quiz.id)}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 group transition-all duration-200"
-                >
-                  Start Quiz
-                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  
+                  <Button 
+                    onClick={() => handleStartQuiz(quiz.exam.quizzes[0].id,quiz.exam.quizzes[0].totalMarks)}
+                    disabled={isCompleted}
+                    className={`w-full ${ isCompleted ? 'bg-gray-400 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800'} text-white font-medium py-2.5 group transition-all duration-200`}
+                  >
+                    {btnText}
+                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </div>
+      ) : (
+        <QuizInterface quizId={quizId} username={username} totalMarks= {totalMarks}/>
+      )}
+    </div>
   );
+
 };
 
 export default QuizStartPage;

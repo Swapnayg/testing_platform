@@ -8,15 +8,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { QuizService } from '@/lib/quizService';
 
 interface Question {
   id: string;
   questionNumber: number;
   questionText: string;
-  questionType: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_TEXT' | 'LONG_TEXT' | 'NUMERIC';
+  questionType: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_TEXT' | 'LONG_TEXT' | 'NUMERICAL';
   options?: string[];
   points: number;
+  correctAnswer?: string;
 }
 
 interface QuizData {
@@ -24,6 +24,10 @@ interface QuizData {
   title: string;
   timeLimit: number; // in minutes
   questions: Question[];
+  category: string;
+  grade: string;
+  subject: string;
+  totalMarks: number;
 }
 
 interface Answer {
@@ -33,118 +37,94 @@ interface Answer {
 
 interface QuizInterfaceProps {
   quizId?: string;
-  onBackToStart: () => void;
+  username?:string;
+  totalMarks?:number;
 }
 
-const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) => {
+const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMarks  }) => {
   const { toast } = useToast();
   
-  // Mock quiz data with points - replace with actual data fetching
-  const [quizData] = useState<QuizData>({
-    id: quizId || "quiz-1",
-    title: "Advanced Mathematics Quiz",
-    timeLimit: 30,
-    questions: [
-      {
-        id: "q1",
-        questionNumber: 1,
-        questionText: "What is the derivative of x²?",
-        questionType: "MULTIPLE_CHOICE",
-        options: ["2x", "x²", "2x²", "x"],
-        points: 10
-      },
-      {
-        id: "q2",
-        questionNumber: 2,
-        questionText: "Is π (pi) a rational number?",
-        questionType: "TRUE_FALSE",
-        points: 5
-      },
-      {
-        id: "q3",
-        questionNumber: 3,
-        questionText: "What is your name?",
-        questionType: "SHORT_TEXT",
-        points: 5
-      },
-      {
-        id: "q4",
-        questionNumber: 4,
-        questionText: "Explain the concept of limits in calculus.",
-        questionType: "LONG_TEXT",
-        points: 20
-      },
-      {
-        id: "q5",
-        questionNumber: 5,
-        questionText: "What is 15 × 8?",
-        questionType: "NUMERIC",
-        points: 10
-      },
-      {
-        id: "q6",
-        questionNumber: 6,
-        questionText: "Which of the following is a prime number?",
-        questionType: "MULTIPLE_CHOICE",
-        options: ["21", "23", "25", "27"],
-        points: 10
-      },
-      {
-        id: "q7",
-        questionNumber: 7,
-        questionText: "The square root of 144 is 12.",
-        questionType: "TRUE_FALSE",
-        points: 5
-      },
-      {
-        id: "q8",
-        questionNumber: 8,
-        questionText: "What is your favorite mathematical concept?",
-        questionType: "SHORT_TEXT",
-        points: 5
-      },
-      {
-        id: "q9",
-        questionNumber: 9,
-        questionText: "Describe the relationship between algebra and geometry.",
-        questionType: "LONG_TEXT",
-        points: 20
-      },
-      {
-        id: "q10",
-        questionNumber: 10,
-        questionText: "Calculate: 3² + 4² = ?",
-        questionType: "NUMERIC",
-        points: 10
-      }
-    ]
-  });
+  // Get quiz data from the generator
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<string, Answer>>(new Map());
-  const [timeRemaining, setTimeRemaining] = useState(quizData.timeLimit * 60); // Convert to seconds
+  const [timeRemaining, setTimeRemaining] = useState(0);
   const [isQuizCompleted, setIsQuizCompleted] = useState(false);
   const [attemptId, setAttemptId] = useState<string | null>(null);
 
+
+  function capitalizeSentences(text: string) {
+    return text.split(/([.!?]\s*)/) // Split by sentence-ending punctuation and keep it
+    .map((segment, index, arr) => {
+          // Only capitalize the actual sentence part, not the punctuation
+      if (index % 2 === 0) {
+        return segment.charAt(0).toUpperCase() + segment.slice(1).trimStart();
+      }
+    return segment;
+    }).join('');
+  }
+
+  const getQuestionsbyId = async () => {
+    try {
+      const response = await fetch('/api/quizz', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({type:"questions",quizid:quizId}), // data you want to send
+        });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const results = await response.json();
+      return results;
+    } catch (error) {
+      return null;
+    }
+  };
+  // Load quiz data
+  useEffect(() => {
+      const fetchStudentQuizzes = async () => {
+        const loadedQuiz = await getQuestionsbyId();
+      if (loadedQuiz) {
+        setQuizData(loadedQuiz);
+        setTimeRemaining(loadedQuiz.timeLimit * 60); // Convert to seconds
+      } else {
+        toast({
+          title: "Error",
+          description: "Quiz not found",
+          variant: "destructive",
+        });
+      }
+      };
+    if (quizId) {
+      fetchStudentQuizzes();
+    }
+  }, [quizId,username,quizId,totalMarks]);
+
   // Initialize quiz attempt
   useEffect(() => {
+    if (!quizData) return;
+    
     const initializeAttempt = async () => {
       try {
-        const studentName = prompt("Please enter your name:") || "Anonymous Student";
-        const attempt = await QuizService.createQuizAttempt({
-          quizId: quizData.id,
-          studentId: `student_${Date.now()}`, // Generate a unique student ID
-          studentName: studentName
+        const res = await fetch('/api/quizz', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({type:"create",quizId:quizId, rollNo: username,totalMarks:totalMarks }), // data you want to send
         });
+
+        const attempt = await res.json();
         setAttemptId(attempt.id);
-        console.log('Quiz attempt initialized:', attempt);
         
         toast({
           title: "Quiz Started",
-          description: `Good luck, ${studentName}!`,
+          description: `Good luck, ${username}!`,
         });
       } catch (error) {
-        console.error('Failed to initialize quiz attempt:', error);
         toast({
           title: "Error",
           description: "Failed to start quiz. Please try again.",
@@ -154,7 +134,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
     };
     
     initializeAttempt();
-  }, []);
+  }, [quizData]);
 
   // Timer effect
   useEffect(() => {
@@ -188,20 +168,20 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
   // Get question status
   const getQuestionStatus = (questionIndex: number): 'current' | 'answered' | 'unanswered' => {
     if (questionIndex === currentQuestionIndex) return 'current';
-    const question = quizData.questions[questionIndex];
+    const question = quizData!.questions[questionIndex];
     return answers.has(question.id) ? 'answered' : 'unanswered';
   };
 
   // Navigate to question
   const navigateToQuestion = (index: number) => {
-    if (index >= 0 && index < quizData.questions.length) {
+    if (index >= 0 && index < quizData!.questions.length) {
       setCurrentQuestionIndex(index);
     }
   };
 
   // Check if all questions are answered
   const getAllUnansweredQuestions = (): number[] => {
-    return quizData.questions
+    return quizData!.questions
       .filter(q => !answers.has(q.id))
       .map(q => q.questionNumber);
   };
@@ -209,7 +189,6 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
   // Handle quiz submission
   const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
     const unansweredQuestions = getAllUnansweredQuestions();
-    
     if (!autoSubmit && unansweredQuestions.length > 0) {
       toast({
         title: "Incomplete Quiz",
@@ -238,16 +217,21 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
       const submissionData = {
         attemptId,
         answers: Array.from(answers.values()),
-        timeSpent: (quizData.timeLimit * 60) - timeRemaining,
+        timeSpent: (quizData!.timeLimit * 60) - timeRemaining,
         endTime: new Date().toISOString()
       };
       
       console.log('Submitting quiz with data:', submissionData);
-      
-      // Submit to Prisma via QuizService
-      const result = await QuizService.submitQuiz(submissionData);
-      
-      console.log('Quiz submission result:', result);
+
+      const res = await fetch('/api/quizz', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({type:"answers",aquizId:quizId, arollNo: username,data:submissionData }), // data you want to send
+      });
+
+      const attempt = await res.json();
       
       setIsQuizCompleted(true);
       toast({
@@ -282,7 +266,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
               <div key={index} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
                 <RadioGroupItem value={option} id={`${question.id}-${index}`} className="border-slate-300" />
                 <Label htmlFor={`${question.id}-${index}`} className="cursor-pointer text-slate-700 flex-1">
-                  {option}
+                  {capitalizeSentences(option)} 
                 </Label>
               </div>
             ))}
@@ -298,11 +282,11 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
               className="flex space-x-6"
             >
               <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
-                <RadioGroupItem value="true" id={`${question.id}-true`} className="border-slate-300" />
+                <RadioGroupItem value="True" id={`${question.id}-true`} className="border-slate-300" />
                 <Label htmlFor={`${question.id}-true`} className="cursor-pointer text-slate-700">True</Label>
               </div>
               <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
-                <RadioGroupItem value="false" id={`${question.id}-false`} className="border-slate-300" />
+                <RadioGroupItem value="False" id={`${question.id}-false`} className="border-slate-300" />
                 <Label htmlFor={`${question.id}-false`} className="cursor-pointer text-slate-700">False</Label>
               </div>
             </RadioGroup>
@@ -330,7 +314,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
           />
         );
 
-      case 'NUMERIC':
+      case 'NUMERICAL':
         return (
           <Input
             type="number"
@@ -345,6 +329,18 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
         return <div>Unsupported question type</div>;
     }
   };
+
+  // Loading state
+  if (!quizData) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading quiz...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isQuizCompleted) {
     return (
@@ -361,13 +357,6 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
             <div className="text-sm text-slate-500">
               Questions answered: {answers.size} / {quizData.questions.length}
             </div>
-            <Button 
-              onClick={onBackToStart}
-              variant="outline"
-              className="mt-4 border-slate-300 text-slate-700 hover:bg-slate-50"
-            >
-              Back to Quiz Selection
-            </Button>
           </CardContent>
         </Card>
       </div>
@@ -388,6 +377,9 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
               <h1 className="text-2xl font-bold text-slate-900">{quizData.title}</h1>
               <Badge variant="outline" className="text-slate-600 border-slate-300">
                 Question {currentQuestionIndex + 1} of {quizData.questions.length}
+              </Badge>
+              <Badge variant="outline" className="text-slate-500 border-slate-200">
+                {quizData.subject} • {quizData.grade}
               </Badge>
             </div>
             <div className="flex items-center space-x-4">
@@ -428,7 +420,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
                 </div>
               </CardHeader>
               <CardContent className="space-y-6 p-8">
-                <p className="text-lg leading-relaxed text-slate-800">{currentQuestion.questionText}</p>
+                <p className="text-lg leading-relaxed text-slate-800">{capitalizeSentences(currentQuestion.questionText)}</p>
                 
                 <div className="space-y-4">
                   {renderQuestion(currentQuestion)}
@@ -518,9 +510,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId, onBackToStart }) 
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Total Marks:</span>
-                    <span className="font-medium text-slate-900">
-                      {quizData.questions.reduce((sum, q) => sum + q.points, 0)}
-                    </span>
+                    <span className="font-medium text-slate-900">{quizData.totalMarks}</span>
                   </div>
                 </div>
               </CardContent>

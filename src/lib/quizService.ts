@@ -1,6 +1,5 @@
 
-// Note: This would typically use Prisma Client, but since we don't have a database setup,
-// I'm providing the structure for when you integrate with Supabase and Prisma
+import prisma from "./prisma";
 
 interface CreateQuizAttemptData {
   quizId: string;
@@ -100,25 +99,7 @@ export class QuizService {
     
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Quiz submitted successfully to database:', submissionResult);
-    
-    // Log the data structure that would be saved to Prisma
-    console.log('Data saved to QuizAttempt table:', {
-      id: data.attemptId,
-      endTime: data.endTime,
-      isCompleted: true,
-      isSubmitted: true,
-      timeSpent: data.timeSpent,
-    });
-    
-    console.log('Data saved to Answer table:', data.answers.map(answer => ({
-      attemptId: data.attemptId,
-      questionId: answer.questionId,
-      answerText: answer.answerText,
-      answeredAt: new Date().toISOString(),
-    })));
-    
+  
     return submissionResult;
   }
 
@@ -140,6 +121,21 @@ export class QuizService {
     
     // Mock implementation
     return null;
+  }
+
+  static async getAllQuiz(rollNo: string) {
+    try {
+      console.log("1")
+      const student = await prisma.student.findFirst({
+        where: { rollNo: "UIN703411" }
+      });
+      console.log("2")
+      console.log(student);
+    } catch (error) {
+      console.log("3")
+      console.error("Prisma error:", error);
+    }
+    return "student";
   }
 
   static async getQuizAttempt(attemptId: string) {

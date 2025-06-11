@@ -59,6 +59,7 @@ model QuizAttempt {
   answers     Answer[]
   submittedAt DateTime?
 
+  @@unique([quizId, studentId])
   @@map("quiz_attempts")
 }
 
