@@ -37,6 +37,12 @@ export async function GET(request) {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
   console.log("📅 Step 3: Time calculations completed");
 
   await prisma.exam.updateMany({
@@ -84,8 +90,10 @@ export async function GET(request) {
   const examsToday = await prisma.exam.findMany({
     where: {
       createdAt: {
-        gte: yesterdayStart,
-        lte: yesterdayEnd,
+        // gte: yesterdayStart,
+        // lte: yesterdayEnd,
+        gte: todayStart,
+        lte: todayEnd,
       },
     },
     select: {
