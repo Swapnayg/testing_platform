@@ -138,19 +138,32 @@ export async function GET(request) {
         });
 
         if (matchExmOnReg.length === 0) {
-          await prisma.examOnRegistration.upsert({
-            where: {
-              examId_registrationId: {
+            await prisma.examOnRegistration.upsert({
+                where: {
+                examId_registrationId: {
+                    examId: exam.id,
+                    registrationId: matchOnReg.id,
+                },
+                },
+                update: {},
+                create: {
                 examId: exam.id,
                 registrationId: matchOnReg.id,
-              },
-            },
-            update: {},
-            create: {
-              examId: exam.id,
-              registrationId: matchOnReg.id,
-            },
-          });
+                },
+            });
+
+            await prisma.result.create({
+                data: {
+                    examId: exam.id,
+                    studentId: matchOnReg.studentId,
+                    status: "NOT_GRADED",
+                    score: 0,
+                    totalScore:exam.totalMarks,
+                    grade:'',
+                    startTime: new Date(exam.startTime),
+                    endTime: new Date(exam.endTime),
+                },
+            });
           console.log(`➕ Step 9.${examIndex}.${matchIndex}: Linked exam ${exam.id} to registration ${matchOnReg.id}`);
 
           examResults.push({
