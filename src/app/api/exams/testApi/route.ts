@@ -143,7 +143,10 @@ export async function GET(): Promise<Response> {
     if (matchingRegistrations.length > 0) {
         console.log("8.1");
         matchingRegistrations.forEach(async (matchOnReg, matchIndex) => {
+            console.log("matchOnReg");
+            console.log(matchOnReg);
             console.log("8.2");
+            try {
             await prisma.examOnRegistration.upsert({
                 where: {
                 examId_registrationId: {
@@ -157,6 +160,10 @@ export async function GET(): Promise<Response> {
                 registrationId: matchOnReg.id,
                 },
             });
+            } catch (error) {
+                console.error(`❌ Failed to create examonresult for examId: ${exam.id}, studentId: ${matchOnReg.id}`, error);
+                // Optional: You can log to a monitoring service or continue gracefully
+            }
             console.log("8.3");
             try {
                 await prisma.result.create({
