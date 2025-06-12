@@ -163,19 +163,25 @@ export async function GET(request) {
                 },
             });
             console.log("8.5");
-            await prisma.result.create({
-                data: {
+            try {
+                await prisma.result.create({
+                    data: {
                     examId: exam.id,
                     studentId: matchOnReg.studentId,
                     status: "NOT_GRADED",
                     score: 0,
-                    totalScore:exam.totalMarks,
-                    grade:'',
+                    totalScore: exam.totalMarks,
+                    grade: '',
                     startTime: new Date(exam.startTime),
                     endTime: new Date(exam.endTime),
-                },
-            });
-          console.log(`➕ Step 9.${examIndex}.${matchIndex}: Linked exam ${exam.id} to registration ${matchOnReg.id}`);
+                    },
+                });
+            } catch (error) {
+                console.error(`❌ Failed to create result for examId: ${exam.id}, studentId: ${matchOnReg.studentId}`, error);
+                // Optional: You can log to a monitoring service or continue gracefully
+            }
+            console.log("8.6");
+            console.log(`➕ Step 9.${examIndex}.${matchIndex}: Linked exam ${exam.id} to registration ${matchOnReg.id}`);
 
           examResults.push({
             id: exam.id,
