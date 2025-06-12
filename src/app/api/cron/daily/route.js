@@ -171,8 +171,15 @@ export async function GET(request) {
                     },
                 });
 
-                await prisma.result.create({
-                    data: {
+                await prisma.result.upsert({
+                    where: {
+                        examId_studentId: {
+                        examId: exam.id,
+                        studentId: matchOnReg.studentId,
+                        },
+                    },
+                    update: {}, // do nothing if exists
+                    create: {
                         examId: exam.id,
                         studentId: matchOnReg.studentId,
                         status: "NOT_GRADED",

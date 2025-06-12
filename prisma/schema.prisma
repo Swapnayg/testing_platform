@@ -245,6 +245,7 @@ model Result {
   exam      Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
   studentId String
   student   Student @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
+  @@unique([examId, studentId])
 }
 
 model Attendance {
