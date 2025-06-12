@@ -209,9 +209,15 @@ export async function GET(request) {
             console.log("9.1");
             regId.push(matchOnReg.id);
             console.log("9.2");
-            const user = await prisma.student.findUnique({
-              where: { cnicNumber: matchOnReg.studentId },
-            });
+            var user;
+            try {
+                user = await prisma.student.findUnique({
+                where: { cnicNumber: matchOnReg.studentId },
+                });
+            } catch (error) {
+                console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
+                // Optional: You can log to a monitoring service or continue gracefully
+            }
 
             console.log("9.3");
 
