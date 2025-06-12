@@ -15,6 +15,7 @@ export async function GET() {
       id: true,
       title: true,
       totalMarks: true,
+      timeLimit: true,
       startTime: true,
       endTime: true,
       status: true,

@@ -151,11 +151,6 @@ const createQuiz = async (exmId: string) => {
 
   // Auto-populate dates on component mount
   useEffect(() => {
-    fetch("/api/exams/testApi")
-    .then((res) => res.json())
-    .then((data) => {
-      console.log(data);
-    });
   fetch("/api/exams/upcoming")
     .then((res) => res.json())
     .then((data) => {

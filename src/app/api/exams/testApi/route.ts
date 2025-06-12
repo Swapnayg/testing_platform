@@ -40,6 +40,7 @@ export async function GET() {
             endTime:true,
             totalMCQ:true,
             totalMarks:true,
+            timeLimit:true,
             subject:{
                 select:{
                     name:true,
@@ -57,7 +58,7 @@ export async function GET() {
             },  
         },
     });
-    var examResults: { id: string; title: string; startTime: string; endTime: string; category: string | null; grade: string | null; subject: string; totalMCQ: number; totalMarks: number; studentId: string; regsId: number; }[] = [];
+    var examResults: { id: string; title: string; startTime: string; endTime: string; category: string | null; grade: string | null; subject: string; totalMCQ: number; totalMarks: number; timeLimit: number; studentId: string; regsId: number; }[] = [];
     var regId: number[] = [];
     var studentList: { examregId: number; name: string | null; fatherName: string | null; cnicNumber: string; rollNo: string | null; email: string | null; category: string | null; grade: string | null; instituteName: string | null; }[] = [];
     examsToday.forEach(async exam => {
@@ -107,6 +108,7 @@ export async function GET() {
                         subject:exam.subject.name, 
                         totalMCQ:exam.totalMCQ, 
                         totalMarks:exam.totalMarks,
+                        timeLimit:exam.timeLimit,
                         studentId: matchOnReg.studentId, 
                         regsId:matchOnReg.id
                     });

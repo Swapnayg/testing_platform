@@ -342,24 +342,26 @@ export const updateExam = async (
         subject:true,
       },
     });
-
-    await prisma.quiz.update({
-      where: {examId: data.id },
-      data: { 
-        title: data.title,
-        grade: examWithId?.grade.level || '',
-        subject: examWithId?.subject.name || '',
-        totalQuestions:  data.totalMCQ,
-        totalMarks: data.totalMarks,
-        timeLimit: data.timeLimit,
-        startDateTime: data.startTime ? new Date(data.startTime) : new Date(),
-        endDateTime: data.endTime ? new Date(data.endTime) : new Date(),
-        // Provide valid values for category and exam as required by your schema
-        category: examWithId?.grade.category.catName, // Replace with actual categoryId
-       },
-    });
-
-
+    try{
+        await prisma.quiz.update({
+          where: {examId: data.id },
+          data: { 
+            title: data.title,
+            grade: examWithId?.grade.level || '',
+            subject: examWithId?.subject.name || '',
+            totalQuestions:  data.totalMCQ,
+            totalMarks: data.totalMarks,
+            timeLimit: data.timeLimit,
+            startDateTime: data.startTime ? new Date(data.startTime) : new Date(),
+            endDateTime: data.endTime ? new Date(data.endTime) : new Date(),
+            // Provide valid values for category and exam as required by your schema
+            category: examWithId?.grade.category.catName, // Replace with actual categoryId
+          },
+        });
+      }
+      catch{
+        console.log("Quiz not found");
+      }
     // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
@@ -1172,18 +1174,14 @@ export const updateAccept = async (
         where: { cnicNumber: register.studentId },
       });
       if (user?.id) {
-        const examList = await prisma.examOnRegistration.findMany({
-          where: {
-            registrationId :id
-          }, 
-        });
-        
-        if (examList.length === 0) {
-          console.log('No exams found for this registration');
-        }
-        const examIds = examList.map(er => er.examId);
         const exams = await prisma.exam.findMany({
-          where: { id: { in: examIds } },
+          where: {
+            grade: { level: register.catGrade ?? '' },
+            category: { catName:  register.olympiadCategory ?? '' },
+            status: {
+              in: ["NOT_STARTED", "IN_PROGRESS"],
+            },
+          },
           select:
           {
             id:true,

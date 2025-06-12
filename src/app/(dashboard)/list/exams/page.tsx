@@ -144,6 +144,7 @@ const renderRow = (item: ExamList) => (
         status:true,
         totalMCQ:true,
         totalMarks:true,
+        timeLimit:true,
         startTime:true,
         endTime:true,
         grade: {
