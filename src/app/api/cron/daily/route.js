@@ -188,51 +188,44 @@ export async function GET(request) {
                     // Optional: You can log to a monitoring service or continue gracefully
                 }
                 console.log("8.3");
-                console.log(`➕ Step 9.${examIndex}.${matchIndex}: Linked exam ${exam.id} to registration ${matchOnReg.id}`);
-            examResults.push({
-                id: exam.id,
-                title: exam.title,
-                startTime: new Date(exam.startTime).toLocaleString('en-IN', {
-                day: '2-digit', month: 'long', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', hour12: true
-                }),
-                endTime: new Date(exam.endTime).toLocaleString('en-IN', {
-                day: '2-digit', month: 'long', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', hour12: true
-                }),
-                category: matchOnReg.olympiadCategory,
-                grade: matchOnReg.catGrade,
-                subject: exam.subject.name,
-                totalMCQ: exam.totalMCQ,
-                totalMarks: exam.totalMarks,
-                studentId: matchOnReg.studentId,
-                regsId: matchOnReg.id
-            });
-            
-            console.log("9.0");
-            if (!regId.includes(matchOnReg.id)) {
-                console.log("9.1");
-                regId.push(matchOnReg.id);
-                try {
-                    console.log("9.4");
-                    studentList.push({
-                        examregId: matchOnReg.id,
-                        name: matchOnReg.student.name,
-                        fatherName: matchOnReg.student.fatherName,
-                        cnicNumber: matchOnReg.student.cnicNumber,
-                        rollNo: matchOnReg.student.rollNo,
-                        email: matchOnReg.student.email,
-                        category: matchOnReg.olympiadCategory,
-                        grade: matchOnReg.catGrade,
-                        instituteName: matchOnReg.student.instituteName
-                    });
-                    console.log("9.5");
-                    console.log(`👨‍🎓 Step 10.: Student data saved for reg ${matchOnReg.id}`);
-                } catch (error) {
-                    console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
-                    // Optional: You can log to a monitoring service or continue gracefully
+                console.log(`➕ Step 9.: Linked exam ${exam.id} to registration ${matchOnReg.id}`);
+                examResults.push({
+                    id: exam.id,
+                    title: exam.title,
+                    startTime: new Date(exam.startTime).toLocaleString('en-IN', {day: '2-digit', month: 'long', year: 'numeric',hour: '2-digit', minute: '2-digit', hour12: true}),
+                    endTime: new Date(exam.endTime).toLocaleString('en-IN', {day: '2-digit', month: 'long', year: 'numeric',hour: '2-digit', minute: '2-digit', hour12: true}),
+                    category: matchOnReg.olympiadCategory,
+                    grade: matchOnReg.catGrade,
+                    subject: exam.subject.name,
+                    totalMCQ: exam.totalMCQ,
+                    totalMarks: exam.totalMarks,
+                    studentId: matchOnReg.studentId,
+                    regsId: matchOnReg.id
+                }); 
+                console.log("9.0");
+                if (!regId.includes(matchOnReg.id)) {
+                    console.log("9.1");
+                    regId.push(matchOnReg.id);
+                    try {
+                        console.log("9.4");
+                        studentList.push({
+                            examregId: matchOnReg.id,
+                            name: matchOnReg.student.name,
+                            fatherName: matchOnReg.student.fatherName,
+                            cnicNumber: matchOnReg.student.cnicNumber,
+                            rollNo: matchOnReg.student.rollNo,
+                            email: matchOnReg.student.email,
+                            category: matchOnReg.olympiadCategory,
+                            grade: matchOnReg.catGrade,
+                            instituteName: matchOnReg.student.instituteName
+                        });
+                        console.log("9.5");
+                        console.log(`👨‍🎓 Step 10.: Student data saved for reg ${matchOnReg.id}`);
+                    } catch (error) {
+                        console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
+                        // Optional: You can log to a monitoring service or continue gracefully
+                    }
                 }
-            }
       });
     };
   });
