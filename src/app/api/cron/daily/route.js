@@ -230,8 +230,8 @@ export async function GET(request) {
     };
   });
 
-  await delay(5000);
-  console.log("⏳ Step 11: Waited 5 seconds for async operations");
+  await delay(3000);
+  console.log("⏳ Step 11: Waited 3 seconds for async operations");
 
   console.log("examResults");
   console.log(examResults);
