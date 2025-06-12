@@ -207,34 +207,34 @@ export async function GET(request) {
             
             console.log("9.0");
             if (!regId.includes(matchOnReg.id)) {
-            console.log("9.1");
-            regId.push(matchOnReg.id);
-            var user;
-            try {
-                user = await prisma.student.findUnique({
-                    where: { cnicNumber: matchOnReg.studentId },
-                });
-            } catch (error) {
-                console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
-                // Optional: You can log to a monitoring service or continue gracefully
+                console.log("9.1");
+                regId.push(matchOnReg.id);
+                var user;
+                try {
+                    user = await prisma.student.findUnique({
+                        where: { cnicNumber: matchOnReg.studentId },
+                    });
+                } catch (error) {
+                    console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
+                    // Optional: You can log to a monitoring service or continue gracefully
+                }
+                if (user?.id) {
+                    console.log("9.4");
+                    studentList.push({
+                        examregId: matchOnReg.id,
+                        name: user.name,
+                        fatherName: user.fatherName,
+                        cnicNumber: user.cnicNumber,
+                        rollNo: user.rollNo,
+                        email: user.email,
+                        category: matchOnReg.olympiadCategory,
+                        grade: matchOnReg.catGrade,
+                        instituteName: user.instituteName
+                    });
+                    console.log("9.5");
+                    console.log(`👨‍🎓 Step 10.: Student data saved for reg ${matchOnReg.id}`);
+                }
             }
-            if (user?.id) {
-                console.log("9.4");
-                studentList.push({
-                    examregId: matchOnReg.id,
-                    name: user.name,
-                    fatherName: user.fatherName,
-                    cnicNumber: user.cnicNumber,
-                    rollNo: user.rollNo,
-                    email: user.email,
-                    category: matchOnReg.olympiadCategory,
-                    grade: matchOnReg.catGrade,
-                    instituteName: user.instituteName
-                });
-                console.log("9.5");
-                console.log(`👨‍🎓 Step 10.: Student data saved for reg ${matchOnReg.id}`);
-            }
-          }
       });
     };
   });
