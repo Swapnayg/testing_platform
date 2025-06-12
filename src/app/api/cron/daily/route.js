@@ -249,12 +249,20 @@ export async function GET(request) {
 
   regId.forEach(async (reg, regIndex) => {
     const examList = examResults.filter(result => result.regsId === reg);
+    console.log("single examList");
+    console.log(examList);
     const student = studentList.find(result => result.examregId === reg);
+    console.log("single student");
+    console.log(student);
 
     const logoUrl = `${process.env.APP_URL}/favicon.ico`;
+    console.log("11.1");
     const loginUrl = `${process.env.APP_URL}/`;
+    console.log("11.2");
     const studentCnic = student?.rollNo || '';
+    console.log("11.3");
     const studentPassword = student?.cnicNumber || '';
+    console.log("11.4");
 
     const htmlTemplate = `<!DOCTYPE html>
         <html lang="en">
@@ -346,6 +354,7 @@ export async function GET(request) {
         </html>
         `; // trimmed for brevity
 
+    console.log("11.5");
     const safeStudent = student ? {
       rollNo: student.rollNo ?? '',
       cnicNumber: student.cnicNumber ?? '',
@@ -359,8 +368,12 @@ export async function GET(request) {
       category: '', grade: '', instituteName: ''
     };
 
+    console.log("11.6");
+
     const buffer = await generatePDFDocument1(reg, examList, safeStudent);
+    console.log("11.7");
     const fileName = `Test-slip-${student?.rollNo || 'student'}-${Date.now()}.pdf`;
+    console.log("11.8");
 
     const info = await transporter.sendMail({
       from: process.env.GMAIL_USER,
