@@ -203,13 +203,20 @@ export async function GET(request) {
             regsId: matchOnReg.id
           });
 
+          console.log("9.0");
+
           if (!regId.includes(matchOnReg.id)) {
+            console.log("9.1");
             regId.push(matchOnReg.id);
+            console.log("9.2");
             const user = await prisma.student.findUnique({
               where: { cnicNumber: matchOnReg.studentId },
             });
 
+            console.log("9.3");
+
             if (user?.id) {
+                console.log("9.4");
               studentList.push({
                 examregId: matchOnReg.id,
                 name: user.name,
@@ -221,6 +228,7 @@ export async function GET(request) {
                 grade: matchOnReg.catGrade,
                 instituteName: user.instituteName
               });
+              console.log("9.5");
               console.log(`👨‍🎓 Step 10.${examIndex}.${matchIndex}: Student data saved for reg ${matchOnReg.id}`);
             }
           }
@@ -228,7 +236,12 @@ export async function GET(request) {
       });
     }
   });
-
+  console.log("examResults");
+  console.log(examResults);
+  console.log("studentList");
+  console.log(studentList);
+  console.log("regId");
+  console.log(regId);
   await delay(5000);
   console.log("⏳ Step 11: Waited 5 seconds for async operations");
 
