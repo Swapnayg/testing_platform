@@ -147,6 +147,7 @@ export async function GET(request) {
             },
         },
     });
+    console.log(`🔍 Step 8.Found ${matchingRegistrations.length} matching registrations`);
     if (matchingRegistrations.length > 0) {
         console.log("8.1");
         matchingRegistrations.forEach(async (matchOnReg, matchIndex) => {
@@ -238,7 +239,6 @@ export async function GET(request) {
       });
     };
   });
-    console.log(`🔍 Step 8.Found ${matchingRegistrations.length} matching registrations`);
 
   await delay(5000);
   console.log("⏳ Step 11: Waited 5 seconds for async operations");
