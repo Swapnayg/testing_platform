@@ -137,15 +137,18 @@ export async function GET(request) {
     console.log(`🔍 Step 8.${examIndex}: Found ${matchingRegistrations.length} matching registrations`);
 
     if (matchingRegistrations.length > 0) {
+        console.log("8.1");
       matchingRegistrations.forEach(async (matchOnReg, matchIndex) => {
+         console.log("8.2");
         const matchExmOnReg = await prisma.examOnRegistration.findMany({
           where: {
             examId: exam.id,
             registrationId: matchOnReg.id,
           }
         });
-
+        console.log("8.3");
         if (matchExmOnReg.length === 0) {
+            console.log("8.4");
             await prisma.examOnRegistration.upsert({
                 where: {
                 examId_registrationId: {
@@ -159,7 +162,7 @@ export async function GET(request) {
                 registrationId: matchOnReg.id,
                 },
             });
-
+            console.log("8.5");
             await prisma.result.create({
                 data: {
                     examId: exam.id,
