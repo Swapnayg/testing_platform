@@ -249,7 +249,7 @@ export async function GET(request) {
 
   regId.forEach(async (reg, regIndex) => {
     const examList = examResults.filter(result => result.regsId === reg);
-    console.log("single examList");
+    console.log("single examList123");
     console.log(examList);
     const student = studentList.find(result => result.examregId === reg);
     console.log("single student");
