@@ -9,11 +9,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.GMAIL_PASS,
   },
 });
-
-
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-
 export async function GET() {
 
     // Get start of yesterday
