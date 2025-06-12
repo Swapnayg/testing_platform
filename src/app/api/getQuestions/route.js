@@ -1,54 +1,60 @@
 import prisma from "@/lib/prisma";
-import { $Enums } from "@prisma/client";
 import { NextRequest, NextResponse } from 'next/server';
 
-
 export async function POST(req) {
-    try{
+  try {
+    const body = await req.json(); // ✅ fix: extract body properly
     const { quizid } = body;
+
     if (!quizid) {
-        return NextResponse.json({ message: 'Quiz is required' }, { status: 400 });
+      return NextResponse.json({ message: 'Quiz is required' }, { status: 400 });
     }
+
     const quiz = await prisma.quiz.findUnique({
-        where: { id: quizid },
-            include: {
-                questions: {
-                    orderBy: { id: 'asc' },
-                    include:{
-                        options:{
-                            orderBy: { id: 'asc' },
-                        }
-                    }
-                }
-            }
-        });
-    if (!quiz) return null;
+      where: { id: quizid },
+      include: {
+        questions: {
+          orderBy: { id: 'asc' },
+          include: {
+            options: {
+              orderBy: { id: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!quiz) {
+      return NextResponse.json({ message: 'Quiz not found' }, { status: 404 });
+    }
+
     const questions = quiz.questions.map((question, index) => {
-    const options = question.options.filter(opt => opt.questionId === question.id).map(opt => opt.text);
-    return {
+      const options = question.options.map(opt => opt.text); // options already filtered by Prisma
+      return {
         id: question.id,
-        questionNumber: parseInt(index + 1),
+        questionNumber: index + 1,
         questionText: question.text,
         questionType: question.type,
-        options:  options?.length > 0 ? options : undefined,
+        options: options.length > 0 ? options : undefined,
         points: question.marks,
-        correctAnswer: question.correctAnswer
-        };
-    }).sort((a, b) => a.questionNumber - b.questionNumber);
+        correctAnswer: question.correctAnswer,
+      };
+    });
 
-    var quizData =  {
-        id: quiz.id,
-        title: quiz.title,
-        timeLimit: 30, // 30 minutes
-        questions,
-        category: quiz.category,
-        grade: quiz.grade,
-        subject: quiz.subject,
-        totalMarks: quiz.totalMarks
+    const quizData = {
+      id: quiz.id,
+      title: quiz.title,
+      timeLimit: 30, // 30 minutes
+      questions,
+      category: quiz.category,
+      grade: quiz.grade,
+      subject: quiz.subject,
+      totalMarks: quiz.totalMarks,
     };
 
-    return NextResponse.json({"quizData": quizData}, { status: 200 });
+    return NextResponse.json({ quizData }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create quiz' }, { status: 500 });
+    console.error("POST /quiz error:", error); // ✅ debug logging
+    return NextResponse.json({ error: 'Failed to fetch quiz data' }, { status: 500 });
   }
 }
