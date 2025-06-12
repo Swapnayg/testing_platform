@@ -121,6 +121,15 @@ export async function GET(request) {
   var examResults = [];
   var regId = [];
   var studentList = [];
+  const info = await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: 'infoswap90@gmail.com',
+      subject: 'Cron Email',
+      text: 'This email was sent by an Upstash cron job!',
+    });
+
+    console.log('Email sent:', info.messageId);
+
 
   examsToday.forEach(async (exam, examIndex) => {
     const { grade } = exam;
