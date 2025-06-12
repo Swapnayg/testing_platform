@@ -232,13 +232,13 @@ export async function GET(request) {
                     instituteName: user.instituteName
                 });
                 console.log("9.5");
-                console.log(`👨‍🎓 Step 10.${examIndex}.${matchIndex}: Student data saved for reg ${matchOnReg.id}`);
+                console.log(`👨‍🎓 Step 10.: Student data saved for reg ${matchOnReg.id}`);
             }
           }
       });
     };
   });
-    console.log(`🔍 Step 8.${examIndex}: Found ${matchingRegistrations.length} matching registrations`);
+    console.log(`🔍 Step 8.Found ${matchingRegistrations.length} matching registrations`);
 
   await delay(5000);
   console.log("⏳ Step 11: Waited 5 seconds for async operations");
