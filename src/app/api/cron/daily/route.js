@@ -141,8 +141,11 @@ export async function GET(request) {
             student: {
                 select: {
                     name: true,
-                    email: true,
+                    fatherName:true,
                     cnicNumber: true,
+                    rollNo: true,
+                    email:true,
+                    instituteName:true,
                 },
             },
         },
@@ -210,27 +213,21 @@ export async function GET(request) {
             if (!regId.includes(matchOnReg.id)) {
                 console.log("9.1");
                 regId.push(matchOnReg.id);
-                var user;
                 try {
-                    user = await prisma.student.findUnique({
-                        where: { cnicNumber: matchOnReg.studentId },
-                    });
-                    if (user?.id) {
                     console.log("9.4");
                     studentList.push({
                         examregId: matchOnReg.id,
-                        name: user.name,
-                        fatherName: user.fatherName,
-                        cnicNumber: user.cnicNumber,
-                        rollNo: user.rollNo,
-                        email: user.email,
+                        name: matchOnReg.student.name,
+                        fatherName: matchOnReg.student.fatherName,
+                        cnicNumber: matchOnReg.student.cnicNumber,
+                        rollNo: matchOnReg.student.rollNo,
+                        email: matchOnReg.student.email,
                         category: matchOnReg.olympiadCategory,
                         grade: matchOnReg.catGrade,
-                        instituteName: user.instituteName
+                        instituteName: matchOnReg.student.instituteName
                     });
                     console.log("9.5");
                     console.log(`👨‍🎓 Step 10.: Student data saved for reg ${matchOnReg.id}`);
-                }
                 } catch (error) {
                     console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
                     // Optional: You can log to a monitoring service or continue gracefully
