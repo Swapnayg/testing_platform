@@ -215,11 +215,7 @@ export async function GET(request) {
                     user = await prisma.student.findUnique({
                         where: { cnicNumber: matchOnReg.studentId },
                     });
-                } catch (error) {
-                    console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
-                    // Optional: You can log to a monitoring service or continue gracefully
-                }
-                if (user?.id) {
+                    if (user?.id) {
                     console.log("9.4");
                     studentList.push({
                         examregId: matchOnReg.id,
@@ -234,6 +230,10 @@ export async function GET(request) {
                     });
                     console.log("9.5");
                     console.log(`👨‍🎓 Step 10.: Student data saved for reg ${matchOnReg.id}`);
+                }
+                } catch (error) {
+                    console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
+                    // Optional: You can log to a monitoring service or continue gracefully
                 }
             }
       });
