@@ -132,6 +132,15 @@ export async function GET(request) {
         status: 'APPROVED',
         catGrade: examGradeLevel,
         olympiadCategory: examCategory,
+      },
+      select:{
+        id:true,
+        olympiadCategory:true,
+        catGrade:true,
+        studentId:true,
+        include:{
+            student:true,
+        }
       }
     });
     console.log(`🔍 Step 8.${examIndex}: Found ${matchingRegistrations.length} matching registrations`);
@@ -209,10 +218,11 @@ export async function GET(request) {
             console.log("9.1");
             regId.push(matchOnReg.id);
             console.log("9.2");
+
             var user;
             try {
                 user = await prisma.student.findUnique({
-                where: { cnicNumber: matchOnReg.studentId },
+                    where: { cnicNumber: matchOnReg.studentId },
                 });
             } catch (error) {
                 console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
@@ -242,14 +252,16 @@ export async function GET(request) {
       });
     }
   });
+
+  await delay(5000);
+  console.log("⏳ Step 11: Waited 5 seconds for async operations");
+
   console.log("examResults");
   console.log(examResults);
   console.log("studentList");
   console.log(studentList);
   console.log("regId");
   console.log(regId);
-  await delay(5000);
-  console.log("⏳ Step 11: Waited 5 seconds for async operations");
 
   regId.forEach(async (reg, regIndex) => {
     const examList = examResults.filter(result => result.regsId === reg);
