@@ -19,11 +19,10 @@ export async function GET(request) {
   const secret = searchParams.get("secret");
 
   if (secret !== process.env.CRON_SECRET) {
-    console.log("❌ Step 1: Unauthorized access attempt");
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
-  console.log("✅ Step 2: Cron job triggered at", new Date());
+  console.log("✅ Step: Cron job triggered at", new Date());
 
   const today = new Date();
   const yesterdayStart = new Date(today);
@@ -43,8 +42,6 @@ export async function GET(request) {
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  console.log("📅 Step 3: Time calculations completed");
-
   await prisma.exam.updateMany({
     where: {
       status: "NOT_STARTED",
@@ -57,7 +54,6 @@ export async function GET(request) {
       status: 'IN_PROGRESS',
     },
   });
-  console.log("📝 Step 4: Updated NOT_STARTED -> IN_PROGRESS");
 
   await prisma.exam.updateMany({
     where: {
@@ -71,7 +67,6 @@ export async function GET(request) {
       status: 'COMPLETED',
     },
   });
-  console.log("📝 Step 5: Updated IN_PROGRESS -> COMPLETED");
 
   await prisma.result.updateMany({
     where: {
@@ -85,8 +80,6 @@ export async function GET(request) {
       status: 'ABSENT',
     },
   });
-  console.log("📝 Step 6: Updated NOT_GRADED -> ABSENT");
-
   const examsToday = await prisma.exam.findMany({
     where: {
       createdAt: {
@@ -116,20 +109,10 @@ export async function GET(request) {
       },
     },
   });
-  console.log(`📚 Step 7: Retrieved ${examsToday.length} exams created yesterday`);
 
   var examResults = [];
   var regId = [];
   var studentList = [];
-  const info = await transporter.sendMail({
-      from: process.env.GMAIL_USER,
-      to: 'infoswap90@gmail.com',
-      subject: 'Cron Email',
-      text: 'This email was sent by an Upstash cron job!',
-    });
-
-    console.log('Email sent:', info.messageId);
-
 
   examsToday.forEach(async (exam, examIndex) => {
     const { grade } = exam;
@@ -159,12 +142,8 @@ export async function GET(request) {
             },
         },
     });
-    console.log(`🔍 Step 8.Found ${matchingRegistrations.length} matching registrations`);
     if (matchingRegistrations.length > 0) {
         matchingRegistrations.forEach(async (matchOnReg, matchIndex) => {
-            console.log("matchOnReg");
-            console.log(matchOnReg);
-            console.log("8.2");
             try {
                 await prisma.examOnRegistration.upsert({
                     where: {
@@ -203,8 +182,6 @@ export async function GET(request) {
                     console.error(`❌ Failed to create examonresult for examId: ${exam.id}, studentId: ${matchOnReg.id}`, error);
                     // Optional: You can log to a monitoring service or continue gracefully
                 }
-                console.log("8.3");
-                console.log(`➕ Step 9.: Linked exam ${exam.id} to registration ${matchOnReg.id}`);
                 examResults.push({
                     id: exam.id,
                     title: exam.title,
@@ -218,12 +195,9 @@ export async function GET(request) {
                     studentId: matchOnReg.studentId,
                     regsId: matchOnReg.id
                 }); 
-                console.log("9.0");
                 if (!regId.includes(matchOnReg.id)) {
-                    console.log("9.1");
                     regId.push(matchOnReg.id);
                     try {
-                        console.log("9.4");
                         studentList.push({
                             examregId: matchOnReg.id,
                             name: matchOnReg.student.name,
@@ -235,8 +209,6 @@ export async function GET(request) {
                             grade: matchOnReg.catGrade,
                             instituteName: matchOnReg.student.instituteName
                         });
-                        console.log("9.5");
-                        console.log(`👨‍🎓 Step 10.: Student data saved for reg ${matchOnReg.id}`);
                     } catch (error) {
                         console.error(`❌ Failed to get student : ${matchOnReg.studentId}`, error);
                         // Optional: You can log to a monitoring service or continue gracefully
@@ -247,31 +219,16 @@ export async function GET(request) {
   });
 
   await delay(3000);
-  console.log("⏳ Step 11: Waited 3 seconds for async operations");
-
-  console.log("examResults");
-  console.log(examResults);
-  console.log("studentList");
-  console.log(studentList);
-  console.log("regId");
-  console.log(regId);
+  console.log("⏳ Step : Waited 3 seconds for async operations");
 
   regId.forEach(async (reg, regIndex) => {
     const examList = examResults.filter(result => result.regsId === reg);
-    console.log("single examList123");
-    console.log(examList);
     const student = studentList.find(result => result.examregId === reg);
-    console.log("single student");
-    console.log(student);
 
     const logoUrl = `${process.env.APP_URL}/favicon.ico`;
-    console.log("11.1");
     const loginUrl = `${process.env.APP_URL}/`;
-    console.log("11.2");
     const studentCnic = student?.rollNo || '';
-    console.log("11.3");
     const studentPassword = student?.cnicNumber || '';
-    console.log("11.4");
 
     const htmlTemplate = `<!DOCTYPE html>
         <html lang="en">
@@ -363,7 +320,6 @@ export async function GET(request) {
         </html>
         `; // trimmed for brevity
 
-    console.log("11.5");
     const safeStudent = student ? {
       rollNo: student.rollNo ?? '',
       cnicNumber: student.cnicNumber ?? '',
@@ -377,12 +333,9 @@ export async function GET(request) {
       category: '', grade: '', instituteName: ''
     };
 
-    console.log("11.6");
 
     const buffer = await generatePDFDocument1(reg, examList, safeStudent);
-    console.log("11.7");
     const fileName = `Test-slip-${student?.rollNo || 'student'}-${Date.now()}.pdf`;
-    console.log("11.8");
 
     const info = await transporter.sendMail({
       from: process.env.GMAIL_USER,
@@ -397,10 +350,10 @@ export async function GET(request) {
         },
       ],
     });
-    console.log(`📧 Step 12.${regIndex}: Email sent to ${student?.email} - ID: ${info.messageId}`);
+    console.log(`📧 Step .${regIndex}: Email sent to ${student?.email} - ID: ${info.messageId}`);
   });
 
-  console.log("✅ Step 13: Cron job finished successfully");
+  console.log("✅ Step: Cron job finished successfully");
 
   return new Response(JSON.stringify({ message: "Cron executed" }), {
     status: 200,
