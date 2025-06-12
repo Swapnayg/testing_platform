@@ -327,8 +327,38 @@ export const updateExam = async (
         endTime: data.endTime,
         totalMCQ: data.totalMCQ,
         totalMarks: data.totalMarks,
+        timeLimit: data.timeLimit,
       },
     });
+
+    const examWithId = await prisma.exam.findUnique({
+      where: { id: data.id },
+      include: {
+        grade: {
+          include:{
+            category:true,
+          }
+        }, // pulls in the Grade relation
+        subject:true,
+      },
+    });
+
+    await prisma.quiz.update({
+      where: {examId: data.id },
+      data: { 
+        title: data.title,
+        grade: examWithId?.grade.level || '',
+        subject: examWithId?.subject.name || '',
+        totalQuestions:  data.totalMCQ,
+        totalMarks: data.totalMarks,
+        timeLimit: data.timeLimit,
+        startDateTime: data.startTime ? new Date(data.startTime) : new Date(),
+        endDateTime: data.endTime ? new Date(data.endTime) : new Date(),
+        // Provide valid values for category and exam as required by your schema
+        category: examWithId?.grade.category.catName, // Replace with actual categoryId
+       },
+    });
+
 
     // revalidatePath("/list/subjects");
     return { success: true, error: false };
@@ -1372,6 +1402,7 @@ export const saveQuizToDatabase = async (data: CreateQuizData) => {
         subject: data.quiz.subject || '',
         totalQuestions: data.quiz.totalQuestions,
         totalMarks: data.quiz.totalMarks,
+        timeLimit: data.quiz.timeLimit,
         startDateTime: data.quiz.startDateTime ? new Date(data.quiz.startDateTime) : new Date(),
         endDateTime: data.quiz.endDateTime ? new Date(data.quiz.endDateTime) : new Date(),
         // Provide valid values for category and exam as required by your schema

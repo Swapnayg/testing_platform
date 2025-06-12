@@ -81,6 +81,7 @@ export const examSchema = z.object({
   endTime: z.coerce.date({ message: "End time is required!" }),
   totalMCQ: z.coerce.number().min(1, { message: "Total MCQ is required!" }),
   totalMarks: z.coerce.number().min(1, { message: "Total Marks is required!" }),
+  timeLimit: z.coerce.number().min(1, { message: "Time Limit is required!" }),
   categoryId: z.coerce.number({ message: "Category is required!" }),
   gradeId: z.coerce.number({ message: "Grade is required!" }),
   subjectId: z.coerce.number({ message: "Subject is required!" }),

@@ -6,6 +6,7 @@ export interface QuizData {
   subject: string;
   totalQuestions: number;
   totalMarks: number;
+  timeLimit: number;
   startDateTime: Date;
   endDateTime: Date;
   examId: string;

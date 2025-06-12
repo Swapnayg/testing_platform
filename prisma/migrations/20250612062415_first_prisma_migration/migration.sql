@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `Exam` ADD COLUMN `timeLimit` INTEGER NOT NULL DEFAULT 30;
+
+-- AlterTable
+ALTER TABLE `quizzes` ADD COLUMN `timeLimit` INTEGER NOT NULL DEFAULT 30;

@@ -29,6 +29,7 @@ const MetadataStep = ({ quizData, setQuizData ,questions, setQuestions}: Metadat
     id: string;
     title: string;
     totalMarks?: number;
+    timeLimit?: number;
     startTime?: Date;
     endTime?: Date;
     status?: string;
@@ -70,6 +71,7 @@ const handleConfirm = () => {
       subject: selectedExam?.subject !== undefined ? String(selectedExam?.subject) : "",
       totalQuestions: selectedExam && selectedExam.totalMCQ !== undefined ? Number(selectedExam.totalMCQ) : 0,
       totalMarks: selectedExam && selectedExam.totalMarks !== undefined ? Number(selectedExam.totalMarks) : 0,
+      timeLimit: selectedExam && selectedExam.timeLimit !== undefined ? Number(selectedExam.timeLimit) : 0,
       startDateTime: selectedExam?.startTime ? new Date(selectedExam.startTime) : new Date(),
       endDateTime: selectedExam?.endTime ? new Date(selectedExam.endTime) : new Date(),
       examId: examValue,
@@ -131,6 +133,7 @@ const createQuiz = async (exmId: string) => {
       subject: selectedExam?.subject !== undefined ? String(selectedExam?.subject) : "",
       totalQuestions: selectedExam && selectedExam.totalMCQ !== undefined ? Number(selectedExam.totalMCQ) : 0,
       totalMarks: selectedExam && selectedExam.totalMarks !== undefined ? Number(selectedExam.totalMarks) : 0,
+      timeLimit: selectedExam && selectedExam.timeLimit !== undefined ? Number(selectedExam.timeLimit) : 0,
       startDateTime: selectedExam?.startTime ? new Date(selectedExam.startTime) : new Date(),
       endDateTime: selectedExam?.endTime ? new Date(selectedExam.endTime) : new Date(),
       examId: exmId,
@@ -160,6 +163,7 @@ const createQuiz = async (exmId: string) => {
         id: exam.id,
         title: capitalizeWords(exam.title),
         totalMarks: exam.totalMarks,
+        timeLimit: exam.timeLimit,
         startTime: new Date(exam.startTime),
         endTime: new Date(exam.endTime),
         status: exam.status,
@@ -292,6 +296,16 @@ const createQuiz = async (exmId: string) => {
                 value={quizData.totalMarks}
                 readOnly
                 onChange={(e) => handleInputChange('totalMarks', parseInt(e.target.value) || 0)}
+                className="border-slate-300 focus:border-slate-500"
+              />
+            </div>
+             <div>
+              <Label htmlFor="timeLimit" className="text-slate-700">Time Limit *</Label>
+              <Input
+                id="timeLimit"
+                value={quizData.timeLimit}
+                readOnly
+                onChange={(e) => handleInputChange('timeLimit', parseInt(e.target.value) || 0)}
                 className="border-slate-300 focus:border-slate-500"
               />
             </div>

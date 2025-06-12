@@ -44,7 +44,7 @@ export async function POST(req) {
     const quizData = {
       id: quiz.id,
       title: quiz.title,
-      timeLimit: 30, // 30 minutes
+      timeLimit: quiz.timeLimit, // 30 minutes
       questions,
       category: quiz.category,
       grade: quiz.grade,

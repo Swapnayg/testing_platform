@@ -71,6 +71,7 @@ const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
       endTime: new Date(data.endTime as string),
       totalMCQ: data.totalMCQ ? Number(data.totalMCQ) : 0,
       totalMarks: data.totalMarks ? Number(data.totalMarks) : 0,
+      timeLimit: data.timeLimit ? Number(data.timeLimit) : 0,
       categoryId: data.categoryId ? Number(data.categoryId) : 0,
       gradeId: data.gradeId ? Number(data.gradeId) : 0,
       subjectId: data.subjectId ? Number(data.subjectId) : 0,
@@ -216,6 +217,15 @@ const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
           register={register}
           error={errors?.totalMarks}
         />
+        <InputField
+          type="number"
+          label="Time Limit (minutes)"
+          name="timeLimit"
+          defaultValue={data?.timeLimit}
+          register={register}
+          error={errors?.timeLimit}
+        />
+
       <InputField
           type="hidden"
           label=""
