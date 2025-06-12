@@ -133,15 +133,19 @@ export async function GET(request) {
         catGrade: examGradeLevel,
         olympiadCategory: examCategory,
       },
-      select:{
-        id:true,
-        olympiadCategory:true,
-        catGrade:true,
-        studentId:true,
-        include:{
-            student:true,
-        }
-      }
+    select: {
+        id: true,
+        olympiadCategory: true,
+        catGrade: true,
+        studentId: true,
+        student: {
+            select: {
+                name: true,
+                email: true,
+                cnicNumber: true,
+            },
+        },
+    },
     });
     console.log(`🔍 Step 8.${examIndex}: Found ${matchingRegistrations.length} matching registrations`);
 
