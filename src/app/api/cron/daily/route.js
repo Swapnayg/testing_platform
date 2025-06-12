@@ -165,31 +165,26 @@ export async function GET(request) {
                     create: {
                         examId: exam.id,
                         registrationId: matchOnReg.id,
-                        },
-                    });
+                    },
+                });
+
+                await prisma.result.create({
+                    data: {
+                        examId: exam.id,
+                        studentId: matchOnReg.studentId,
+                        status: "NOT_GRADED",
+                        score: 0,
+                        totalScore: exam.totalMarks,
+                        grade: '',
+                        startTime: new Date(exam.startTime),
+                        endTime: new Date(exam.endTime),
+                    },
+                });
                 } catch (error) {
-                        console.error(`❌ Failed to create examonresult for examId: ${exam.id}, studentId: ${matchOnReg.id}`, error);
-                        // Optional: You can log to a monitoring service or continue gracefully
-                }
-                console.log("8.3");
-                try {
-                    await prisma.result.create({
-                        data: {
-                            examId: exam.id,
-                            studentId: matchOnReg.studentId,
-                            status: "NOT_GRADED",
-                            score: 0,
-                            totalScore: exam.totalMarks,
-                            grade: '',
-                            startTime: new Date(exam.startTime),
-                            endTime: new Date(exam.endTime),
-                        },
-                    });
-                } catch (error) {
-                    console.error(`❌ Failed to create result for examId: ${exam.id}, studentId: ${matchOnReg.studentId}`, error);
+                    console.error(`❌ Failed to create examonresult for examId: ${exam.id}, studentId: ${matchOnReg.id}`, error);
                     // Optional: You can log to a monitoring service or continue gracefully
                 }
-                console.log("8.4");
+                console.log("8.3");
                 console.log(`➕ Step 9.${examIndex}.${matchIndex}: Linked exam ${exam.id} to registration ${matchOnReg.id}`);
             examResults.push({
                 id: exam.id,
