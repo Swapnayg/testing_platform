@@ -83,10 +83,8 @@ export async function GET(request) {
   const examsToday = await prisma.exam.findMany({
     where: {
       createdAt: {
-        // gte: yesterdayStart,
-        // lte: yesterdayEnd,
-        gte: todayStart,
-        lte: todayEnd,
+        gte: yesterdayStart,
+        lte: yesterdayEnd,
       },
     },
     select: {
@@ -191,7 +189,7 @@ export async function GET(request) {
 
   await delay(3000);
   console.log("⏳ Step : Waited 3 seconds for async operations");
-
+  console.log(regId);
   regId.forEach(async (reg, regIndex) => {
     console.log(reg);
   });
