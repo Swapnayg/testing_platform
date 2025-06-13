@@ -1,3 +1,4 @@
+"use client"
 import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, ChevronLeft, ChevronRight, Check, AlertTriangle, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ interface Question {
   correctAnswer?: string;
 }
 
-interface QuizData {
+interface QuizDataModal {
   id: string;
   title: string;
   timeLimit: number; // in minutes
@@ -41,31 +42,17 @@ interface QuizInterfaceProps {
   totalMarks?:number;
 }
 
-const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMarks  }) => {
+const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMarks   }) => {
   const { toast } = useToast();
-  
   // Get quiz data from the generator
-  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [quizData, setQuizData] = useState<QuizDataModal | null>(null);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<string, Answer>>(new Map());
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isQuizCompleted, setIsQuizCompleted] = useState(false);
   const [attemptId, setAttemptId] = useState<string | null>(null);
-
-
-  function capitalizeSentences(text: string) {
-    return text.split(/([.!?]\s*)/) // Split by sentence-ending punctuation and keep it
-    .map((segment, index, arr) => {
-          // Only capitalize the actual sentence part, not the punctuation
-      if (index % 2 === 0) {
-        return segment.charAt(0).toUpperCase() + segment.slice(1).trimStart();
-      }
-    return segment;
-    }).join('');
-  }
-
-  const getQuestionsbyId = async () => {
+   const getQuestionsbyId = async () => {
     try {
       const response = await fetch('/api/getQuestions', {
           method: 'POST',
@@ -83,14 +70,29 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
       return null;
     }
   };
+
+  
+  function capitalizeSentences(text: string) {
+    return text.split(/([.!?]\s*)/) // Split by sentence-ending punctuation and keep it
+    .map((segment, index, arr) => {
+          // Only capitalize the actual sentence part, not the punctuation
+      if (index % 2 === 0) {
+        return segment.charAt(0).toUpperCase() + segment.slice(1).trimStart();
+      }
+    return segment;
+    }).join('');
+  }
+
   // Load quiz data
-  useEffect(() => {
+    useEffect(() => {
       const fetchStudentQuizzes = async () => {
         const loadedQuiz = await getQuestionsbyId();
-      if (loadedQuiz) {
-        setQuizData(loadedQuiz);
-        setTimeRemaining(loadedQuiz.timeLimit * 60); // Convert to seconds
-      } else {
+        const data = JSON.parse(JSON.stringify(loadedQuiz));
+      if (data) {
+        setQuizData(data.quizData);
+        setTimeRemaining(data.quizData.timeLimit * 60); // Convert to seconds
+      } 
+       else {
         toast({
           title: "Error",
           description: "Quiz not found",
@@ -101,13 +103,14 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
     if (quizId) {
       fetchStudentQuizzes();
     }
-  }, [quizId,username,quizId,totalMarks]);
+  }, [quizId,username,totalMarks]);
 
   // Initialize quiz attempt
   useEffect(() => {
     if (!quizData) return;
     
-    const initializeAttempt = async () => {
+  
+  const initializeAttempt = async () => {
       try {
         const res = await fetch('/api/quizz', {
           method: 'POST',
@@ -119,7 +122,6 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
 
         const attempt = await res.json();
         setAttemptId(attempt.id);
-        
         toast({
           title: "Quiz Started",
           description: `Good luck, ${username}!`,
@@ -130,9 +132,10 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
           description: "Failed to start quiz. Please try again.",
           variant: "destructive",
         });
+
       }
     };
-    
+
     initializeAttempt();
   }, [quizData]);
 
@@ -189,6 +192,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
   // Handle quiz submission
   const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
     const unansweredQuestions = getAllUnansweredQuestions();
+    
     if (!autoSubmit && unansweredQuestions.length > 0) {
       toast({
         title: "Incomplete Quiz",
@@ -204,6 +208,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
         description: "Quiz attempt not found. Please restart the quiz.",
         variant: "destructive",
       });
+
       return;
     }
 
@@ -222,8 +227,9 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
       };
       
       console.log('Submitting quiz with data:', submissionData);
-
-      const res = await fetch('/api/quizz', {
+      
+      // Submit to Prisma via QuizService
+      const result = await fetch('/api/quizz', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -231,7 +237,9 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
           body: JSON.stringify({type:"answers",aquizId:quizId, arollNo: username,data:submissionData }), // data you want to send
       });
 
-      const attempt = await res.json();
+      const attempt = await result.json();
+      
+      console.log('Quiz submission result:', result);
       
       setIsQuizCompleted(true);
       toast({
@@ -240,6 +248,8 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
           ? "Quiz has been automatically submitted with your current answers."
           : "Your quiz has been submitted and saved to the database!",
       });
+
+      window.close(); // ✅ Closes the popup
     } catch (error) {
       console.error('Quiz submission failed:', error);
       toast({
@@ -374,7 +384,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-slate-900">{quizData.title}</h1>
+              <h1 className="text-2xl font-bold text-slate-900">{capitalizeSentences(quizData.title)}</h1>
               <Badge variant="outline" className="text-slate-600 border-slate-300">
                 Question {currentQuestionIndex + 1} of {quizData.questions.length}
               </Badge>
@@ -493,7 +503,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({  quizId,username,totalMar
                       </div>
                     );
                   })}
-                </div>
+                </div> 
                 
                 <div className="mt-6 pt-6 border-t border-slate-200 space-y-3">
                   <div className="flex items-center justify-between text-sm">

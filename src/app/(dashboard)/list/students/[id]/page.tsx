@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { Metadata } from 'next';
+import { Pencil } from "lucide-react";
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import BigCalendar from "@/components/BigCalender";
@@ -82,6 +83,28 @@ export default async function SingleStudentPage({
       dateOfPayment:true,
       transactionReceipt:true,
     }
+  });
+  console.log("student id" + id);
+   const attempts = await prisma.quizAttempt.findMany({
+    where: {
+      studentId: id,
+    },
+    include: {
+      quiz: {
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          grade: true,
+          startDateTime: true,
+          totalMarks: true,
+          timeLimit: true,
+          questions: {
+            select: { id: true },
+          },
+        },
+      },
+    },
   });
 
   if (!student) {
@@ -220,7 +243,7 @@ return (
           <BigCalendar data={[]} />
         </div>
 
-        <div className="mt-4 bg-white rounded-md p-4 h-[800px] w-full">
+        <div className="mt-4 bg-white rounded-md p-4 h-[200px] w-full">
           <h1>Payment Details</h1>
           <RegistrationTable registrations={registrations.map(r => ({
             ...r,
@@ -234,6 +257,48 @@ return (
             dateOfPayment: r.dateOfPayment ? r.dateOfPayment.toISOString() : "",
             transactionReceipt:  r.transactionReceipt ?? "",
           }))} />
+        </div>
+
+        <div className="mt-4 bg-white rounded-md p-4 h-[200px] w-full">
+          <h1>Quiz Attempts</h1>
+          <div className="p-4">
+            <table className="min-w-full border rounded-lg bg-white text-sm">
+          <thead className="bg-gray-100 text-left">
+            <tr>
+              <th className="px-4 py-2 border">Title</th>
+              <th className="px-4 py-2 border">Category</th>
+              <th className="px-4 py-2 border">Grade</th>
+              <th className="px-4 py-2 border">Start Time</th>
+              <th className="px-4 py-2 border">Total Marks</th>
+              <th className="px-4 py-2 border">Questions</th>
+              <th className="px-4 py-2 border">Time Limit (min)</th>
+              <th className="px-4 py-2 border">Score</th>
+              <th className="px-4 py-2 border">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {attempts.map((attempt) => (
+              <tr key={attempt.id} className="border-t hover:bg-gray-50">
+                <td className="px-4 py-2 border capitalize">{attempt.quiz.title}</td>
+                <td className="px-4 py-2 border">{attempt.quiz.category}</td>
+                <td className="px-4 py-2 border">{attempt.quiz.grade}</td>
+                <td className="px-4 py-2 border">
+                  {new Date(attempt.quiz.startDateTime).toLocaleString("en-IN")}
+                </td>
+                <td className="px-4 py-2 border">{attempt.quiz.totalMarks}</td>
+                <td className="px-4 py-2 border">{attempt.quiz.questions.length}</td>
+                <td className="px-4 py-2 border">{attempt.quiz.timeLimit} min</td>
+                <td className="px-4 py-2 border">{attempt.totalScore ?? "N/A"}</td>
+                <td className="px-4 py-2 border">
+                  <Link href={`/list/students/${attempt.quiz.id}/quiz?studentName=${attempt.studentId}`} className="w-full flex items-center justify-center text-red-600 hover:text-red-800 transition">
+                    <Pencil className="w-5 h-5" />
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+          </div>
         </div>
       </div>
       {/* RIGHT */}

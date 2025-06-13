@@ -58,7 +58,7 @@ export default function RegistrationTable({ registrations }: { registrations: Re
               <td className="p-2 border">{reg.olympiadCategory}</td>
               <td className="p-2 border">{reg.catGrade}</td>
               <td className="p-2 border">{reg.paymentOption}</td>
-              <td className="p-2 border">{reg.otherName}</td>
+              <td className="p-2 border capitalize">{reg.otherName}</td>
               <td className="p-2 border">{reg.transactionId}</td>
               <td className="p-2 border">{reg.totalAmount}</td>
               <td className="p-2 border">{new Date(reg.dateOfPayment).toLocaleDateString()}</td>

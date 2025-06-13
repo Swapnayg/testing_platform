@@ -4,11 +4,7 @@ import { Clock, BookOpen, Award, Users, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import prisma from "@/lib/prisma";
-import { Quiz,Exam,Student, Prisma } from "@prisma/client";
-import { any } from 'zod';
-import { QuizService } from '@/lib/quizService';
-import QuizInterface from '@/components/QuizInterface';
+import Link from "next/link";
 
 interface QuizStartPageProps {
   username:string,
@@ -54,6 +50,7 @@ useEffect(() => {
       const newButton = { id: id, text: text };
       setButtonTexts((prev) => [...prev, newButton]);
     });
+    console.log(data);
     setQuizzes(data);
   };
 
@@ -64,13 +61,33 @@ useEffect(() => {
 }, [username]);
 
 
-const handleStartQuiz = (quizId: string,marks:number ) => {
-  setShowQuiz(true);
-  setQuizId(quizId);
-  settotalMarks(marks);
-};
+const handleStartQuizInPopup = (quizId: string, username:string, totalMarks:number) => {
+    // Create popup window with restricted features
+    const popup = window.open(
+      `${window.location.origin}//list/myquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
+      'QuizWindow',
+      'width=1200,height=800,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,directories=no'
+    );
+    
+    if (popup) {
+      // Focus the popup window
+      popup.focus();
+      
+      // Disable right-click context menu in the popup
+      popup.addEventListener('load', () => {
+        popup.document.addEventListener('contextmenu', (e) => e.preventDefault());
+      });
+    } else {
+      // Fallback if popup is blocked
+      alert('Please allow popups for this site to start the quiz');
+    }
+  };
+
+
 
 const getTextById = (id: any) => {
+  console.log(id);
+  console.log(buttonTexts);
   const item = buttonTexts.find((entry) => entry.id === id);
   return item?.text ?? "Default Text";
 };
@@ -108,7 +125,15 @@ const getTextById = (id: any) => {
       <div className="container mx-auto px-6 py-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {quizzes.map((quiz) => {
-            const btnText = getTextById(quiz.exam.quizzes[0].id) || 'Loading...';
+            console.log(quiz);
+            var btnText = '';
+            if (new Date(quiz.exam.startTime) > new Date()) {
+              btnText = 'Upcoming';
+            }
+            else{
+              btnText = getTextById(quiz.exam.quizzes[0].id) || 'Loading...';
+            }
+             
             const isCompleted = btnText === 'Completed';
             return (
               <Card key={quiz.id} className="group hover:shadow-lg transition-all duration-200 border-slate-200 bg-white">
@@ -144,13 +169,14 @@ const getTextById = (id: any) => {
                   </div>
                   
                   <Button 
-                    onClick={() => handleStartQuiz(quiz.exam.quizzes[0].id,quiz.exam.quizzes[0].totalMarks)}
+                    onClick={() => handleStartQuizInPopup(quiz.exam.quizzes[0].id,username,quiz.exam.totalMarks)}
                     disabled={isCompleted}
                     className={`w-full ${ isCompleted ? 'bg-gray-400 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800'} text-white font-medium py-2.5 group transition-all duration-200`}
                   >
                     {btnText}
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
+
                 </CardContent>
               </Card>
             );
@@ -158,7 +184,6 @@ const getTextById = (id: any) => {
         </div>
       </div>
     </div>
-
     </div>
   );
 

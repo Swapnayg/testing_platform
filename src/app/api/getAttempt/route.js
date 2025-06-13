@@ -5,7 +5,6 @@ export async function POST(req) {
   try {
     const body = await req.json(); // ✅ fix: extract body properly
     const { quizid } = body;
-    console.log(quizid);
 
     if (!quizid) {
       return NextResponse.json({ message: 'Quiz is required' }, { status: 400 });
@@ -22,6 +21,11 @@ export async function POST(req) {
             },
           },
         },
+        QuizAttempt:{
+            include:{
+                answers:true,
+            }
+        }
       },
     });
 
