@@ -141,9 +141,6 @@ export async function GET(request) {
     if (matchingRegistrations.length > 0) {
         matchingRegistrations.forEach(async (matchOnReg, matchIndex) => {
             try {
-                if (!regId.includes(matchOnReg.id)) {
-                  regId.push(matchOnReg.id);
-                }
                 await prisma.examOnRegistration.upsert({
                     where: {
                         examId_registrationId: {
@@ -177,6 +174,9 @@ export async function GET(request) {
                         endTime: new Date(exam.endTime),
                     },
                 });
+                if (!regId.includes(matchOnReg.id)) {
+                  regId.push(matchOnReg.id);
+                }
                 } catch (error) {
                 console.error(`❌ Failed to create examonresult for examId: ${exam.id}, studentId: ${matchOnReg.id}`, error);
                 // Optional: You can log to a monitoring service or continue gracefully
