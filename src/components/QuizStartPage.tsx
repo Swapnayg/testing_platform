@@ -93,7 +93,6 @@ const getTextById = (id: any) => {
 
   return (
     <div>
-      {!showQuiz ? (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 shadow-sm">
@@ -159,9 +158,7 @@ const getTextById = (id: any) => {
         </div>
       </div>
     </div>
-      ) : (
-        <QuizInterface quizId={quizId} username={username} totalMarks= {totalMarks}/>
-      )}
+
     </div>
   );
 
