@@ -141,6 +141,7 @@ export async function GET(request) {
     if (matchingRegistrations.length > 0) {
         matchingRegistrations.forEach(async (matchOnReg, matchIndex) => {
             try {
+                console.log("1");
                 await prisma.examOnRegistration.upsert({
                     where: {
                         examId_registrationId: {
@@ -154,6 +155,7 @@ export async function GET(request) {
                         registrationId: matchOnReg.id,
                     },
                 });
+                console.log("2");
 
                 await prisma.result.upsert({
                     where: {
@@ -174,18 +176,19 @@ export async function GET(request) {
                         endTime: new Date(exam.endTime),
                     },
                 });
+                console.log("3");
                 if (!regId.includes(matchOnReg.id)) {
                   regId.push(matchOnReg.id);
                 }
+                console.log("4");
                 } catch (error) {
-                console.error(`❌ Failed to create examonresult for examId: ${exam.id}, studentId: ${matchOnReg.id}`, error);
+                console.error(`❌ Failed to `, error);
                 // Optional: You can log to a monitoring service or continue gracefully
           }           
       });
     };
   });
-
-
+  console.log(regId);
 
   await delay(3000);
   console.log("⏳ Step : Waited 3 seconds for async operations");
