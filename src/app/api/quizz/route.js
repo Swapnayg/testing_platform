@@ -139,6 +139,30 @@ export async function POST(request) {
         ]);
         await new Promise(resolve => setTimeout(resolve, 1000));
         return NextResponse.json({ attempt: updatedAttempt, answers: createdAnswers }, { status: 200 });
+
+      case 'updateanswers':
+        const {uquizId,urollNo,uattemptId, udata } = body;
+        if (!uquizId || !urollNo)  {
+          return NextResponse.json({ message: 'Quiz and rollNo are required' }, { status: 400 });
+        }
+
+        await prisma.answer.deleteMany({
+          where: {
+            attemptId:uattemptId,
+          },
+        });
+        const [ updatedAnswers] = await prisma.$transaction([
+          prisma.answer.createMany({
+            data: udata.map(answer => ({
+              attemptId: uattemptId,
+              questionId: answer.id,
+              answerText: answer.studentAnswer,
+              answeredAt: new Date(),
+            }))
+          })
+        ]);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return NextResponse.json({ answers: updatedAnswers }, { status: 200 });
   
       default:
         return NextResponse.json({ message: 'Invalid POST type' }, { status: 400 });

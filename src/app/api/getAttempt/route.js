@@ -21,18 +21,36 @@ export async function POST(req) {
             },
           },
         },
-        QuizAttempt:{
-            include:{
-                answers:true,
+        QuizAttempt: {
+          select: {
+            id:true,
+            answers: {
+              select: {
+                id: true,
+                attemptId: true,
+                questionId: true,
+                answerText: true,
+              },
+              orderBy: { id: 'asc' },
             }
-        }
+          },
+        },
       },
     });
+
 
     if (!quiz) {
       return NextResponse.json({ message: 'Quiz not found' }, { status: 404 });
     }
 
+    const answerMap = {};
+    quiz.QuizAttempt[0].answers.forEach((answer) => {
+      answerMap[answer.questionId] = {
+        id: answer.id,
+        answerText: answer.answerText,
+        attemptId: answer.attemptId,
+      };
+    });
     const questions = quiz.questions.map((question, index) => {
       const options = question.options.map(opt => opt.text); // options already filtered by Prisma
       return {
@@ -43,6 +61,7 @@ export async function POST(req) {
         options: options.length > 0 ? options : undefined,
         points: question.marks,
         correctAnswer: question.correctAnswer,
+        studentAnswer : answerMap[question.id].answerText,
       };
     });
 
@@ -55,8 +74,8 @@ export async function POST(req) {
       grade: quiz.grade,
       subject: quiz.subject,
       totalMarks: quiz.totalMarks,
+      attemptId : quiz.QuizAttempt[0].id,
     };
-
     return NextResponse.json({ quizData }, { status: 200 });
   } catch (error) {
     console.error("POST /quiz error:", error); // ✅ debug logging

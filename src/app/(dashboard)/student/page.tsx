@@ -68,7 +68,28 @@ import BigCalendar from "@/components/BigCalender";
 import EventCalendar from "@/components/EventCalendar";
 import WelcomeCard from "@/components/WelcomCard";
 import UpcomingQuizzes from "@/components/UpcomingQuizzes";
-const StudentPage = () => {
+import { Student } from "@prisma/client";
+import prisma from "@/lib/prisma";
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { GetServerSideProps } from 'next';
+import { auth,getAuth, clerkClient } from "@clerk/nextjs/server";
+import { Eye } from "lucide-react";
+
+const StudentPage = async () => {
+
+const { userId, sessionClaims } = auth();
+const role = (sessionClaims?.metadata as { role?: string })?.role;
+const currentUserId = userId;
+const client = clerkClient();
+
+let user = null;
+var username = "";
+if (userId) {
+  user = await client.users.getUser(userId);
+  username = user.username?.toString() ?? "";
+}
 
 const upcomingQuizzes = [
   {
@@ -112,6 +133,36 @@ const upcomingQuizzes = [
   }
 ];
 
+
+const student = await prisma.student.findFirst({
+  where: {
+    rollNo: username,  // Replace with actual roll number
+  },
+  include: {
+    Result: true,
+    Attendance: true,
+    Registration: true,
+    attempts: {
+      include: {
+        quiz: {
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            grade: true,
+            startDateTime: true,
+            totalMarks: true,
+            timeLimit: true,
+            questions: {
+              select: { id: true },
+            },
+          },
+        },
+    },
+    },
+  },
+});
+
   return (
     <div className="p-4 flex flex-col gap-4">
       {/* Welcome Card at the top */}
@@ -135,6 +186,48 @@ const upcomingQuizzes = [
           <Announcements />
         </div>
       </div>
+
+      <div className="mt-4 bg-white rounded-md p-4 h-[200px] w-full">
+                <h1>Quiz Attempts</h1>
+                <div className="p-4">
+                  <table className="min-w-full border rounded-lg bg-white text-sm">
+                <thead className="bg-gray-100 text-left">
+                  <tr>
+                    <th className="px-4 py-2 border">Title</th>
+                    <th className="px-4 py-2 border">Category</th>
+                    <th className="px-4 py-2 border">Grade</th>
+                    <th className="px-4 py-2 border">Start Time</th>
+                    <th className="px-4 py-2 border">Total Marks</th>
+                    <th className="px-4 py-2 border">Questions</th>
+                    <th className="px-4 py-2 border">Time Limit (min)</th>
+                    <th className="px-4 py-2 border">Score</th>
+                    <th className="px-4 py-2 border">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {student?.attempts.map((attempt) => (
+                    <tr key={attempt.id} className="border-t hover:bg-gray-50">
+                      <td className="px-4 py-2 border capitalize">{attempt.quiz.title}</td>
+                      <td className="px-4 py-2 border">{attempt.quiz.category}</td>
+                      <td className="px-4 py-2 border">{attempt.quiz.grade}</td>
+                      <td className="px-4 py-2 border">
+                        {new Date(attempt.quiz.startDateTime).toLocaleString("en-IN")}
+                      </td>
+                      <td className="px-4 py-2 border">{attempt.quiz.totalMarks}</td>
+                      <td className="px-4 py-2 border">{attempt.quiz.questions.length}</td>
+                      <td className="px-4 py-2 border">{attempt.quiz.timeLimit} min</td>
+                      <td className="px-4 py-2 border">{attempt.totalScore ?? "N/A"}</td>
+                      <td className="px-4 py-2 border">
+                        <Link href={`/student/${attempt.quiz.id}?studentName=${attempt.studentId}`} className="w-full flex items-center justify-center text-blue-600 hover:text-red-800 transition">
+                          <Eye className="w-5 h-5" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+                </div>
+    </div>
     </div>
   );
 };

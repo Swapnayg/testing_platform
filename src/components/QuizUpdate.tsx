@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-
-
+import { useRouter } from 'next/navigation';
 interface EditableQuestion {
   id: string;
   questionNumber: number;
@@ -18,6 +18,7 @@ interface EditableQuestion {
   options?: string[];
   points: number;
   correctAnswer?: string;
+  studentAnswer?: string;
 }
 
 interface EditableQuiz {
@@ -29,6 +30,7 @@ interface EditableQuiz {
   grade: string;
   subject: string;
   totalMarks: number;
+  attemptId?:string;
 }
 
 interface QuizEditorProps {
@@ -42,6 +44,18 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [editedQuestions, setEditedQuestions] = useState<Set<string>>(new Set());
+  const router = useRouter();
+
+  function capitalizeSentences(text: string) {
+    return text.split(/([.!?]\s*)/) // Split by sentence-ending punctuation and keep it
+      .map((segment, index, arr) => {
+            // Only capitalize the actual sentence part, not the punctuation
+        if (index % 2 === 0) {
+          return segment.charAt(0).toUpperCase() + segment.slice(1).trimStart();
+        }
+      return segment;
+    }).join('');
+  }
 
   const getQuestionsbyId = async () => {
     try {
@@ -94,7 +108,7 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
     setQuiz(prev => ({
       ...prev!,
       questions: prev!.questions.map(q => 
-        q.id === questionId ? { ...q, correctAnswer: newAnswer } : q
+        q.id === questionId ? { ...q, studentAnswer: newAnswer } : q
       )
     }));
     
@@ -125,19 +139,25 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
     setIsSaving(true);
     try {
       console.log('Saving quiz answer changes:', quiz);
-      
-      // await QuizService.updateQuiz({
-      //   quizId: quiz.id,
-      //   title: quiz.title,
-      //   timeLimit: quiz.timeLimit,
-      //   questions: quiz.questions,
-      //   totalMarks: quiz.totalMarks
-      // });
+
+      // Submit to Prisma via QuizService
+      const result = await fetch('/api/quizz', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({type:"updateanswers",uquizId:quiz.id,uattemptId:quiz.attemptId, urollNo: username,udata: quiz.questions }), // data you want to send
+      });
+
+      const attempt = await result.json(); 
 
       toast({
         title: "Answers Updated",
         description: "Quiz answers have been saved successfully!",
       });
+      setTimeout(() => {
+        router.back(); // or router.push('/your-target-page')
+      }, 1000); // Delay optional
 
     } catch (error) {
       console.error('Failed to save quiz answers:', error);
@@ -160,7 +180,7 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
               <CardTitle className="text-lg text-slate-900">
                 Question {question.questionNumber}
               </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">{question.questionText}</p>
+              <p className="text-sm text-slate-600 mt-1">{capitalizeSentences(question.questionText)}</p>
             </div>
             <div className="flex items-center space-x-2">
               {editedQuestions.has(question.id) && (
@@ -195,7 +215,7 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
                       <input
                         type="radio"
                         name={`correct-${question.id}`}
-                        checked={question.correctAnswer === option}
+                        checked={question.studentAnswer === option}
                         onChange={() => handleCorrectAnswerChange(question.id, option)}
                         className="w-4 h-4 text-emerald-600"
                       />
@@ -211,7 +231,7 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
             <div>
               <Label className="text-sm font-medium">Correct Answer</Label>
               <Select 
-                value={question.correctAnswer} 
+                value={question.studentAnswer} 
                 onValueChange={(value) => handleCorrectAnswerChange(question.id, value)}
               >
                 <SelectTrigger className="w-32 mt-2">
@@ -226,7 +246,6 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
           )}
 
           {(question.questionType === 'SHORT_TEXT' || 
-            question.questionType === 'LONG_TEXT' || 
             question.questionType === 'NUMERICAL') && (
             <div>
               <Label htmlFor={`answer-${question.id}`} className="text-sm font-medium">
@@ -234,11 +253,23 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
               </Label>
               <Input
                 id={`answer-${question.id}`}
-                value={question.correctAnswer || ''}
+                value={question.studentAnswer || ''}
                 onChange={(e) => handleCorrectAnswerChange(question.id, e.target.value)}
                 className="mt-2"
                 type={question.questionType === 'NUMERICAL' ? 'number' : 'text'}
               />
+            </div>
+          )}
+
+
+          {(question.questionType === 'LONG_TEXT') && (
+            <div>
+              <Label htmlFor={`answer-${question.id}`} className="text-sm font-medium">
+                Correct Answer
+              </Label>
+              <Textarea id={`answer-${question.id}`} value={question.studentAnswer || ''} 
+                onChange={(e) => handleCorrectAnswerChange(question.id, e.target.value)} className="mt-2">
+              </Textarea>
             </div>
           )}
         </CardContent>
@@ -330,9 +361,7 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Question Navigator Sidebar */}
-      <div className="w-80 min-h-screen">
-        {renderQuestionNavigator()}
-      </div>
+
 
       {/* Main Content */}
       <div className="flex-1">
@@ -345,7 +374,7 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900 flex items-center">
                     <Edit3 className="w-6 h-6 mr-2" />
-                    Edit Answers: {quiz.title}
+                    Edit Answers:  {capitalizeSentences(quiz.title)}
                   </h1>
                   <div className="flex items-center space-x-3 mt-1">
                     <Badge variant="outline" className="text-slate-600 border-slate-300">
@@ -403,6 +432,9 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
             {renderAnswerEditor(currentQuestion)}
           </div>
         </div>
+      </div>
+      <div className="w-80 min-h-screen">
+        {renderQuestionNavigator()}
       </div>
     </div>
   );
