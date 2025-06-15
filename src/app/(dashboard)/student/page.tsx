@@ -218,7 +218,7 @@ const student = await prisma.student.findFirst({
                       <td className="px-4 py-2 border">{attempt.quiz.timeLimit} min</td>
                       <td className="px-4 py-2 border">{attempt.totalScore ?? "N/A"}</td>
                       <td className="px-4 py-2 border">
-                        <Link href={`/student/${attempt.quiz.id}?studentName=${attempt.studentId}`} className="w-full flex items-center justify-center text-blue-600 hover:text-red-800 transition">
+                        <Link href={`/student/${attempt.quiz.id}?studentName=${attempt.studentId}`} className="w-full flex items-center justify-center text-blue-600 hover:text-blue-800 transition">
                           <Eye className="w-5 h-5" />
                         </Link>
                       </td>

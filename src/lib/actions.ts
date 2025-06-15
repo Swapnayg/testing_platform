@@ -1419,7 +1419,9 @@ export const saveQuizToDatabase = async (data: CreateQuizData) => {
           type: question.type.toUpperCase().replace('-', '_') as any,
           text: question.text,
           marks: question.marks,
-          correctAnswer: question.correctAnswer || null,
+          correctAnswer: question.type === 'MULTIPLE_CHOICE' && Array.isArray(question.options)
+        ? question.options.find(opt => opt.isCorrect)?.text.toLowerCase() || null
+        : question.correctAnswer || null,
           orderIndex: index + 1,
         },
       });

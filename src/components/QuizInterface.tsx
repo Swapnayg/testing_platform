@@ -52,6 +52,8 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isQuizCompleted, setIsQuizCompleted] = useState(false);
   const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
    const getQuestionsbyId = async () => {
     try {
       const response = await fetch('/api/getQuestions', {
@@ -190,75 +192,73 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
   };
 
   // Handle quiz submission
-  const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
-    const unansweredQuestions = getAllUnansweredQuestions();
-    
-    if (!autoSubmit && unansweredQuestions.length > 0) {
-      toast({
-        title: "Incomplete Quiz",
-        description: `Please answer questions: ${unansweredQuestions.join(', ')}`,
-        variant: "destructive",
-      });
-      return;
-    }
+const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
+  const unansweredQuestions = getAllUnansweredQuestions();
 
-    if (!attemptId) {
-      toast({
-        title: "Error",
-        description: "Quiz attempt not found. Please restart the quiz.",
-        variant: "destructive",
-      });
+  if (!autoSubmit && unansweredQuestions.length > 0) {
+    toast({
+      title: "Incomplete Quiz",
+      description: `Please answer questions: ${unansweredQuestions.join(', ')}`,
+      variant: "destructive",
+    });
+    return;
+  }
 
-      return;
-    }
+  if (!attemptId) {
+    toast({
+      title: "Error",
+      description: "Quiz attempt not found. Please restart the quiz.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    try {
-      // Show loading state
-      toast({
-        title: "Submitting Quiz",
-        description: "Please wait while we save your answers...",
-      });
+  setIsSubmitting(true); // disable button
 
-      const submissionData = {
-        attemptId,
-        answers: Array.from(answers.values()),
-        timeSpent: (quizData!.timeLimit * 60) - timeRemaining,
-        endTime: new Date().toISOString()
-      };
-      
-      console.log('Submitting quiz with data:', submissionData);
-      
-      // Submit to Prisma via QuizService
-      const result = await fetch('/api/quizz', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({type:"answers",aquizId:quizId, arollNo: username,data:submissionData }), // data you want to send
-      });
+  try {
+    toast({
+      title: "Submitting Quiz",
+      description: "Please wait while we save your answers...",
+    });
 
-      const attempt = await result.json();
-      
-      console.log('Quiz submission result:', result);
-      
-      setIsQuizCompleted(true);
-      toast({
-        title: autoSubmit ? "Time's Up!" : "Quiz Submitted Successfully",
-        description: autoSubmit 
-          ? "Quiz has been automatically submitted with your current answers."
-          : "Your quiz has been submitted and saved to the database!",
-      });
+    const submissionData = {
+      attemptId,
+      answers: Array.from(answers.values()),
+      timeSpent: (quizData!.timeLimit * 60) - timeRemaining,
+      endTime: new Date().toISOString()
+    };
 
-      window.close(); // ✅ Closes the popup
-    } catch (error) {
-      console.error('Quiz submission failed:', error);
-      toast({
-        title: "Submission Failed",
-        description: "Failed to save your quiz. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+    const result = await fetch('/api/quizz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: "answers", aquizId: quizId, arollNo: username, data: submissionData }),
+    });
+
+    const attempt = await result.json();
+
+    setIsQuizCompleted(true);
+    toast({
+      title: autoSubmit ? "Time's Up!" : "Quiz Submitted Successfully",
+      description: autoSubmit 
+        ? "Quiz has been automatically submitted with your current answers."
+        : "Your quiz has been submitted and saved to the database!",
+    });
+
+    // ✅ Reload parent and close popup
+    window.opener?.location.reload(); 
+    window.close(); 
+
+  } catch (error) {
+    console.error('Quiz submission failed:', error);
+    toast({
+      title: "Submission Failed",
+      description: "Failed to save your quiz. Please try again.",
+      variant: "destructive",
+    });
+    setIsSubmitting(false); // allow retry
+  }
+};
+
 
   // Render question based on type
   const renderQuestion = (question: Question) => {
@@ -461,9 +461,9 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
                       <Button
                         onClick={() => handleSubmitQuiz()}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        disabled={!attemptId}
+                        disabled={!attemptId || isSubmitting}
                       >
-                        Submit Quiz
+                       {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
                       </Button>
                     )}
                   </div>

@@ -151,6 +151,14 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
 
       const attempt = await result.json(); 
 
+      if (!result.ok) {
+        toast({
+          title: "Save Failed",
+          description: "Failed to save answer changes. Please try again.",
+          variant: "destructive",
+        });
+      }
+
       toast({
         title: "Answers Updated",
         description: "Quiz answers have been saved successfully!",

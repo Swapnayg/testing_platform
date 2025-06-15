@@ -115,6 +115,7 @@ const QuizBuilder = () => {
         quiz: quizData,
         questions: questions,
       };
+      console.log(completeQuizData);
 
       console.log('Saving quiz to database...');
       const savedData = await saveQuizToDatabase(completeQuizData);

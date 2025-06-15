@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from "@/lib/prisma";
-import { $Enums } from "@prisma/client";
+import { QuestionType } from "@prisma/client";
+
+
 
 export async function GET(request) {
   try {
@@ -118,6 +120,78 @@ export async function POST(request) {
         if (!aquizId || !arollNo)  {
           return NextResponse.json({ message: 'Quiz and rollNo are required' }, { status: 400 });
         }
+
+        const attempt = await prisma.quizAttempt.findFirst({
+          where: {
+            quizId: aquizId, // <-- Replace with your actual attemptId variable
+          },
+        });
+        const questionsWithOptions = await prisma.quiz.findFirst({
+          where: {
+            id: aquizId, // Replace with actual quizId
+          },
+          include: {
+            exam: true,
+            questions: {
+              orderBy: {
+                orderIndex: 'asc', // ✅ sort questions by their order
+              }
+            }
+          }
+        });
+
+        const questionMap= {};
+
+        questionsWithOptions.questions.forEach((question) => {
+          questionMap[question.id] = {
+            correctAnswer: question.correctAnswer, // Make sure this exists on your question object
+            points: question.marks || 1,
+            type: question.type,         // Default to 1 point if not explicitly set
+          };
+        });
+
+        const insertData = data.answers.map((answer) => {
+          const qInfo = questionMap[answer.questionId];
+          if (!qInfo) {
+            return {
+              attemptId: data.attemptId,
+              questionId: answer.questionId,
+              answerText: answer.answerText,
+              isCorrect: false,
+              pointsEarned: 0,
+              answeredAt: new Date(),
+            };
+          }
+          let isCorrect = false;
+          switch (qInfo.type) {
+            case 'MULTIPLE_CHOICE':
+            case 'TRUE_FALSE':
+              isCorrect = answer.answerText.toLowerCase() === qInfo.correctAnswer.toLowerCase();
+              break;
+
+            case 'SHORT_TEXT':
+            case 'LONG_TEXT':
+              isCorrect = answer.answerText.trim().toLowerCase() === qInfo.correctAnswer.trim().toLowerCase();
+              break;
+
+            case 'NUMERICAL':
+              const submitted = parseFloat(answer.answerText);
+              const correct = parseFloat(qInfo.correctAnswer);
+              isCorrect = !isNaN(submitted) && Math.abs(submitted - correct) < 0.0001;
+              break;
+            }
+          return {
+            attemptId: data.attemptId,
+            questionId: answer.questionId,
+            answerText: answer.answerText,
+            isCorrect,
+            pointsEarned: isCorrect ? qInfo.points : 0,
+            answeredAt: new Date(),
+          };
+        });
+        // ✅ Calculate total score earned
+        const totalScoreEarned = insertData.reduce((sum, ans) => sum + ans.pointsEarned, 0);
+
         const [updatedAttempt, createdAnswers] = await prisma.$transaction([
           prisma.quizAttempt.update({
             where: { id: data.attemptId },
@@ -126,17 +200,24 @@ export async function POST(request) {
               isCompleted: true,
               isSubmitted: true,
               timeSpent: data.timeSpent,
+            },
+          }),
+          prisma.result.update({
+            where: { 
+              examId_studentId: {
+                examId: questionsWithOptions.exam.id,
+                studentId: attempt.studentId,
+            }},
+            data:{
+              score:totalScoreEarned,
+              gradedAt: new Date() 
             }
           }),
           prisma.answer.createMany({
-            data: data.answers.map(answer => ({
-              attemptId: data.attemptId,
-              questionId: answer.questionId,
-              answerText: answer.answerText,
-              answeredAt: new Date(),
-            }))
-          })
+            data: insertData,
+          }),
         ]);
+
         await new Promise(resolve => setTimeout(resolve, 1000));
         return NextResponse.json({ attempt: updatedAttempt, answers: createdAnswers }, { status: 200 });
 
@@ -151,16 +232,73 @@ export async function POST(request) {
             attemptId:uattemptId,
           },
         });
+        const attempt1 = await prisma.quizAttempt.findFirst({
+          where: {
+            quizId: uquizId, // Make sure this is the correct quizId
+          },
+          include: {
+            quiz: {
+              include: {
+                exam: true, // Include the exam related to the quiz
+              },
+            },
+          },
+        });
+        const insertData1 = udata.map((answer) => {
+          const correctAnswer = answer.correctAnswer;
+          const studentAnswer = answer.studentAnswer;;
+          const questionType = answer.questionType;
+          const marks = answer.points || 0;
+          let isCorrect = false;
+
+          switch (questionType) {
+            case 'MULTIPLE_CHOICE':
+            case 'TRUE_FALSE':
+              isCorrect = studentAnswer.toLowerCase() === correctAnswer.toLowerCase();
+              break;
+
+            case 'SHORT_TEXT':
+            case 'LONG_TEXT':
+              isCorrect =
+                studentAnswer?.trim().toLowerCase() === correctAnswer?.trim().toLowerCase();
+              break;
+
+            case 'NUMERICAL':
+              const submitted = parseFloat(studentAnswer);
+              const expected = parseFloat(correctAnswer);
+              isCorrect = !isNaN(submitted) && Math.abs(submitted - expected) < 0.0001;
+              break;
+          }
+
+          return {
+            attemptId: uattemptId,
+            questionId: answer.id,
+            answerText: studentAnswer,
+            isCorrect,
+            pointsEarned: isCorrect ? marks : 0,
+            answeredAt: new Date(),
+          };
+        });
+
+        // ✅ Calculate total score earned
+        const totalScoreEarned1 = insertData1.reduce((sum, ans) => sum + ans.pointsEarned, 0);
         const [ updatedAnswers] = await prisma.$transaction([
+          prisma.result.update({
+            where: { 
+              examId_studentId: {
+                examId: attempt1.quiz.exam.id,
+                studentId: attempt1.studentId,
+            }},
+            data:{
+              score:totalScoreEarned1,
+              gradedAt: new Date() 
+            }
+          }),
           prisma.answer.createMany({
-            data: udata.map(answer => ({
-              attemptId: uattemptId,
-              questionId: answer.id,
-              answerText: answer.studentAnswer,
-              answeredAt: new Date(),
-            }))
-          })
+            data: insertData1,
+          }),
         ]);
+
         await new Promise(resolve => setTimeout(resolve, 1000));
         return NextResponse.json({ answers: updatedAnswers }, { status: 200 });
   
