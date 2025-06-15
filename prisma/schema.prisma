@@ -57,6 +57,7 @@ model QuizAttempt {
 
   quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
   answers     Answer[]
+  results     Result[]
   submittedAt DateTime?
 
   @@unique([quizId, studentId])
@@ -241,10 +242,17 @@ model Result {
   startTime  DateTime
   endTime    DateTime
 
+  answeredQuestions Int        @default(0)  // <-- New field
+  correctAnswers     Int        @default(0)  // <-- New field
+
   examId    String?
   exam      Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
   studentId String
   student   Student @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
+
+  quizAttemptId String?      // <-- New optional field
+  quizAttempt   QuizAttempt? @relation(fields: [quizAttemptId], references: [id], onDelete: SetNull)
+
   @@unique([examId, studentId])
 }
 

@@ -57,47 +57,39 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username }
     }, 1000); // Delay optional
   };
 
+  const fetchAttempt = async (attemptId: string) => {
+  try {
+    const response = await fetch('/api/getQuizView', {
+      method: 'POST',
+      headers: {
+            'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({quizid:quizId}), // data you want to send
+    });
+    if (!response.ok) throw new Error("Attempt not found");
+    const data = await response.json();
+    setSelectedAttempt(data.quizData);
+  } catch (error) {
+    console.error("Failed to fetch attempt:", error);
+  }
+  finally {
+      setIsLoading(false);
+  }
+};
+
+
   // Mock data - In real app, this would come from an API
   useEffect(() => {
     const loadAttempts = async () => {
       setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        const mockAttempt: QuizAttempt = {
-          id: 'attempt_1',
-          studentName: 'John Smith',
-          quizTitle: 'Mathematics Quiz - Algebra',
-          subject: 'Mathematics',
-          grade: 'Grade 10',
-          startTime: '2024-06-14T10:00:00Z',
-          endTime: '2024-06-14T10:45:00Z',
-          totalQuestions: 25,
-          answeredQuestions: 24,
-          correctAnswers: 20,
-          totalMarks: 100,
-          obtainedMarks: 80,
-          timeSpent: 2700, // 45 minutes in seconds
-          status: 'completed',
-          questions: Array.from({ length: 25 }, (_, i) => ({
-            id: `q_${i + 1}`,
-            questionNumber: i + 1,
-            questionText: `Question ${i + 1}: What is the solution to ${i + 1}x + 5 = ${(i + 1) * 3}?`,
-            questionType: 'MULTIPLE_CHOICE' as const,
-            options: ['A) 1', 'B) 2', 'C) 3', 'D) 4'],
-            correctAnswer: 'B) 2',
-            studentAnswer: Math.random() > 0.2 ? 'B) 2' : 'A) 1',
-            isCorrect: Math.random() > 0.2,
-            points: 4,
-            obtainedPoints: Math.random() > 0.2 ? 4 : 0
-          }))
-        };
-        setSelectedAttempt(mockAttempt);
-        setIsLoading(false);
-      }, 1000);
+      if (quizId)
+      {
+        fetchAttempt(quizId);
+      } 
     };
 
     loadAttempts();
-  }, []);
+  }, [quizId]);
 
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -332,7 +324,6 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username }
       </div>
     );
   }
-
   const percentage = Math.round((selectedAttempt.obtainedMarks / selectedAttempt.totalMarks) * 100);
   
   return (

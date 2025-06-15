@@ -194,6 +194,9 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
   // Handle quiz submission
 const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
   const unansweredQuestions = getAllUnansweredQuestions();
+  const unansweredCount = unansweredQuestions.length;
+  const totalQuestions = quizData?.questions.length || 0;
+  const answeredCount = totalQuestions - unansweredCount;
 
   if (!autoSubmit && unansweredQuestions.length > 0) {
     toast({
@@ -225,7 +228,9 @@ const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
       attemptId,
       answers: Array.from(answers.values()),
       timeSpent: (quizData!.timeLimit * 60) - timeRemaining,
-      endTime: new Date().toISOString()
+      endTime: new Date().toISOString(),
+      unansweredCount,
+      answeredCount 
     };
 
     const result = await fetch('/api/quizz', {

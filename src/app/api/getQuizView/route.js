@@ -9,7 +9,6 @@ export async function POST(req) {
     if (!quizid) {
       return NextResponse.json({ message: 'Quiz is required' }, { status: 400 });
     }
-
     const quiz = await prisma.quiz.findUnique({
       where: { id: quizid },
       include: {
@@ -24,12 +23,19 @@ export async function POST(req) {
         QuizAttempt: {
           select: {
             id:true,
+            studentName:true,
+            timeSpent:true,
+            isCompleted:true,
+            isSubmitted:true,
+            results:true,
             answers: {
               select: {
                 id: true,
                 attemptId: true,
                 questionId: true,
                 answerText: true,
+                isCorrect:true,
+                pointsEarned:true,
               },
               orderBy: { id: 'asc' },
             }
@@ -49,6 +55,8 @@ export async function POST(req) {
         id: answer.id,
         answerText: answer.answerText,
         attemptId: answer.attemptId,
+        isCorrect: answer.isCorrect,
+        pointsEarned: answer.pointsEarned,
       };
     });
     const questions = quiz.questions.map((question, index) => {
@@ -60,15 +68,18 @@ export async function POST(req) {
         questionText: question.text,
         questionType: question.type,
         options: options.length > 0 ? options : undefined,
-        points: question.marks,
         correctAnswer: question.correctAnswer,
-        studentAnswer : mapAns?.answerText || '',  
+        studentAnswer : mapAns?.answerText || '',                
+        isCorrect: mapAns?.isCorrect ?? false,                  
+        points: question.marks,
+        obtainedPoints: mapAns?.pointsEarned ?? 0,
       };
     });
 
     const quizData = {
       id: quiz.id,
-      title: quiz.title,
+      studentName: quiz.QuizAttempt[0].studentName,
+      quizTitle: quiz.title,
       timeLimit: quiz.timeLimit, // 30 minutes
       questions,
       category: quiz.category,
@@ -76,6 +87,17 @@ export async function POST(req) {
       subject: quiz.subject,
       totalMarks: quiz.totalMarks,
       attemptId : quiz.QuizAttempt[0].id,
+      startTime:quiz.startDateTime,
+      endTime:quiz.endDateTime,
+      totalQuestions:quiz.totalQuestions,
+      answeredQuestions:quiz.QuizAttempt[0].results[0].answeredQuestions,
+      correctAnswers:quiz.QuizAttempt[0].results[0].correctAnswers,
+      totalMarks:quiz.totalMarks,
+      obtainedMarks:quiz.QuizAttempt[0].results[0].score,
+      timeSpent:quiz.QuizAttempt[0].timeSpent,
+      status:quiz.QuizAttempt[0].isCompleted ? 'completed' :
+          attempt?.isSubmitted ? 'abandoned' :
+          'in_progress',
     };
     return NextResponse.json({ quizData }, { status: 200 });
   } catch (error) {

@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Save, ArrowLeft, Edit3, ChevronRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+
 interface EditableQuestion {
   id: string;
   questionNumber: number;
@@ -30,15 +31,15 @@ interface EditableQuiz {
   grade: string;
   subject: string;
   totalMarks: number;
-  attemptId?:string;
+  attemptId?: string;
 }
 
 interface QuizEditorProps {
   quizId: string;
-  username:string;
+  username?: string;
 }
 
-const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
+const QuizEditor: React.FC<QuizEditorProps> = ({ quizId, username = 'student' }) => {
   const { toast } = useToast();
   const [quiz, setQuiz] = useState<EditableQuiz | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -46,15 +47,15 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
   const [editedQuestions, setEditedQuestions] = useState<Set<string>>(new Set());
   const router = useRouter();
 
+  
   function capitalizeSentences(text: string) {
-    return text.split(/([.!?]\s*)/) // Split by sentence-ending punctuation and keep it
-      .map((segment, index, arr) => {
-            // Only capitalize the actual sentence part, not the punctuation
+    return text.split(/([.!?]\s*)/)
+      .map((segment, index) => {
         if (index % 2 === 0) {
           return segment.charAt(0).toUpperCase() + segment.slice(1).trimStart();
         }
-      return segment;
-    }).join('');
+        return segment;
+      }).join('');
   }
 
   const getQuestionsbyId = async () => {
@@ -98,6 +99,22 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
     }
   }, [quizId]);
 
+
+  // Helper function to check if all questions are attempted (answered)
+  const allQuestionsAnswered = React.useMemo(() => {
+    if (!quiz) return false;
+    return quiz.questions.every((q) => {
+      if (q.questionType === 'MULTIPLE_CHOICE' && q.options) {
+        return q.studentAnswer !== undefined && q.studentAnswer !== '';
+      }
+      if (q.questionType === 'TRUE_FALSE') {
+        return q.studentAnswer === "True" || q.studentAnswer === "False";
+      }
+      // Covers SHORT_TEXT, LONG_TEXT, NUMERICAL
+      return q.studentAnswer !== undefined && q.studentAnswer !== '';
+    });
+  }, [quiz]);
+
   const markQuestionAsEdited = (questionId: string) => {
     setEditedQuestions(prev => new Set(prev).add(questionId));
   };
@@ -133,7 +150,7 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
     markQuestionAsEdited(questionId);
   };
 
-  const saveQuiz = async () => {
+ const saveQuiz = async () => {
     if (!quiz) return;
 
     setIsSaving(true);
@@ -179,9 +196,20 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
     }
   };
 
+
   const renderAnswerEditor = (question: EditableQuestion) => {
+    // A helper to check if the current question is answered
+    let isAnswered = true;
+    if (question.questionType === 'MULTIPLE_CHOICE' && question.options) {
+      isAnswered = question.studentAnswer !== undefined && question.studentAnswer !== '';
+    } else if (question.questionType === 'TRUE_FALSE') {
+      isAnswered = question.studentAnswer === "True" || question.studentAnswer === "False";
+    } else {
+      isAnswered = question.studentAnswer !== undefined && question.studentAnswer !== '';
+    }
+
     return (
-      <Card className="border-slate-200">
+      <Card className={`border-slate-200 ${!isAnswered ? "border-red-400" : ""}`}>
         <CardHeader className="bg-slate-50/50 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <div>
@@ -269,15 +297,24 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
             </div>
           )}
 
-
           {(question.questionType === 'LONG_TEXT') && (
             <div>
               <Label htmlFor={`answer-${question.id}`} className="text-sm font-medium">
                 Correct Answer
               </Label>
-              <Textarea id={`answer-${question.id}`} value={question.studentAnswer || ''} 
-                onChange={(e) => handleCorrectAnswerChange(question.id, e.target.value)} className="mt-2">
-              </Textarea>
+              <Textarea 
+                id={`answer-${question.id}`} 
+                value={question.studentAnswer || ''} 
+                onChange={(e) => handleCorrectAnswerChange(question.id, e.target.value)} 
+                className="mt-2"
+              />
+            </div>
+          )}
+          
+          {/* Show warning if this question is unanswered */}
+          {!isAnswered && (
+            <div className="text-sm text-red-600 font-semibold mt-2">
+              This question must be answered before saving.
             </div>
           )}
         </CardContent>
@@ -368,21 +405,15 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Question Navigator Sidebar */}
-
-
-      {/* Main Content */}
       <div className="flex-1">
-        {/* Header */}
         <div className="bg-white border-b border-slate-200 shadow-sm">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900 flex items-center">
                     <Edit3 className="w-6 h-6 mr-2" />
-                    Edit Answers:  {capitalizeSentences(quiz.title)}
+                    Edit Answers: {capitalizeSentences(quiz.title)}
                   </h1>
                   <div className="flex items-center space-x-3 mt-1">
                     <Badge variant="outline" className="text-slate-600 border-slate-300">
@@ -401,17 +432,23 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ quizId,username }) => {
               </div>
               <Button
                 onClick={saveQuiz}
-                disabled={isSaving}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={isSaving || !allQuestionsAnswered}
+                className={`bg-emerald-600 hover:bg-emerald-700 text-white ${(!allQuestionsAnswered ? "opacity-60 cursor-not-allowed" : "")}`}
+                title={!allQuestionsAnswered ? "Answer all questions to enable saving" : ""}
               >
                 <Save className="w-4 h-4 mr-2" />
                 {isSaving ? 'Saving...' : 'Save Answers'}
               </Button>
             </div>
+            {/* Show save-disabled message if not all questions have answers */}
+            {!allQuestionsAnswered && (
+              <div className="mt-2 text-sm text-red-700 font-medium">
+                All questions must be answered to save changes.
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Question Editor */}
         <div className="p-6">
           <div className="space-y-6">
             <div className="flex items-center justify-between">

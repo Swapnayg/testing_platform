@@ -191,6 +191,7 @@ export async function POST(request) {
         });
         // ✅ Calculate total score earned
         const totalScoreEarned = insertData.reduce((sum, ans) => sum + ans.pointsEarned, 0);
+        const correctAnswerCount = insertData.filter((item) => item.isCorrect).length;
 
         const [updatedAttempt, createdAnswers] = await prisma.$transaction([
           prisma.quizAttempt.update({
@@ -210,7 +211,10 @@ export async function POST(request) {
             }},
             data:{
               score:totalScoreEarned,
-              gradedAt: new Date() 
+              gradedAt: new Date(),
+              quizAttemptId:data.attemptId,
+              answeredQuestions:data.answeredCount,
+              correctAnswers:correctAnswerCount,
             }
           }),
           prisma.answer.createMany({
@@ -282,6 +286,7 @@ export async function POST(request) {
 
         // ✅ Calculate total score earned
         const totalScoreEarned1 = insertData1.reduce((sum, ans) => sum + ans.pointsEarned, 0);
+        const correctAnswerCount1 = insertData1.filter((item) => item.isCorrect).length;
         const [ updatedAnswers] = await prisma.$transaction([
           prisma.result.update({
             where: { 
@@ -291,7 +296,10 @@ export async function POST(request) {
             }},
             data:{
               score:totalScoreEarned1,
-              gradedAt: new Date() 
+              gradedAt: new Date(),
+              quizAttemptId:udata.attemptId,
+              answeredQuestions:attempt1.quiz.totalQuestions,
+              correctAnswers:correctAnswerCount1,
             }
           }),
           prisma.answer.createMany({
