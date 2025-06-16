@@ -1,13 +1,48 @@
 // components/UpcomingQuizzes.tsx
 
 "use client";
-
-import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChevronRight, Clock } from "lucide-react";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Upload, CreditCard, User, BookOpen } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { CldUploadWidget } from "next-cloudinary";
+
+type PaymentOption = "Easypaisa" | "JazzCash" | "ATM Transfer" | "Online Bank Transfer" | "RAAST ID" | "Other";
+
+
+export type ExamType = {
+  id: string;
+  title: string;
+  startTime: string;     // Use `Date` if you're parsing it
+  endTime: string;
+  status: 'NOT_STARTED' | 'STARTED' | 'COMPLETED'; // Match your enum if known
+  createdAt: string;
+  timeLimit: number;
+  totalMCQ: number;
+  totalMarks: number;
+
+  category: {
+    id: number;
+    catName: string;
+  };
+
+  grade: {
+    id: number;
+    level: string;
+  };
+
+  subject: {
+    id: number;
+    name: string;
+  };
+};
 
 type Quiz = {
   id: string;
@@ -21,13 +56,198 @@ type Quiz = {
   totalMarks: number;
   progress: number;
   status: "not-started" | "in-progress";
+  grade: string;
+  category: string;
 };
+interface ExamFormData {
+  examId: string;
+  title: string;
+  subject: string;
+  grade: string;
+  category: string;
+  totalMarks: number;
+  totalMCQ: number;
+  timeLimit: number;
+  totalAmount: string;
+  paymentOption?: PaymentOption;
+  transactionId?: string;
+  transactionReceipt?: File;
+  dateOfPayment: string;
+  bankName: string;
+  accountTitle?: string;
+  accountNumber?: string;
+  otherName?: string;
+}
 
 interface UpcomingQuizzesProps {
   quizzes: Quiz[];
 }
 
 const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
+  const [value, setValue] = useState("");
+
+  const { toast } = useToast();
+  const [formData, setFormData] = useState<ExamFormData>({
+    examId: "EX001",
+    title: "Mathematics Advanced Level",
+    subject: "Mathematics",
+    grade: "Grade 12",
+    category: "Science",
+    bankName:"Bank of Punjab",
+    accountTitle:"Great Future (SMC) Private Limited",
+    accountNumber:"6020293165600018",
+    totalMarks: 100,
+    totalMCQ: 50,
+    timeLimit: 180,
+    totalAmount: "Rs 330/-",
+    dateOfPayment: new Date().toISOString().split('T')[0],
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const paymentOptions: PaymentOption[] = [
+    "Easypaisa",
+    "JazzCash", 
+    "ATM Transfer",
+    "Online Bank Transfer",
+    "RAAST ID",
+    "Other"
+  ];
+
+  const handleInputChange = (field: keyof ExamFormData, value: string | File) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleInputChange('transactionReceipt', file);
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.paymentOption) {
+      newErrors.paymentOption = 'Please select a payment option';
+    }
+
+    if (formData.paymentOption) {
+      if (!formData.transactionId?.trim()) {
+        newErrors.transactionId = 'Transaction ID is required';
+      }
+      if (!formData.accountTitle?.trim()) {
+        newErrors.accountTitle = 'Account title is required';
+      }
+      if (!formData.accountNumber?.trim()) {
+        newErrors.accountNumber = 'Account number is required';
+      }
+
+      if (formData.paymentOption === 'Other' && !formData.otherName?.trim()) {
+        newErrors.otherName = 'Please specify the payment method';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      // Prepare data for database submission
+      const submissionData = {
+        examId: formData.examId,
+        title: formData.title,
+        subject: formData.subject,
+        grade: formData.grade,
+        category: formData.category,
+        totalMarks: formData.totalMarks,
+        totalMCQ: formData.totalMCQ,
+        timeLimit: formData.timeLimit,
+        totalAmount: formData.totalAmount,
+        paymentOption: formData.paymentOption,
+        transactionId: formData.transactionId,
+        dateOfPayment: formData.dateOfPayment,
+        bankName: formData.bankName,
+        accountTitle: formData.accountTitle,
+        accountNumber: formData.accountNumber,
+        otherName: formData.otherName,
+        transactionReceiptName: formData.transactionReceipt?.name,
+        submittedAt: new Date().toISOString()
+      };
+
+      console.log('Form data ready for database submission:', submissionData);
+      
+      // Here you would typically send the data to your database
+      // Example: await saveExamRegistration(submissionData);
+      
+      toast({
+        title: "Registration Submitted",
+        description: "Your exam registration has been submitted successfully!",
+      });
+    } else {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields correctly.",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+async function getExamById(examId: string) {
+  const response = await fetch('/api/studentReApply', {
+    method: 'POST',
+    headers: {
+            'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({quizid:examId}), // data you want to send
+  });
+  if (!response.ok) throw new Error("Attempt not found");
+  const data = await response.json();
+  return data.exam;
+}
+
+useEffect(() => {
+  if (!selectedQuizId) return;
+
+  const fetchExam = async () => {
+    try {
+      const data = await getExamById(selectedQuizId);
+      console.log("Fetched Exam:", data);
+
+      if (!data) return;
+
+      setFormData({
+        examId: data?.id ?? "",
+        title: data?.title ?? "",
+        subject: data?.subject?.name ?? "",
+        grade: data?.grade?.level ?? "",
+        category: data?.grade?.category?.catName ?? "",
+        bankName: "Bank of Punjab",
+        accountTitle: "Great Future (SMC) Private Limited",
+        accountNumber: "6020293165600018",
+        totalMarks: data?.totalMarks ?? 0,
+        totalMCQ: data?.totalMCQ ?? 0,
+        timeLimit: data?.timeLimit ?? 0,
+        totalAmount: "Rs 330/-",
+        dateOfPayment: new Date().toISOString().split("T")[0],
+      });
+    } catch (error) {
+      console.error("Error fetching exam:", error);
+    }
+  };
+
+  fetchExam();
+}, [selectedQuizId]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
@@ -35,9 +255,9 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
           <Clock className="w-6 h-6 text-emerald-600" />
           Upcoming Quizzes
         </h2>
-        <Button variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+        {/* <Button variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
           View All
-        </Button>
+        </Button> */}
       </div>
 
       <div className="flex flex-col gap-6">
@@ -50,7 +270,7 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-bold text-gray-900 text-lg">{quiz.title}</h3>
+                    <h3 className="font-bold text-gray-900 text-lg capitalize">{quiz.title}</h3>
                     <Badge
                       variant="outline"
                       className={`${
@@ -65,7 +285,7 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
                     </Badge>
                   </div>
                   <p className="text-emerald-600 font-medium mb-3">
-                    {quiz.subject} • {quiz.instructor}
+                    {quiz.subject} • {quiz.category} • {quiz.grade}
                   </p>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -98,14 +318,15 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
                   )}
                 </div>
 
-                <Button
+                <Button onClick={() => { setSelectedQuizId(quiz.id); setOpenModal(true);}}
+
                   className={`ml-6 group-hover:scale-105 transition-transform ${
                     quiz.status === "in-progress"
                       ? "bg-orange-500 hover:bg-orange-600"
                       : "bg-emerald-600 hover:bg-emerald-700"
                   } text-white shadow-lg`}
                 >
-                  {quiz.status === "in-progress" ? "Continue" : "Start Quiz"}
+                  {quiz.status === "in-progress" ? "Continue" : "Apply Now"}
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
@@ -113,6 +334,182 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
           </Card>
         ))}
       </div>
+
+      {openModal && (
+<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div className="bg-white rounded-xl shadow-xl w-[95%] max-w-4xl relative overflow-y-auto max-h-[90vh] custom-scroll">
+    <button
+      className="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl font-bold"
+      onClick={() => setOpenModal(false)}
+    >
+      ×
+    </button>
+
+    <Card className="border-0">
+
+      <CardContent className="p-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
+
+          {/* SECTION: Exam Info */}
+          <section>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+              Exam Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="examId" className="text-sm">Exam ID</Label>
+                <Input id="examId" value={formData.examId} readOnly className="bg-gray-50 text-sm" />
+
+                <Label htmlFor="title" className="text-sm">Title</Label>
+                <Input id="title" value={formData.title} readOnly className="bg-gray-50 text-sm" />
+                
+                <Label htmlFor="totalMarks" className="text-sm">Total Marks</Label>
+                <Input id="totalMarks" value={formData.totalMarks} readOnly className="bg-gray-50 text-sm" />
+
+                <Label htmlFor="timeLimit" className="text-sm">Time Limit (min)</Label>
+                <Input id="timeLimit" value={formData.timeLimit} readOnly className="bg-gray-50 text-sm" />
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="subject" className="text-sm">Subject</Label>
+                <Input id="subject" value={formData.subject} readOnly className="bg-gray-50 text-sm" />
+
+                <Label htmlFor="grade" className="text-sm">Grade</Label>
+                <Input id="grade" value={formData.grade} readOnly className="bg-gray-50 text-sm" />
+
+                <Label htmlFor="category" className="text-sm">Category</Label>
+                <Input id="category" value={formData.category} readOnly className="bg-gray-50 text-sm" />
+                
+                <Label htmlFor="totalMCQ" className="text-sm">Total MCQs</Label>
+                <Input id="totalMCQ" value={formData.totalMCQ} readOnly className="bg-gray-50 text-sm" />
+
+              </div>
+            </div>
+          </section>
+
+          {/* SECTION: Payment Info */}
+          <section>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+              Payment Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="bankName" className="text-sm">Bank Name</Label>
+                <Input id="bankName" value={formData.bankName} readOnly className="bg-gray-50 text-sm" />
+              
+                <Label htmlFor="accountTitle" className="text-sm">Account Title</Label>
+                <Input id="accountTitle" value={formData.accountTitle} readOnly className="bg-gray-50 text-sm" />
+                
+              </div>
+
+              <div className="space-y-3">
+
+                <Label htmlFor="accountNumber" className="text-sm">Account Title</Label>
+                <Input id="accountNumber" value={formData.accountNumber} readOnly className="bg-gray-50 text-sm" />
+
+                <Label htmlFor="totalAmount" className="text-sm">Amount (Rs.)</Label>
+                <Input id="totalAmount" value={formData.totalAmount} readOnly className="bg-gray-50 text-sm font-semibold text-green-600" />  
+              </div>
+            </div>
+             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mt-4 space-y-4">
+                <Label className="text-sm font-medium">Payment Option *</Label>
+                <RadioGroup value={formData.paymentOption} onValueChange={(value) => handleInputChange('paymentOption', value)} className="grid grid-cols-3 gap-2">
+                  {paymentOptions.map(option => (
+                    <div key={option} className="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50">
+                      <RadioGroupItem value={option} id={option} />
+                      <Label htmlFor={option} className="text-xs cursor-pointer">{option}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                 {errors.paymentOption && <p className="text-red-500 text-xs">{errors.paymentOption}</p>}
+            </div>
+
+            {/* Dynamic Payment Fields */}
+            {formData.paymentOption && (
+              <div className="border rounded-lg p-4 mt-4 space-y-4">
+                <h4 className="text-indigo-800 font-semibold text-sm">Payment Details</h4>
+
+                {formData.paymentOption === 'Other' && (
+                  <div>
+                    <Label htmlFor="otherName" className="text-sm">Other Name *</Label>
+                    <Input id="otherName" value={formData.otherName || ''} onChange={(e) => handleInputChange('otherName', e.target.value)} placeholder="Enter payment method" className={`text-sm ${errors.otherName ? 'border-red-500' : ''}`} />
+                    {errors.otherName && <p className="text-red-500 text-xs">{errors.otherName}</p>}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="transactionId" className="text-sm">Transaction ID *</Label>
+                    <Input id="transactionId" value={formData.transactionId || ''} onChange={(e) => handleInputChange('transactionId', e.target.value)} className={`text-sm ${errors.transactionId ? 'border-red-500' : ''}`} />
+                    {errors.transactionId && <p className="text-red-500 text-xs">{errors.transactionId}</p>}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="dateOfPayment" className="text-sm">Date of Payment *</Label>
+                    <Input type="date" id="dateOfPayment" value={formData.dateOfPayment || ''} onChange={(e) => handleInputChange('dateOfPayment', e.target.value)} className={`text-sm ${errors.dateOfPayment ? 'border-red-500' : ''}`} />
+                    {errors.dateOfPayment && <p className="text-red-500 text-xs">{errors.dateOfPayment}</p>}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="transactionReceipt" className="text-sm">Transaction Receipt</Label>
+                    <div className="relative">
+                     <CldUploadWidget
+                        uploadPreset="school"
+                        onSuccess={(result: { info: { url?: string } } | any, { widget }) => {
+                          const url = typeof result.info === 'object' && 'url' in result.info ? result.info.url : '';
+                          setValue('profilePicture', url);
+                          widget.close();
+                        }}
+                      >
+                        {({ open }) => {
+                          return (
+                            <div
+                              className="text-xs text-gray-500 items-center justify-center gap-2 cursor-pointer"
+                              onClick={() => open()}
+                            >
+                              <Label htmlFor="profilePicture" className="cursor-pointer">
+                                  <span className="text-blue-600 hover:text-blue-500">
+                                    Click to upload
+                                  </span>
+                                  <span className="text-gray-600"> or drag and drop</span>
+                              </Label>
+                              <p className="text-xs text-gray-500 mt-2">
+                                PNG, JPG, GIF up to 10MB
+                              </p>
+                            </div>
+                          );
+                        }}
+                      </CldUploadWidget>
+                    </div>
+                    {formData.transactionReceipt && (
+                      <p className="text-green-600 text-xs mt-1">
+                        File: {formData.transactionReceipt.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Submit Button */}
+          <div className="flex justify-center">
+            <Button
+              type="submit"
+              className="bg-gradient-to-r from-slate-700 to-slate-900 hover:from-slate-800 hover:to-slate-950 text-white px-8 py-2 font-semibold rounded-lg shadow-md transform transition hover:scale-105"
+            >
+              <User className="mr-2 h-4 w-4" />
+              Submit Registration
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  </div>
+</div>
+
+)}
+
     </div>
   );
 };
