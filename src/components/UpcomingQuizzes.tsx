@@ -71,7 +71,7 @@ interface ExamFormData {
   totalAmount: string;
   paymentOption?: PaymentOption;
   transactionId?: string;
-  transactionReceipt?: File;
+  transactionReceipt?: string;
   dateOfPayment: string;
   bankName: string;
   accountTitle?: string;
@@ -123,12 +123,6 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleInputChange('transactionReceipt', file);
-    }
-  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -147,7 +141,9 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
       if (!formData.accountNumber?.trim()) {
         newErrors.accountNumber = 'Account number is required';
       }
-
+      if (!formData.transactionReceipt?.trim()) {
+        newErrors.transactionReceipt = 'Transaction Receipt is required';
+      }
       if (formData.paymentOption === 'Other' && !formData.otherName?.trim()) {
         newErrors.otherName = 'Please specify the payment method';
       }
@@ -179,7 +175,7 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
         accountTitle: formData.accountTitle,
         accountNumber: formData.accountNumber,
         otherName: formData.otherName,
-        transactionReceiptName: formData.transactionReceipt?.name,
+        transactionReceiptName: formData.transactionReceipt,
         submittedAt: new Date().toISOString()
       };
 
@@ -357,8 +353,8 @@ useEffect(() => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label htmlFor="examId" className="text-sm">Exam ID</Label>
-                <Input id="examId" value={formData.examId} readOnly className="bg-gray-50 text-sm" />
+                <Label htmlFor="examId" className="text-sm hidden">Exam ID</Label>
+                <Input id="examId" value={formData.examId} readOnly className="bg-gray-50 text-sm hidden" />
 
                 <Label htmlFor="title" className="text-sm">Title</Label>
                 <Input id="title" value={formData.title} readOnly className="bg-gray-50 text-sm" />
@@ -368,6 +364,9 @@ useEffect(() => {
 
                 <Label htmlFor="timeLimit" className="text-sm">Time Limit (min)</Label>
                 <Input id="timeLimit" value={formData.timeLimit} readOnly className="bg-gray-50 text-sm" />
+
+                <Label htmlFor="totalMCQ" className="text-sm">Total MCQs</Label>
+                <Input id="totalMCQ" value={formData.totalMCQ} readOnly className="bg-gray-50 text-sm" />
               </div>
 
               <div className="space-y-3">
@@ -379,9 +378,6 @@ useEffect(() => {
 
                 <Label htmlFor="category" className="text-sm">Category</Label>
                 <Input id="category" value={formData.category} readOnly className="bg-gray-50 text-sm" />
-                
-                <Label htmlFor="totalMCQ" className="text-sm">Total MCQs</Label>
-                <Input id="totalMCQ" value={formData.totalMCQ} readOnly className="bg-gray-50 text-sm" />
 
               </div>
             </div>
@@ -449,45 +445,52 @@ useEffect(() => {
                     <Input type="date" id="dateOfPayment" value={formData.dateOfPayment || ''} onChange={(e) => handleInputChange('dateOfPayment', e.target.value)} className={`text-sm ${errors.dateOfPayment ? 'border-red-500' : ''}`} />
                     {errors.dateOfPayment && <p className="text-red-500 text-xs">{errors.dateOfPayment}</p>}
                   </div>
-
-                  <div>
-                    <Label htmlFor="transactionReceipt" className="text-sm">Transaction Receipt</Label>
-                    <div className="relative">
-                     <CldUploadWidget
+                </div>
+                <div>
+                  <Label htmlFor="transactionReceipt" className="text-sm">Transaction Receipt</Label>
+                  <div className="flex items-center justify-center min-h-[150px]"> {/* Adjust min-h as needed */}
+                  <div className="text-center">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <div className="space-y-2">
+                      <CldUploadWidget
                         uploadPreset="school"
                         onSuccess={(result: { info: { url?: string } } | any, { widget }) => {
                           const url = typeof result.info === 'object' && 'url' in result.info ? result.info.url : '';
-                          setValue('profilePicture', url);
+                          setFormData((prev) => ({
+                            ...prev,
+                            transactionReceipt: url,
+                          }));
                           widget.close();
                         }}
                       >
-                        {({ open }) => {
-                          return (
-                            <div
-                              className="text-xs text-gray-500 items-center justify-center gap-2 cursor-pointer"
-                              onClick={() => open()}
-                            >
-                              <Label htmlFor="profilePicture" className="cursor-pointer">
-                                  <span className="text-blue-600 hover:text-blue-500">
-                                    Click to upload
-                                  </span>
-                                  <span className="text-gray-600"> or drag and drop</span>
-                              </Label>
-                              <p className="text-xs text-gray-500 mt-2">
-                                PNG, JPG, GIF up to 10MB
-                              </p>
-                            </div>
-                          );
-                        }}
+                        {({ open }) => (
+                          <div
+                            className="text-xs text-gray-500 flex flex-col items-center justify-center gap-2 cursor-pointer"
+                            onClick={() => open()}
+                          >
+                            <Label htmlFor="profilePicture" className="cursor-pointer">
+                              <span className="text-blue-600 hover:text-blue-500">
+                                Click to upload
+                              </span>
+                              <span className="text-gray-600"> or drag and drop</span>
+                            </Label>
+                            <p className="text-xs text-gray-500 mt-2">
+                              PNG, JPG, GIF up to 10MB
+                            </p>
+                          </div>
+                        )}
                       </CldUploadWidget>
                     </div>
-                    {formData.transactionReceipt && (
-                      <p className="text-green-600 text-xs mt-1">
-                        File: {formData.transactionReceipt.name}
-                      </p>
-                    )}
                   </div>
                 </div>
+
+                    {formData.transactionReceipt && (
+                      <p className="text-green-600 text-xs mt-1">
+                        File: {formData.transactionReceipt}
+                      </p>
+                    )}
+                    {errors.transactionReceipt && <p className="text-red-500 text-xs">{errors.transactionReceipt}</p>}             
+                  </div>
               </div>
             )}
           </section>
