@@ -21,7 +21,6 @@ export async function POST(req) {
     }
 
     const applicationId = generateApplicationId();
-
     const newRegistration = await prisma.registration.create({
       data: {
         olympiadCategory: data.category || '',
@@ -31,7 +30,7 @@ export async function POST(req) {
         accountNumber: data.accountNumber || '',
         totalAmount: data.totalAmount || '',
         transactionId: data.transactionId || '',
-        dateOfPayment: data.dateOfPayment ? data.dateOfPayment.toISOString() : '',
+        dateOfPayment: data.dateOfPayment ?  new Date(data.dateOfPayment).toISOString() : '',
         paymentOption: data.paymentOption || null,
         otherName: data.otherName || '',
         transactionReceipt: data.transactionReceiptName || '',
@@ -43,8 +42,10 @@ export async function POST(req) {
     });
     
     await prisma.examOnRegistration.create({
-      examId: data.examId,
-      registrationId: newRegistration.id,
+      data: {
+        examId: data.examId,
+        registrationId: newRegistration.id,
+      }
     });
       
     return NextResponse.json({ success: true, error: false }, { status: 200 });

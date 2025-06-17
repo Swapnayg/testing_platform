@@ -87,7 +87,7 @@ interface UpcomingQuizzesProps {
 const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId}) => {
   const [openModal, setOpenModal] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
-  const [value, setValue] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { toast } = useToast();
   const [formData, setFormData] = useState<ExamFormData>({
@@ -156,49 +156,62 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId})
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (validateForm()) {
-      // Prepare data for database submission
-      const submissionData = {
-        examId: formData.examId,
-        title: formData.title,
-        subject: formData.subject,
-        grade: formData.grade,
-        category: formData.category,
-        totalMarks: formData.totalMarks,
-        totalMCQ: formData.totalMCQ,
-        timeLimit: formData.timeLimit,
-        totalAmount: formData.totalAmount,
-        paymentOption: formData.paymentOption,
-        transactionId: formData.transactionId,
-        dateOfPayment: formData.dateOfPayment,
-        bankName: formData.bankName,
-        accountTitle: formData.accountTitle,
-        accountNumber: formData.accountNumber,
-        otherName: formData.otherName,
-        transactionReceiptName: formData.transactionReceipt,
-        submittedAt: new Date().toISOString()
-      };
-      console.log('Form data ready for database submission:', submissionData);
+    // Prevent multiple submissions
+    if (isSubmitting) return;
 
-      const result = await fetch('/api/reapplySave', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({  studentId:studentId, data: submissionData }),
-      });
+    setIsSubmitting(true);
 
-      const attempt = await result.json();
-      
-      toast({
-        title: "Registration Submitted",
-        description: "Your exam registration has been submitted successfully!",
-      });
-    } else {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields correctly.",
-        variant: "destructive",
-      });
+    try {
+      if (validateForm()) {
+        // Prepare data for database submission
+        const submissionData = {
+          examId: formData.examId,
+          title: formData.title,
+          subject: formData.subject,
+          grade: formData.grade,
+          category: formData.category,
+          totalMarks: formData.totalMarks,
+          totalMCQ: formData.totalMCQ,
+          timeLimit: formData.timeLimit,
+          totalAmount: formData.totalAmount,
+          paymentOption: formData.paymentOption,
+          transactionId: formData.transactionId,
+          dateOfPayment: formData.dateOfPayment,
+          bankName: formData.bankName,
+          accountTitle: formData.accountTitle,
+          accountNumber: formData.accountNumber,
+          otherName: formData.otherName,
+          transactionReceiptName: formData.transactionReceipt,
+          submittedAt: new Date().toISOString()
+        };
+        console.log('Form data ready for database submission:', submissionData);
+
+        const result = await fetch('/api/reapplySave', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({  studentId:studentId, data: submissionData }),
+        });
+
+        const attempt = await result.json();
+        setSelectedQuizId(null); 
+        setOpenModal(false);
+        window.opener?.location.reload();
+        toast({
+          title: "Registration Submitted",
+          description: "Your exam registration has been submitted successfully!",
+        });
+      } else {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields correctly.",
+          variant: "destructive",
+        });
+      }
+
+    } catch (error) {
+      console.error('Submission failed', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -502,13 +515,16 @@ useEffect(() => {
 
           {/* Submit Button */}
           <div className="flex justify-center">
-            <Button
-              type="submit"
-              className="bg-gradient-to-r from-slate-700 to-slate-900 hover:from-slate-800 hover:to-slate-950 text-white px-8 py-2 font-semibold rounded-lg shadow-md transform transition hover:scale-105"
-            >
-              <User className="mr-2 h-4 w-4" />
-              Submit Registration
-            </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className={`bg-gradient-to-r from-slate-700 to-slate-900 hover:from-slate-800 hover:to-slate-950 text-white px-8 py-2 font-semibold rounded-lg shadow-md transform transition hover:scale-105 ${
+              isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <User className="mr-2 h-4 w-4" />
+            {isSubmitting ? 'Submitting...' : 'Submit Registration'}
+          </Button>
           </div>
         </form>
       </CardContent>
