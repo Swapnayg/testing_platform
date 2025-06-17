@@ -102,29 +102,13 @@ const menuItems = [
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
       },
-    ],
-  },
-  {
-    title: "OTHER",
-    items: [
+
       {
         icon: "/profile.png",
         label: "Profile",
         href: "/profile",
         visible: ["student"],
       },
-      // {
-      //   icon: "/setting.png",
-      //   label: "Settings",
-      //   href: "/settings",
-      //   visible: ["admin", "teacher", "student", "parent"],
-      // },
-      // {
-      //   icon: "/logout.png",
-      //   label: "Logout",
-      //   href: "/logout",
-      //   visible: ["admin", "teacher", "student", "parent"],
-      // },
     ],
   },
 ];
