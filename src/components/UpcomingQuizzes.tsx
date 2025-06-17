@@ -81,9 +81,10 @@ interface ExamFormData {
 
 interface UpcomingQuizzesProps {
   quizzes: Quiz[];
+  studentId:string,
 }
 
-const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
+const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId}) => {
   const [openModal, setOpenModal] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [value, setValue] = useState("");
@@ -153,7 +154,7 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
@@ -178,11 +179,15 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes }) => {
         transactionReceiptName: formData.transactionReceipt,
         submittedAt: new Date().toISOString()
       };
-
       console.log('Form data ready for database submission:', submissionData);
-      
-      // Here you would typically send the data to your database
-      // Example: await saveExamRegistration(submissionData);
+
+      const result = await fetch('/api/reapplySave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({  studentId:studentId, data: submissionData }),
+      });
+
+      const attempt = await result.json();
       
       toast({
         title: "Registration Submitted",

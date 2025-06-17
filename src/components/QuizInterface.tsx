@@ -240,7 +240,15 @@ const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
     });
 
     const attempt = await result.json();
-
+    if (!result.ok) {
+      console.error('Quiz submission failed:');
+      toast({
+        title: "Submission Failed",
+        description: "Failed to save your quiz. Please try again.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false); // allow retry
+    }
     setIsQuizCompleted(true);
     toast({
       title: autoSubmit ? "Time's Up!" : "Quiz Submitted Successfully",
