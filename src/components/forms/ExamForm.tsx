@@ -19,6 +19,7 @@ import { useActionState,useState  } from 'react';
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { useWatch } from "react-hook-form";
 
 const ExamForm = ({
   type,
@@ -35,6 +36,7 @@ const ExamForm = ({
     register,
     handleSubmit,
     formState: { errors },
+    control,
   } = useForm<ExamSchema>({
     resolver: zodResolver(examSchema),
   });
@@ -48,6 +50,12 @@ const ExamForm = ({
       error: false,
     }
   );
+
+  const startTime = useWatch({ control, name: "startTime" });
+  const endTime = useWatch({ control, name: "endTime" });
+
+  const [timeLimit, setTimeLimit] = useState<number | undefined>(data?.timeLimit);
+
 
 const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
@@ -93,12 +101,19 @@ const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
   const router = useRouter();
 
   useEffect(() => {
+    if (startTime && endTime) {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const diffMs = end.getTime() - start.getTime();
+    const diffMins = Math.max(Math.floor(diffMs / (1000 * 60)), 0); // prevent negatives
+    setTimeLimit(diffMins);
+  }
     if (state.success) {
       toast(`Exam has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
     }
-  }, [state, router, type, setOpen]);
+  }, [state, router, type, setOpen,startTime,endTime]);
 
   const { lessons, categories, grades, subjects } = relatedData;
   const gradesList = grades.filter((grade: { categoryId: number; }) => grade.categoryId === selectedCategoryId);
@@ -216,15 +231,17 @@ const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
           defaultValue={data?.totalMarks}
           register={register}
           error={errors?.totalMarks}
-        />
-        <InputField
-          type="number"
-          label="Time Limit (minutes)"
-          name="timeLimit"
-          defaultValue={data?.timeLimit}
-          register={register}
-          error={errors?.timeLimit}
-        />
+          />
+          <InputField
+            type="number"
+            label="Time Limit (minutes)"
+            name="timeLimit"
+            defaultValue={timeLimit !== undefined ? String(timeLimit) : undefined}
+            readOnly
+            register={register}
+            error={errors?.timeLimit}
+          />
+
 
       <InputField
           type="hidden"

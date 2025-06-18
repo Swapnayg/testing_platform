@@ -77,27 +77,124 @@ const upcomingExams = await prisma.exam.findMany({
     }
   },
 });
-const upcomingQuizzes = upcomingExams.map((exam) => {
-  const now = new Date();
-  const timeDiffMs = new Date(exam.startTime).getTime() - now.getTime();
-  const timeRemaining = Math.ceil(timeDiffMs / (1000 * 60 * 60 * 24)) + " days";
 
-  return {
-    id: exam.id,
-    title: exam.title,
-    difficulty: "Beginner" as const, // If you don't store difficulty, use a default
-    subject: exam.subject.name,
-    instructor: "TBD", // Or derive from model if available
-    timeRemaining,
-    questions: exam.totalMCQ,
-    duration: `${exam.timeLimit} mins`,
-    totalMarks: exam.totalMarks,
-    progress: 0, // Not started, so 0%
-    status: "not-started" as const,
-    grade: exam.grade.level, // ✅ Grade Level
-    category: exam.grade.category.catName, // ✅ Olympiad Category
-  };
+
+const notAttemptedExams = await prisma.exam.findMany({
+  where: {
+    results: {
+      none: {
+        studentId: student?.cnicNumber,
+        quizAttemptId: { not: null },
+      },
+    },
+  },
+  include: {
+    subject: true,
+    grade: {
+      include: {
+        category: true,
+      },
+    },
+  },
 });
+
+const attemptedQuizzes = await prisma.result.findMany({
+  where: {
+    studentId:  student?.cnicNumber, // <-- your input
+    quizAttemptId: {
+      not: null, // Ensures it was attempted
+    },
+  },
+  include: {
+    exam: {
+      include: {
+        subject: true,
+        grade: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    },
+    quizAttempt: true,
+  },
+});
+
+const upcomingQuizzes =  [
+  // Already known upcoming exams
+  ...upcomingExams.map((exam) => {
+    const now = new Date();
+    const startTime = new Date(exam.startTime);
+    const timeDiffMs = startTime.getTime() - now.getTime();
+    const timeRemaining = timeDiffMs > 0
+      ? Math.ceil(timeDiffMs / (1000 * 60 * 60 * 24)) + " days"
+      : "Starts today";
+
+    return {
+      id: exam.id,
+      title: exam.title,
+      difficulty: "Beginner" as "Beginner", // can change per exam.difficulty
+      subject: exam.subject?.name || "Unknown",
+      instructor: "TBD",
+      timeRemaining,
+      questions: exam.totalMCQ ?? 0,
+      duration: `${exam.timeLimit ?? 0} mins`,
+      totalMarks: exam.totalMarks,
+      progress: 0,
+      status: "not-started" as "not-started", // or "in-progress" if dynamically determined
+      grade: exam.grade?.level || "N/A",
+      category: exam.grade?.category?.catName || "N/A",
+    };
+  }),
+  // Not attempted exams (default to status: "not-started")
+  ...notAttemptedExams.map((exam) => {
+    const now = new Date();
+    const startTime = new Date(exam.startTime);
+    const timeDiffMs = startTime.getTime() - now.getTime();
+    const timeRemaining = timeDiffMs > 0
+      ? Math.ceil(timeDiffMs / (1000 * 60 * 60 * 24)) + " days"
+      : "Starts today";
+
+    return {
+      id: exam.id,
+      title: exam.title,
+      difficulty: "Beginner" as "Beginner", // use actual difficulty if available
+      subject: exam.subject?.name || "Unknown",
+      instructor: "TBD", // or exam.instructor?.name
+      timeRemaining,
+      questions: exam.totalMCQ ?? 0,
+      duration: `${exam.timeLimit ?? 0} mins`,
+      totalMarks: exam.totalMarks,
+      progress: 0,
+      status: "upcoming" as "upcoming",
+      grade: exam.grade?.level || "N/A",
+      category: exam.grade?.category?.catName || "N/A",
+    };
+  }),
+   // ✅ Attempted quizzes
+  ...attemptedQuizzes.map((res) => {
+    const exam = res.exam!;
+    const startTime = new Date(res.startTime);
+    const endTime = new Date(res.endTime);
+    const timeDiffMins = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+
+    return {
+      id: exam.id,
+      title: exam.title,
+      difficulty: "Beginner" as const,
+      subject: exam.subject?.name || "Unknown",
+      instructor: "TBD",
+      timeRemaining: "Attempted",
+      questions: res.answeredQuestions ?? 0,
+      duration: `${timeDiffMins} mins`,
+      totalMarks: res.totalScore,
+      progress: Math.round((res.score / res.totalScore) * 100), // show % score
+      status: "completed" as const, // or "completed" if you extend the type
+      grade: exam.grade?.level || "N/A",
+      category: exam.grade?.category?.catName || "N/A",
+    };
+  }),
+];
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -124,48 +221,6 @@ const upcomingQuizzes = upcomingExams.map((exam) => {
           <Announcements />
         </div>
       </div>
-
-      <div className="mt-4 bg-white rounded-md p-4 h-[200px] w-full">
-                <h1>Quiz Attempts</h1>
-                <div className="p-4">
-                  <table className="min-w-full border rounded-lg bg-white text-sm">
-                <thead className="bg-gray-100 text-left">
-                  <tr>
-                    <th className="px-4 py-2 border">Title</th>
-                    <th className="px-4 py-2 border">Category</th>
-                    <th className="px-4 py-2 border">Grade</th>
-                    <th className="px-4 py-2 border">Start Time</th>
-                    <th className="px-4 py-2 border">Total Marks</th>
-                    <th className="px-4 py-2 border">Questions</th>
-                    <th className="px-4 py-2 border">Time Limit (min)</th>
-                    <th className="px-4 py-2 border">Score</th>
-                    <th className="px-4 py-2 border">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {student?.attempts.map((attempt) => (
-                    <tr key={attempt.id} className="border-t hover:bg-gray-50">
-                      <td className="px-4 py-2 border capitalize">{attempt.quiz.title}</td>
-                      <td className="px-4 py-2 border">{attempt.quiz.category}</td>
-                      <td className="px-4 py-2 border">{attempt.quiz.grade}</td>
-                      <td className="px-4 py-2 border">
-                        {new Date(attempt.quiz.startDateTime).toLocaleString("en-IN")}
-                      </td>
-                      <td className="px-4 py-2 border">{attempt.quiz.totalMarks}</td>
-                      <td className="px-4 py-2 border">{attempt.quiz.questions.length}</td>
-                      <td className="px-4 py-2 border">{attempt.quiz.timeLimit} min</td>
-                      <td className="px-4 py-2 border">{attempt.totalScore ?? "N/A"}</td>
-                      <td className="px-4 py-2 border">
-                        <Link href={`/student/${attempt.quiz.id}?studentName=${attempt.studentId}`} className="w-full flex items-center justify-center text-blue-600 hover:text-blue-800 transition">
-                          <Eye className="w-5 h-5" />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-                </div>
-    </div>
     </div>
   );
 };

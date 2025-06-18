@@ -34,33 +34,136 @@ export async function GET(request) {
       case 'byRoll':
         if (!rollNo) return NextResponse.json({ message: 'rollNo is required' }, { status: 400 });
         const studentByRoll = await prisma.student.findFirst({
-          where: { rollNo },
+          where: { rollNo: rollNo },
         });
-        const upcomingStudentResults = await prisma.result.findMany({
-            where: {
-                studentId: studentByRoll?.cnicNumber, // Replace with actual student ID
-                // exam: {
-                //   endTime: {
-                //     gt: new Date() // Only exams that haven't ended yet
-                //   }
-                // }
+        const upcomingExams = await prisma.exam.findMany({
+          where: {
+            registrations: {
+              some: {
+                registration: {
+                  studentId: studentByRoll?.cnicNumber,
+                },
+              },
             },
-            include: {
-                exam: {
-                include: {
-                    quizzes: true, 
-                    subject: true,
-                    grade: true
-                }
-                }
+            results: {
+              none: {
+                studentId: studentByRoll?.cnicNumber,
+                quizAttemptId: { not: null },
+              },
             },
-            orderBy: {
-                exam: {
-                startTime: 'asc' // Sort by upcoming exams first
-                }
-            }
+            startTime: {
+              gt: new Date(), // Upcoming only
+            },
+          },
+          select: {
+            id: true,
+            title: true,
+            totalMCQ: true,
+            totalMarks: true,
+            timeLimit: true,
+            startTime: true,
+            endTime: true,
+            grade: {
+              select: {
+                level: true,
+                category: {
+                  select: {
+                    catName: true,
+                  },
+                },
+              },
+            },
+            subject: {
+              select: {
+                name: true,
+              },
+            },
+          },
         });
-        return NextResponse.json(upcomingStudentResults, { status: 200 });
+
+        // Get all attempted quizzes by this student
+        const attemptedResults = await prisma.result.findMany({
+          where: { studentId:studentByRoll.cnicNumber },
+          select: {
+            exam: {
+              select: {
+                id: true,
+                title: true,
+                totalMCQ: true,
+                totalMarks: true,
+                timeLimit: true,
+                startTime: true,
+                endTime: true,
+                grade: {
+                  select: {
+                    level: true,
+                    category: {
+                      select: { catName: true },
+                    },
+                  },
+                },
+                subject: { select: { name: true } },
+              },
+            },
+            score: true,
+            correctAnswers: true,
+            status: true,
+            gradedAt: true,
+          },
+        });
+
+
+        const formattedResults = [
+          // Completed quizzes (attempted)
+          ...attemptedResults.map(r => ({
+            id: r.exam?.id,
+            title: r.exam?.title,
+            subject: r.exam?.subject?.name || "Unknown",
+            grade: r.exam?.grade?.level || "N/A",
+            category: r.exam?.grade?.category?.catName || "N/A",
+            timeRemaining: "Completed",
+            questions: r.exam?.totalMCQ ?? 0,
+            duration: `${r.exam?.timeLimit ?? 0} mins`,
+            totalMarks: r.exam?.totalMarks ?? 0,
+            score: r.score,
+            totalScore: r.totalScore,
+            progress: 100,
+            status: "completed",
+            quizType: "completed",
+            startTime: r.startTime,
+            endTime: r.endTime,
+          })),
+
+          // Upcoming quizzes (not attempted)
+          ...upcomingExams.map(e => {
+            const now = new Date();
+            const start = new Date(e.startTime);
+            const diffMs = start.getTime() - now.getTime();
+            const timeRemaining = diffMs > 0
+              ? `${Math.ceil(diffMs / (1000 * 60 * 60 * 24))} days`
+              : "Starts today";
+
+            return {
+              id: e.id,
+              title: e.title,
+              subject: e.subject?.name || "Unknown",
+              grade: e.grade?.level || "N/A",
+              category: e.grade?.category?.catName || "N/A",
+              timeRemaining,
+              questions: e.totalMCQ ?? 0,
+              duration: `${e.timeLimit ?? 0} mins`,
+              totalMarks: e.totalMarks ?? 0,
+              score: null,
+              totalScore: null,
+              progress: 0,
+              status: "not-started",
+              quizType: "upcoming",
+              startTime: e.startTime,
+              endTime: e.endTime,
+            };
+          }),
+        ];
+        return NextResponse.json({quizzes: formattedResults}, { status: 200 });
 
       default:
         return NextResponse.json({ message: 'Invalid GET type' }, { status: 400 });

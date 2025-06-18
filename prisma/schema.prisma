@@ -135,14 +135,14 @@ model Subject {
 }
 
 model Exam {
-  id            String     @id @default(uuid())
-  title         String
-  startTime     DateTime
-  endTime       DateTime
-  status        ExamStatus @default(NOT_STARTED)
-  createdAt     DateTime   @default(now())
+  id        String     @id @default(uuid())
+  title     String
+  startTime DateTime
+  endTime   DateTime
+  status    ExamStatus @default(NOT_STARTED)
+  createdAt DateTime   @default(now())
 
-  timeLimit     Int        @default(30)   // ⬅️ Added field (e.g., duration in minutes)
+  timeLimit Int @default(30) // ⬅️ Added field (e.g., duration in minutes)
 
   categoryId    Int
   category      Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -170,7 +170,7 @@ model Quiz {
   endDateTime    DateTime @map("end_date_time")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
-  timeLimit     Int        @default(30)   // ⬅️ Added field (e.g., duration in minutes)
+  timeLimit      Int      @default(30) // ⬅️ Added field (e.g., duration in minutes)
 
   exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
   examId String @unique
@@ -242,15 +242,15 @@ model Result {
   startTime  DateTime
   endTime    DateTime
 
-  answeredQuestions Int        @default(0)  // <-- New field
-  correctAnswers     Int        @default(0)  // <-- New field
+  answeredQuestions Int @default(0) // <-- New field
+  correctAnswers    Int @default(0) // <-- New field
 
   examId    String?
   exam      Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
   studentId String
   student   Student @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
 
-  quizAttemptId String?      // <-- New optional field
+  quizAttemptId String? // <-- New optional field
   quizAttempt   QuizAttempt? @relation(fields: [quizAttemptId], references: [id], onDelete: SetNull)
 
   @@unique([examId, studentId])

@@ -17,3 +17,6 @@ npx prisma db push
 
 username : admin, teacher, student, parent
 password : admin123,teacher, student,  parent
+
+
+npx prisma migrate reset  (which delete all data and restore the seed)

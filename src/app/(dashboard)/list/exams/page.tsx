@@ -14,7 +14,10 @@ type ExamList = Exam & {
     level: string;
     category: Category;
   };
-  subject: Subject
+  subject: Subject;
+  _count:{
+    registrations:number;
+  };
 };
 
 
@@ -75,6 +78,14 @@ const columns = [
     header: "Start Date",
     accessor: "startTime",
   },
+  {
+    header: "Students",
+    accessor: "_count",
+  },
+  {
+    header: "Status",
+    accessor: "status",
+  },
   ...(role === "admin" || role === "teacher"
     ? [
         {
@@ -97,6 +108,24 @@ const renderRow = (item: ExamList) => (
     <td>{item.totalMCQ}</td>
     <td>{item.totalMarks}</td>
     <td>{new Intl.DateTimeFormat().format(item.startTime)}</td>
+    <td className="text-center">{item._count.registrations}</td>
+    <td>
+      {item.status === "NOT_STARTED" && (
+        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+          Not Started
+        </span>
+      )}
+      {item.status === "IN_PROGRESS" && (
+        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+          In Progress
+        </span>
+      )}
+      {item.status === "COMPLETED" && (
+        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+          Completed
+        </span>
+      )}
+    </td>
     {(role === "admin" || role === "teacher") && (
       <td className="flex items-center gap-2">
         <FormContainer table="exam" type="update" data={item} />
@@ -135,39 +164,45 @@ const renderRow = (item: ExamList) => (
       ],
   };
   
-  var [data, count] = await prisma.$transaction([
-    prisma.exam.findMany({
-      where,
-      select: {
-        id: true,
-        title:true,
-        status:true,
-        totalMCQ:true,
-        totalMarks:true,
-        timeLimit:true,
-        startTime:true,
-        endTime:true,
-        grade: {
-          select: {
-            level: true,
-            category: {
-              select: {
-                catName: true
-              }
+var [data, count] = await prisma.$transaction([
+  prisma.exam.findMany({
+    where,
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      totalMCQ: true,
+      totalMarks: true,
+      timeLimit: true,
+      startTime: true,
+      endTime: true,
+      grade: {
+        select: {
+          level: true,
+          category: {
+            select: {
+              catName: true
             }
           }
-        },
-        subject: {
-          select: {
-            name:true
-        },
-      }
+        }
       },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.exam.count({ where }),
-  ]);
+      subject: {
+        select: {
+          name: true
+        }
+      },
+      _count: {
+        select: {
+          registrations: true // ✅ counts related registrations entries
+        }
+      }
+    },
+    take: ITEM_PER_PAGE,
+    skip: ITEM_PER_PAGE * (p - 1),
+  }),
+  prisma.exam.count({ where }),
+]);
+
   if (data.length === 0) {
   //throw new Error('No exams found.');
   data = []

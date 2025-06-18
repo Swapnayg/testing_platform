@@ -55,10 +55,11 @@ type Quiz = {
   duration: string;
   totalMarks: number;
   progress: number;
-  status: "not-started" | "in-progress";
+  status: "not-started" | "upcoming" | "completed";
   grade: string;
   category: string;
 };
+
 interface ExamFormData {
   examId: string;
   title: string;
@@ -331,16 +332,27 @@ useEffect(() => {
                     </div>
                   )}
                 </div>
-
-                <Button onClick={() => { setSelectedQuizId(quiz.id); setOpenModal(true);}}
-
-                  className={`ml-6 group-hover:scale-105 transition-transform ${
-                    quiz.status === "in-progress"
-                      ? "bg-orange-500 hover:bg-orange-600"
-                      : "bg-emerald-600 hover:bg-emerald-700"
-                  } text-white shadow-lg`}
+                <Button
+                  onClick={() => {
+                    setSelectedQuizId(quiz.id);
+                    setOpenModal(true);
+                  }}
+                  className={`ml-6 group-hover:scale-105 transition-transform shadow-lg text-white
+                    ${
+                      quiz.status === "completed"
+                        ? "bg-gray-500 hover:bg-gray-600 cursor-not-allowed"
+                        : quiz.status === "upcoming"
+                        ? "bg-orange-500 hover:bg-orange-600"
+                        : "bg-emerald-600 hover:bg-emerald-700"
+                    }
+                  `}
+                  disabled={quiz.status === "completed"}
                 >
-                  {quiz.status === "in-progress" ? "Continue" : "Apply Now"}
+                  {quiz.status === "completed"
+                    ? "Completed"
+                    : quiz.status === "upcoming"
+                    ? "Upcoming"
+                    : "Apply Now"}
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>

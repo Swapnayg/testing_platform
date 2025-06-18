@@ -34,24 +34,8 @@ const QuizStartPage: React.FC<QuizStartPageProps> =  ({ username}) => {
 useEffect(() => {
   const fetchStudentQuizzes = async () => {
     const data = await getStudentByRollNo(username.toUpperCase());
-    data.forEach(async (d: any) => {
-      var text = '';
-      var id = '';
-      if (new Date(d.exam.startTime) > new Date()) {
-        text = "Upcoming";
-        id = d.exam.id;
-      }
-      else{
-        const res = await fetch(`/api/quizz?type=byId&rollNo=${encodeURIComponent(username.toUpperCase())}&id=${d.exam.quizzes[0].id}`);
-        const answers = await res.json();
-        text = answers.length === 0 ? 'Start Quiz' : (answers.length === 1 && answers[0]?.answers?.length === 0) ? 'Start Again' : 'Completed';
-        id = d.exam.quizzes[0].id;
-      }
-      const newButton = { id: id, text: text };
-      setButtonTexts((prev) => [...prev, newButton]);
-    });
     console.log(data);
-    setQuizzes(data);
+    setQuizzes(data.quizzes);
   };
 
   if (username) {
@@ -122,67 +106,76 @@ const getTextById = (id: any) => {
       </div>
 
       {/* Quiz Grid */}
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {quizzes.map((quiz) => {
-            console.log(quiz);
-            var btnText = '';
-            if (new Date(quiz.exam.startTime) > new Date()) {
-              btnText = 'Upcoming';
-            }
-            else{
-              btnText = getTextById(quiz.exam.quizzes[0].id) || 'Loading...';
-            }
-             
-            const isCompleted = btnText === 'Completed';
-            return (
-              <Card key={quiz.id} className="group hover:shadow-lg transition-all duration-200 border-slate-200 bg-white">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl">{getSubjectIcon(quiz.exam.subject.name)}</span>
-                      <Badge variant="outline" className="text-xs font-medium text-slate-600 border-slate-300">
-                        {quiz.exam.subject.name}
-                      </Badge>
-                    </div>
-                  </div>
-                  <CardTitle className="text-xl font-semibold text-slate-900 group-hover:text-slate-700 transition-colors">
-                    {quiz.exam.title.toUpperCase()}
-                  </CardTitle>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  
-                  <div className="grid grid-cols-2 gap-4 py-3 border-t border-slate-100">
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Clock className="w-4 h-4 text-slate-500" />
-                      <span className="text-slate-700 font-medium">{60} min</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <BookOpen className="w-4 h-4 text-slate-500" />
-                      <span className="text-slate-700 font-medium">{quiz.exam.totalMCQ} questions</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Award className="w-4 h-4 text-slate-500" />
-                      <span className="text-slate-700 font-medium">{quiz.exam.totalMarks} marks</span>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    onClick={() => handleStartQuizInPopup(quiz.exam.quizzes[0].id,username,quiz.exam.totalMarks)}
-                    disabled={isCompleted}
-                    className={`w-full ${ isCompleted ? 'bg-gray-400 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800'} text-white font-medium py-2.5 group transition-all duration-200`}
-                  >
-                    {btnText}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+<div className="container mx-auto px-6 py-8">
+  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    {quizzes.map((quiz) => {
+      const isCompleted = quiz.quizType === "completed";
+      const isUpcoming = quiz.quizType === "upcoming";
 
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+      const btnText = isCompleted
+        ? "Completed"
+        : isUpcoming
+        ? "Upcoming"
+        : "Start Now";
+
+      return (
+        <Card
+          key={quiz.id}
+          className="group hover:shadow-lg transition-all duration-200 border-slate-200 bg-white"
+        >
+          <CardHeader className="pb-4">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">{getSubjectIcon(quiz.subject)}</span>
+                <Badge
+                  variant="outline"
+                  className="text-xs font-medium text-slate-600 border-slate-300"
+                >
+                  {quiz.subject}
+                </Badge>
+              </div>
+            </div>
+            <CardTitle className="text-xl font-semibold text-slate-900 group-hover:text-slate-700 transition-colors">
+              {quiz.title.toUpperCase()}
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 py-3 border-t border-slate-100">
+              <div className="flex items-center space-x-2 text-sm">
+                <Clock className="w-4 h-4 text-slate-500" />
+                <span className="text-slate-700 font-medium">{quiz.duration}</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm">
+                <BookOpen className="w-4 h-4 text-slate-500" />
+                <span className="text-slate-700 font-medium">{quiz.questions} questions</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm">
+                <Award className="w-4 h-4 text-slate-500" />
+                <span className="text-slate-700 font-medium">{quiz.totalMarks} marks</span>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => handleStartQuizInPopup(quiz.id, username, quiz.totalMarks)}
+              disabled={isCompleted}
+              className={`w-full ${
+                isCompleted
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : isUpcoming
+                  ? "bg-orange-500 hover:bg-orange-600"
+                  : "bg-slate-900 hover:bg-slate-800"
+              } text-white font-medium py-2.5 group transition-all duration-200`}
+            >
+              {btnText}
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    })}
+  </div>
+</div>
     </div>
     </div>
   );
