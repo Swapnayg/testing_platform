@@ -45,12 +45,10 @@ export async function GET(request) {
     where: {
       status: "NOT_STARTED",
       startTime: {
-      startTime: {
         gte: startOfHour,
         lte: endOfHour,
         gte: startOfDay,
         lte: endOfDay,
-      },
       },
     },
     data: {
