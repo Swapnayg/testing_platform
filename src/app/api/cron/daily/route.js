@@ -23,23 +23,14 @@ export async function GET(request) {
   }
 
   console.log("✅ Step: Cron job triggered at", new Date());
-
   const now = new Date();
 
-  // Current date at 00:00:00
-  const startOfDay = new Date(now);
-  startOfDay.setHours(0, 0, 0, 0);
-
-  // End of current date
-  const endOfDay = new Date(now);
-  endOfDay.setHours(23, 59, 59, 999);
-
-  // Start and end of current hour
   const startOfHour = new Date(now);
   startOfHour.setMinutes(0, 0, 0);
 
   const endOfHour = new Date(now);
   endOfHour.setMinutes(59, 59, 999);
+
 
   await prisma.exam.updateMany({
     where: {
@@ -47,8 +38,6 @@ export async function GET(request) {
       startTime: {
         gte: startOfHour,
         lte: endOfHour,
-        gte: startOfDay,
-        lte: endOfDay,
       },
     },
     data: {
@@ -62,8 +51,6 @@ export async function GET(request) {
       endTime: {
         gte: startOfHour,
         lte: endOfHour,
-        gte: startOfDay,
-        lte: endOfDay,
       },
     },
     data: {
