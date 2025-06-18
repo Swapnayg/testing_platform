@@ -1,23 +1,22 @@
-// app/api/students/[id]/route.ts
+// app/api/students/[id]/route.js
+
 import { NextResponse } from 'next/server';
-import prisma from "@/lib/prisma"; // adjust this path based on your project setup
-import { clerkClient } from "@clerk/nextjs/server";
+import prisma from '@/lib/prisma'; // adjust this path if needed
+import { clerkClient } from '@clerk/nextjs/server';
 
-type Context = {
-  params: {
-    id: string;
-  };
-};
-
-export async function DELETE(req: Request, context: Context) {
-  const { id } = await context.params;
+export async function DELETE(req, context) {
+  const { id } = context.params;
 
   try {
     const user = await prisma.student.findFirst({
       where: { id },
-    })
+    });
+
     if (user?.id) {
+      // Delete user from Clerk
       await clerkClient.users.deleteUser(id);
+
+      // Delete from local database using CNIC
       await prisma.student.delete({
         where: {
           cnicNumber: user.cnicNumber,
