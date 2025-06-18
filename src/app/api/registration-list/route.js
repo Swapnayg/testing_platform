@@ -37,7 +37,7 @@ export async function GET() {
       return {
         id: index + 1,
         name: student?.name || 'N/A',
-        studentId: `ST-2024-${String(index + 1).padStart(3, '0')}`,
+        studentId: student?.id,
         rollNumber: student?.rollNo || 'N/A',
         type: quizCount > 1 ? 'Returning' : 'First Time',
         email: student?.email || 'N/A',
@@ -51,6 +51,7 @@ export async function GET() {
         quizzes: `${quizCount} quiz${quizCount !== 1 ? 'zes' : ''}`,
         avatar: student?.profilePicture || '/default-avatar.png',
         subject:subjects || 'No subject',
+        transactionReceipt:reg.transactionReceipt.toString(),
       };
     });
 

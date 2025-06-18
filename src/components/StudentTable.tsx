@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, Check, X } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type EnrichedRegistration = {
   id: number;
@@ -27,6 +29,7 @@ type EnrichedRegistration = {
   quizzes: string;
   avatar: string;
   subject:string;
+  transactionReceipt:string;
 };
 
 const StudentTable = () => {
@@ -36,6 +39,44 @@ const StudentTable = () => {
   const [quizFilter, setQuizFilter] = useState('all-quizzes');
   const [studentTypeFilter, setStudentTypeFilter] = useState('all-students');
   const [filteredStudents, setFilteredStudents] = useState<EnrichedRegistration[]>([]);
+  const router = useRouter();
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+  const handleViewReceipt = (url: string, studentId: string) => {
+    setReceiptUrl(url);
+    setSelectedStudentId(studentId);
+  };
+
+  const closeModal = () => {
+    setReceiptUrl(null);
+    setSelectedStudentId(null);
+  };
+
+  const handleStatusUpdate = async (status: 'APPROVED' | 'REJECTED') => {
+  if (!selectedStudentId) return;
+
+  try {
+    const res = await fetch(`/api/registrations/${selectedStudentId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (res.ok) {
+        closeModal();
+        router.refresh(); // Refresh the page or fetch again
+      } else {
+        console.error('Failed to delete student');
+      }
+   
+  } catch (err) {
+    console.error('Failed to update status', err);
+  }
+};
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       'Pending': { variant: 'secondary' as const, className: 'bg-orange-100 text-orange-800' },
@@ -49,6 +90,28 @@ const StudentTable = () => {
         {status}
       </Badge>
     );
+  };
+
+
+const handleDelete = async (studentId: string) => {
+    const confirmed = window.confirm('Are you sure you want to delete this student?');
+
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/students/${studentId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        console.log("page refresh")
+        router.refresh(); // Refresh the page or fetch again
+      } else {
+        console.error('Failed to delete student');
+      }
+    } catch (error) {
+      console.error('Error deleting student:', error);
+    }
   };
 
   const getTypeBadge = (type: string) => {
@@ -212,8 +275,21 @@ const displayStudents = filteredStudents !== null && filteredStudents !== undefi
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      {getStatusBadge(student.paymentStatus)}
+                      {student.paymentStatus === 'Pending' && student.transactionReceipt ? (
+                        <div className="flex flex-col items-start">
+                          <span className="text-yellow-600 font-medium">Pending</span>
+                          <button
+                            className="text-blue-600 underline text-sm"
+                            onClick={() => handleViewReceipt(student.transactionReceipt, student.regNumber)}
+                          >
+                            View Image
+                          </button>
+                        </div>
+                      ) : (
+                        getStatusBadge(student.paymentStatus)
+                      )}
                     </td>
+
                     <td className="py-4 px-4">
                       <div>
                         <p className="text-sm font-medium text-gray-900">{student.revenue}</p>
@@ -222,13 +298,17 @@ const displayStudents = filteredStudents !== null && filteredStudents !== undefi
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700">
+                        <Link href={`/list/students/${student.regNumber}`}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          onClick={() => handleDelete(student.studentId)}
+                        >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
@@ -240,7 +320,43 @@ const displayStudents = filteredStudents !== null && filteredStudents !== undefi
           </div>
         </div>
       </Card>
+      {receiptUrl && selectedStudentId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
+              onClick={closeModal}
+            >
+              ✕
+            </button>
+
+            <h2 className="text-lg font-semibold mb-3">Transaction Receipt</h2>
+            <img
+              src={receiptUrl}
+              alt="Transaction Receipt"
+              className="w-full max-h-80 object-contain rounded border"
+            />
+
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                onClick={() => handleStatusUpdate('REJECTED')}
+                className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200"
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => handleStatusUpdate('APPROVED')}
+                className="bg-green-100 text-green-700 px-4 py-2 rounded hover:bg-green-200"
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
+    
   );
 };
 
