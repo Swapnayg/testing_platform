@@ -105,7 +105,7 @@ const handleDelete = async (studentId: string) => {
 
       if (res.ok) {
         console.log("page refresh")
-        router.refresh(); // Refresh the page or fetch again
+        window.location.reload(); // Refresh the page or fetch again
       } else {
         console.error('Failed to delete student');
       }

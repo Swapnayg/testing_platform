@@ -24,30 +24,33 @@ export async function GET(request) {
 
   console.log("✅ Step: Cron job triggered at", new Date());
 
-  const today = new Date();
-  const yesterdayStart = new Date(today);
-  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-  yesterdayStart.setHours(0, 0, 0, 0);
+  const now = new Date();
 
-  const yesterdayEnd = new Date(today);
-  yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
-  yesterdayEnd.setHours(23, 59, 59, 999);
+  // Current date at 00:00:00
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
 
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  // End of current date
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  // Start and end of current hour
+  const startOfHour = new Date(now);
+  startOfHour.setMinutes(0, 0, 0);
 
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+  const endOfHour = new Date(now);
+  endOfHour.setMinutes(59, 59, 999);
 
   await prisma.exam.updateMany({
     where: {
       status: "NOT_STARTED",
       startTime: {
-        gte: new Date(tomorrow.setHours(0, 0, 0, 0)),
-        lt: new Date(tomorrow.setHours(23, 59, 59, 999)),
+      startTime: {
+        gte: startOfHour,
+        lte: endOfHour,
+        gte: startOfDay,
+        lte: endOfDay,
+      },
       },
     },
     data: {
@@ -59,8 +62,10 @@ export async function GET(request) {
     where: {
       status: "IN_PROGRESS",
       endTime: {
-        gte: yesterdayStart,
-        lte: yesterdayEnd,
+        gte: startOfHour,
+        lte: endOfHour,
+        gte: startOfDay,
+        lte: endOfDay,
       },
     },
     data: {
@@ -72,8 +77,10 @@ export async function GET(request) {
     where: {
       status: "NOT_GRADED",
       endTime: {
-        gte: yesterdayStart,
-        lte: yesterdayEnd,
+        gte: startOfHour,
+        lte: endOfHour,
+        gte: startOfDay,
+        lte: endOfDay,
       },
     },
     data: {
