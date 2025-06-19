@@ -3,6 +3,7 @@
 import nodemailer from 'nodemailer';
 import prisma from "@/lib/prisma";
 import { generatePDFDocument } from "@/lib/actions";
+import { startOfMinute, endOfMinute } from 'date-fns';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -24,20 +25,15 @@ export async function GET(request) {
 
   console.log("✅ Step: Cron job triggered at", new Date());
   const now = new Date();
-
-  const startOfHour = new Date(now);
-  startOfHour.setMinutes(0, 0, 0);
-
-  const endOfHour = new Date(now);
-  endOfHour.setMinutes(59, 59, 999);
-
+  const startOfCurrentMinute = startOfMinute(now); // e.g., 2025-06-19T10:15:00.000Z
+  const endOfCurrentMinute = endOfMinute(now);     // e.g., 2025-06-19T10:15:59.999Z
 
   await prisma.exam.updateMany({
     where: {
       status: "NOT_STARTED",
       startTime: {
-        gte: startOfHour,
-        lte: endOfHour,
+        gte: startOfCurrentMinute,
+        lte: endOfCurrentMinute,
       },
     },
     data: {
@@ -45,33 +41,33 @@ export async function GET(request) {
     },
   });
 
-  await prisma.exam.updateMany({
-    where: {
-      status: "IN_PROGRESS",
-      endTime: {
-        gte: startOfHour,
-        lte: endOfHour,
-      },
-    },
-    data: {
-      status: 'COMPLETED',
-    },
-  });
+  // await prisma.exam.updateMany({
+  //   where: {
+  //     status: "IN_PROGRESS",
+  //     endTime: {
+  //       gte: startOfHour,
+  //       lte: endOfHour,
+  //     },
+  //   },
+  //   data: {
+  //     status: 'COMPLETED',
+  //   },
+  // });
 
-  await prisma.result.updateMany({
-    where: {
-      status: "NOT_GRADED",
-      endTime: {
-        gte: startOfHour,
-        lte: endOfHour,
-        gte: startOfDay,
-        lte: endOfDay,
-      },
-    },
-    data: {
-      status: 'ABSENT',
-    },
-  });
+  // await prisma.result.updateMany({
+  //   where: {
+  //     status: "NOT_GRADED",
+  //     endTime: {
+  //       gte: startOfHour,
+  //       lte: endOfHour,
+  //       gte: startOfDay,
+  //       lte: endOfDay,
+  //     },
+  //   },
+  //   data: {
+  //     status: 'ABSENT',
+  //   },
+  // });
   // const examsToday = await prisma.exam.findMany({
   //   where: {
   //     createdAt: {
