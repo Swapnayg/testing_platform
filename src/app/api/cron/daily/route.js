@@ -41,33 +41,31 @@ export async function GET(request) {
     },
   });
 
-  // await prisma.exam.updateMany({
-  //   where: {
-  //     status: "IN_PROGRESS",
-  //     endTime: {
-  //       gte: startOfHour,
-  //       lte: endOfHour,
-  //     },
-  //   },
-  //   data: {
-  //     status: 'COMPLETED',
-  //   },
-  // });
+await prisma.exam.updateMany({
+  where: {
+    status: "IN_PROGRESS",
+    endTime: {
+      gte: startOfCurrentMinute,
+      lte: endOfCurrentMinute,
+    },
+  },
+  data: {
+    status: 'COMPLETED',
+  },
+});
 
-  // await prisma.result.updateMany({
-  //   where: {
-  //     status: "NOT_GRADED",
-  //     endTime: {
-  //       gte: startOfHour,
-  //       lte: endOfHour,
-  //       gte: startOfDay,
-  //       lte: endOfDay,
-  //     },
-  //   },
-  //   data: {
-  //     status: 'ABSENT',
-  //   },
-  // });
+  await prisma.result.updateMany({
+    where: {
+      status: "NOT_GRADED",
+      endTime: {
+        gte: startOfCurrentMinute,
+        lte: endOfCurrentMinute,
+      },
+    },
+    data: {
+      status: 'ABSENT',
+    },
+  });
   // const examsToday = await prisma.exam.findMany({
   //   where: {
   //     createdAt: {
