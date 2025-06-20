@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation'; 
-
+import Link from 'next/link';
 interface QuizAttempt {
   id: string;
   studentName: string;
@@ -42,9 +42,10 @@ interface AttemptQuestion {
 interface QuizResultsViewerProps {
   quizId: string;
   username:string;
+  userRole:string;
 }
 
-const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username }) => {
+const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,userRole }) => {
   const { toast } = useToast();
   const [selectedAttempt, setSelectedAttempt] = useState<QuizAttempt | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -370,6 +371,20 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username }
                   </div>
                 </div>
               </div>
+              {/* Right: Modify Button for Admins */}
+              {userRole === 'admin' && (
+                <Link href={`/list/students/${quizId}/quiz?studentName=${username}`}
+                  passHref
+                >
+                  <Button
+                    variant="default"
+                    className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                  >
+                    ✏️ Modify Quiz
+                  </Button>
+                </Link>
+
+              )}
             </div>
           </div>
         </div>

@@ -68,7 +68,10 @@ const now = new Date();
 
 // STEP 1: Get all Registration IDs for this student
 const registrations = await prisma.registration.findMany({
-  where: { studentId:student?.cnicNumber },
+  where: { 
+    studentId:student?.cnicNumber,
+    status: 'APPROVED', // 👈 filter for approved payments
+   },
   select: { id: true },
 });
 const registrationIds = registrations.map(r => r.id);
@@ -140,33 +143,66 @@ const upcomingExams = await prisma.exam.findMany({
   },
 });
 
-// STEP 5: Get Not Applied Exams (never registered)
-const notAppliedExams = await prisma.exam.findMany({
-  where: {
-    id: {
-      notIn: registeredExamIds,
-    },
-    startTime: { gt: now },
-  },
-  include: {
-    grade: {
-      include: {
-        category: true,
+// STEP 1: Get all future exams
+const [notApplied, pendingApproval] = await Promise.all([
+  prisma.exam.findMany({
+    where: {
+      startTime: { gt: new Date() },
+      registrations: {
+        none: {
+          registration: {
+            studentId: student?.cnicNumber,
+          },
+        },
       },
     },
-    subject: true,
-    quizzes: {
-      select: { id: true }, // 👈 get Quiz ID
+    include: { 
+      grade: {
+        include: {
+          category: true,
+        },
+      },
+      subject: true,
+      quizzes: {
+        select: { id: true }, // 👈 get Quiz ID
+      },
+     },
+  }),
+  prisma.exam.findMany({
+    where: {
+      startTime: { gt: new Date() },
+      registrations: {
+        some: {
+          registration: {
+            studentId: student?.cnicNumber,
+            status: 'PENDING',
+          },
+        },
+      },
     },
-  },
-});
+    include: { 
+        grade: {
+          include: {
+            category: true,
+          },
+        },
+        subject: true,
+        quizzes: {
+          select: { id: true }, // 👈 get Quiz ID
+        },
+     },
+  }),
+]);
 
+const formattedNotApplied = notApplied.map((exam) => ({ ...exam, status: 'not_applied' }));
+const formattedPending = pendingApproval.map((exam) => ({ ...exam, status: 'pending_approval' }));
 
 const combinedExams = [
+  // Attempted Exams
   ...attemptedExams.map(exam => ({
     id: exam.id,
-    startTime:exam.startTime,
-    quizId: exam.quizzes[0]?.id || null, // 👈 safely access first quiz ID
+    startTime: exam.startTime,
+    quizId: exam.quizzes[0]?.id || null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -181,11 +217,12 @@ const combinedExams = [
     category: exam.grade?.category?.catName || "N/A",
   })),
 
+  // Upcoming Exams
   ...upcomingExams.map(exam => ({
     id: exam.id,
+    startTime: exam.startTime,
+    quizId: exam.quizzes[0]?.id || null,
     title: exam.title,
-    startTime:exam.startTime,
-    quizId: exam.quizzes[0]?.id || null, // 👈 safely access first quiz ID
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
     instructor: "TBD",
@@ -199,11 +236,12 @@ const combinedExams = [
     category: exam.grade?.category?.catName || "N/A",
   })),
 
-  ...notAppliedExams.map(exam => ({
+  // Not Applied Exams
+  ...formattedNotApplied.map(exam => ({
     id: exam.id,
+    startTime: exam.startTime,
+    quizId: exam.quizzes[0]?.id || null,
     title: exam.title,
-    startTime:exam.startTime,
-    quizId: exam.quizzes[0]?.id || null, // 👈 safely access first quiz ID
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
     instructor: "TBD",
@@ -212,11 +250,32 @@ const combinedExams = [
     duration: `${exam.timeLimit ?? 0} mins`,
     totalMarks: exam.totalMarks,
     progress: 0,
-    status: "not-applied" as const,
+    status: "not_applied" as const,
+    grade: exam.grade?.level || "N/A",
+    category: exam.grade?.category?.catName || "N/A",
+  })),
+
+  // Pending Approval Exams
+  ...formattedPending.map(exam => ({
+    id: exam.id,
+    startTime: exam.startTime,
+    quizId: exam.quizzes[0]?.id || null,
+    title: exam.title,
+    difficulty: "Beginner" as const,
+    subject: exam.subject?.name || "Unknown",
+    instructor: "TBD",
+    timeRemaining: getTimeRemaining(exam.startTime),
+    questions: exam.totalMCQ ?? 0,
+    duration: `${exam.timeLimit ?? 0} mins`,
+    totalMarks: exam.totalMarks,
+    progress: 0,
+    status: "pending_approval" as const,
     grade: exam.grade?.level || "N/A",
     category: exam.grade?.category?.catName || "N/A",
   })),
 ];
+
+const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_approval");
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -228,7 +287,7 @@ const combinedExams = [
         {/* LEFT */}
         <div className="w-full xl:w-2/3">
           <div className="h-full bg-white p-4 rounded-md">
-          <UpcomingQuizzes quizzes={combinedExams} studentId={student?.cnicNumber ?? ""} />
+          <UpcomingQuizzes quizzes={combinedExams} studentId={student?.cnicNumber ?? ""} hasPendingApproval={hasPendingApproval} />
 
           
             {/* <h1 className="text-xl font-semibold">Schedule (4A)</h1> */}

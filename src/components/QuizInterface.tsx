@@ -95,15 +95,10 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
     const diffMs = endTime.getTime() - now.getTime();
     const mins = Math.floor(diffMs / (1000 * 60));
     return mins;
-  }
-
+  } 
   // Not ongoing or already ended
   return 0;
 }
-
-console.log(attemptId);
-console.log(isSubmitting);
-
   // Load quiz data
     useEffect(() => {
       const fetchStudentQuizzes = async () => {
@@ -143,7 +138,6 @@ console.log(isSubmitting);
         });
 
         const attempt = await res.json();
-        console.log(attempt);
         setAttemptId(attempt.id);
         toast({
           title: "Quiz Started",

@@ -80,7 +80,7 @@ useEffect(() => {
 const handleStartQuizInPopup = (quizId: string, username:string, totalMarks:number) => {
     // Create popup window with restricted features
     const popup = window.open(
-      `${window.location.origin}//list/myquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
+      `${window.location.origin}//startquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
       'QuizWindow',
       'width=1200,height=800,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,directories=no'
     );

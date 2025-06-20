@@ -68,7 +68,7 @@ model Answer {
   id           String   @id @default(cuid())
   attemptId    String
   questionId   String
-  answerText   String
+  answerText       String           @db.Text  // <-- Updated to support long text 
   isCorrect    Boolean?
   pointsEarned Int      @default(0)
   answeredAt   DateTime @default(now())
@@ -188,7 +188,7 @@ model Question {
   type          QuestionType
   text          String
   marks         Float
-  correctAnswer String?      @map("correct_answer")
+  correctAnswer String?      @db.Text @map("correct_answer") // <-- Changed here
   orderIndex    Int          @map("order_index")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")

@@ -1,204 +1,314 @@
-import FormContainer from "@/components/FormContainer";
-import Pagination from "@/components/Pagination";
-import Table from "@/components/Table";
-import TableSearch from "@/components/TableSearch";
-import prisma from "@/lib/prisma";
-import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Prisma } from "@prisma/client";
-import Image from "next/image";
+/* eslint-disable @next/next/no-async-client-component */
+"use client";
 
+import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getAllExams, getFilteredExamResults,getacceptedCount } from "@/lib/actions";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { auth } from "@clerk/nextjs/server";
+import { Exam } from "@prisma/client";
+import { Eye } from 'lucide-react';
+import Link from 'next/link';
 
-type ResultList = {
-  id: number;
-  title: string;
-  studentName: string;
-  studentSurname: string;
-  teacherName: string;
-  teacherSurname: string;
-  score: number;
-  className: string;
-  startTime: Date;
+const PAGE_SIZE = 10;
+
+const ResultListPage = () => {
+  const [exams, setExams] = useState<{ id: string; title: string }[]>([]);
+  const [selectedExam, setSelectedExam] = useState("");
+  const [grade, setGrade] = useState("");
+  const [subject, setSubject] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filteredResults, setFilteredResults] = useState<any[]>([]);
+  const [selectedAttempt, setSelectedAttempt] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [selectedExamDetails, setSelectedExamDetails] = useState<Exam | null>(null);
+
+
+  function assignRankByScore(results: { score: number; totalScore: number }[]) {
+  const withPercent = results.map((r) => ({
+    ...r,
+    percentage: (r.score / r.totalScore) * 100,
+  }));
+
+  withPercent.sort((a, b) => b.percentage - a.percentage);
+
+  let rank = 1;
+  let prevPercentage: number | null = null;
+
+  return withPercent.map((r, index) => {
+    if (r.percentage !== prevPercentage) {
+      rank = index + 1;
+    }
+    prevPercentage = r.percentage;
+    return { ...r, rank };
+  });
+}
+
+
+const loadFilteredResults = async (examId: string) => {
+  setLoading(true);
+
+  try {
+    const filter = {
+      examId,
+      grade,
+      subject,
+    };
+    const rawResults = await getFilteredExamResults(filter);
+    const getcount = await getacceptedCount({ examId });
+    setTotalStudents(getcount);
+    // Add percentage and rank
+    const ranked = assignRankByScore(rawResults);
+    // Store in state
+    setFilteredResults(ranked);
+    setResults(ranked.slice(0, PAGE_SIZE));
+    setCurrentPage(1);
+    setSelectedExamDetails(rawResults[0]?.exam ?? null);
+  } catch (error) {
+    console.error("Error loading filtered results:", error);
+    setFilteredResults([]);
+  }
+  finally {
+      setLoading(false);
+  }
 };
 
 
-const ResultListPage = async () => {
+  useEffect(() => {
+    getAllExams().then(setExams);
+  }, []);
 
-const { userId, sessionClaims } = auth();
-const role = (sessionClaims?.metadata as { role?: string })?.role;
-const currentUserId = userId;
-
-
-const columns = [
-  {
-    header: "Title",
-    accessor: "title",
-  },
-  {
-    header: "Student",
-    accessor: "student",
-  },
-  {
-    header: "Score",
-    accessor: "score",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Teacher",
-    accessor: "teacher",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Class",
-    accessor: "class",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Date",
-    accessor: "date",
-    className: "hidden md:table-cell",
-  },
-  ...(role === "admin" || role === "teacher"
-    ? [
-        {
-          header: "Actions",
-          accessor: "action",
-        },
-      ]
-    : []),
-];
-
-const renderRow = (item: ResultList) => (
-  <tr
-    key={item.id}
-    className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-  >
-    <td className="flex items-center gap-4 p-4">{item.title}</td>
-    <td>{item.studentName + " " + item.studentName}</td>
-    <td className="hidden md:table-cell">{item.score}</td>
-    <td className="hidden md:table-cell">
-      {item.teacherName + " " + item.teacherSurname}
-    </td>
-    <td className="hidden md:table-cell">{item.className}</td>
-    <td className="hidden md:table-cell">
-      {new Intl.DateTimeFormat("en-US").format(item.startTime)}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {(role === "admin" || role === "teacher") && (
-          <>
-            <FormContainer table="result" type="update" data={item} />
-            <FormContainer table="result" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
-
-  const searchParams = typeof window === "undefined"
-    ? new URLSearchParams("") // fallback for SSR, replace with actual params if available
-    : new URLSearchParams(window.location.search);
-
-  const page = searchParams.get("page");
-  const p = page ? parseInt(page) : 1;
-
-  // Convert searchParams to an object for queryParams
-  const queryParams: Record<string, string | undefined> = {};
-  searchParams.forEach((value, key) => {
-    if (key !== "page") {
-      queryParams[key] = value;
+  useEffect(() => {
+    if (selectedExam) {
+      loadFilteredResults(selectedExam);
     }
-  });
+  }, [selectedExam, grade, subject]);
 
-  // URL PARAMS CONDITION
 
-  const query: Prisma.ResultWhereInput = {};
+  const handlePageChange = (page: number) => {
+    const start = (page - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    setResults(filteredResults.slice(start, end));
+    setCurrentPage(page);
+  };
 
-  if (queryParams) {
-    for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "studentId":
-            query.studentId = value;
-            break;
-          case "search":
-            query.OR = [
-              { exam: { title: { contains: value } } },
-              { student: { name: { contains: value } } },
-            ];
-            break;
-          default:
-            break;
-        }
-      }
-    }
-  }
+  const handleExportAll = () => {
+    const data = filteredResults.map((r) => ({
+      Student: r.student.name,
+      CNIC: r.student.cnicNumber,
+      Grade: r.exam.grade.level,
+      Subject: r.exam.subject.name,
+      Score: r.score,
+      SubmittedAt: new Date(r.gradedAt).toLocaleString(),
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Results");
+    XLSX.writeFile(wb, `exam-results-${selectedExam}.xlsx`);
+  };
 
-  // ROLE CONDITIONS
+  const handlePrint = async () => {
+    const table = document.getElementById("results-table");
+    if (!table) return;
+    const canvas = await html2canvas(table);
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF();
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save("exam-results.pdf");
+  };
 
-  switch (role) {
-    case "admin":
-      break;
-    case "teacher":
-      query.OR = [
-      ];
-      break;
-
-    case "student":
-      query.studentId = currentUserId!;
-      break;
-
-    default:
-      break;
-  }
-
-  const [dataRes, count] = await prisma.$transaction([
-    prisma.result.findMany({
-      where: query,
-      include: {
-        student: { select: { name: true } },
-        exam: {
-        },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.result.count({ where: query }),
-  ]);
-
-  const data = dataRes.map((item) => {
-
-    return {
-      
-    };
-  });
+  const totalPages = Math.ceil(filteredResults.length / PAGE_SIZE);
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      {/* TOP */}
-      <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">All Results</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
-            {(role === "admin" || role === "teacher") && (
-              <FormContainer table="result" type="create" />
-            )}
-          </div>
+    <Card className="mt-8">
+      <CardHeader>
+        <CardTitle className="text-xl font-bold">Results Dashboard</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Filters */}
+       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        {/* Left: Filters */}
+        <div className="flex flex-wrap gap-4">
+          <select
+            value={selectedExam}
+            onChange={(e) => {
+              const id = e.target.value;
+              setSelectedExam(id);
+            }}
+            className="px-3 py-2 border rounded-md w-60"
+          >
+            <option value="">Select Exam</option>
+            {exams.map((e) => (
+              <option key={e.id} value={e.id}>{e.title}</option>
+            ))}
+          </select>
+
+          {/* Uncomment if needed later
+          <select
+            value={grade}
+            onChange={(e) => setGrade(e.target.value)}
+            className="px-3 py-2 border rounded-md"
+          >
+            <option value="">All Grades</option>
+            <option value="Grade 10">Grade 10</option>
+            <option value="Grade 11">Grade 11</option>
+            <option value="Grade 12">Grade 12</option>
+          </select>
+
+          <select
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="px-3 py-2 border rounded-md"
+          >
+            <option value="">All Subjects</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Science">Science</option>
+            <option value="English">English</option>
+          </select>
+          */}
+        </div>
+
+        {/* Right: Buttons */}
+        <div className="flex gap-3">
+          <Button onClick={handleExportAll} disabled={!filteredResults.length}>
+            Export Excel
+          </Button>
+          <Button onClick={handlePrint} disabled={!filteredResults.length}>
+            Print / PDF
+          </Button>
         </div>
       </div>
-      {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
-      {/* PAGINATION */}
-      <Pagination page={p} count={count} />
-    </div>
+
+      {selectedExamDetails && (
+        <div className="bg-slate-50 px-4 py-2 rounded-md mb-4 shadow-sm border">
+          <h2 className="text-lg font-semibold mb-3">{selectedExamDetails.title}</h2>
+          <div className="flex flex-wrap items-center gap-x-10 gap-y-3 text-sm text-slate-700">
+            <div>
+              <span className="font-medium">Total Marks:</span> {selectedExamDetails.totalMarks}
+            </div>
+            <div>
+              <span className="font-medium">Total MCQs:</span> {selectedExamDetails.totalMCQ}
+            </div>
+            <div>
+              <span className="font-medium">Time Limit:</span> {selectedExamDetails.timeLimit} min
+            </div>
+            <div>
+              <span className="font-medium">Registered:</span> {totalStudents}
+            </div>
+            <div>
+              <span className="font-medium">Attempted:</span> {filteredResults.length}
+            </div>
+            <div>
+              <span className="font-medium">Not Attempted:</span> {totalStudents - filteredResults.length}
+            </div>
+          </div>
+        </div>
+
+      )}
+
+        {/* Results Table */}
+        <div id="results-table">
+          {loading ? (
+            <p>Loading...</p>
+          ) : results.length === 0 ? (
+            <p>No results found.</p>
+          ) : (
+            <table className="w-full border text-sm">
+              <thead>
+                <tr className="bg-slate-100">
+                  <th className="p-2 text-left">Student</th>
+                  <th className="p-2 text-left">Grade</th>
+                  <th className="p-2 text-left">Subject</th>
+                  <th className="p-2 text-left">Score</th>
+                  <th className="p-2 text-left">Correct</th>
+                  <th className="p-2 text-left">Incorrect</th>
+                  <th className="p-2 text-left">Submitted</th>
+                  <th className="p-2 text-left">Rank</th>
+                  <th className="p-2 text-center">Actions</th>    
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((r, i) => (
+                  <tr key={r.id} className="border-t">
+                    
+                    <td className="p-2">{r.student.name}</td>
+                    <td className="p-2">{r.exam.grade.level}</td>
+                    <td className="p-2">{r.exam.subject.name}</td>
+                    <td className="p-2">{r.score}</td>
+                    <td className="p-2">{r.correctAnswers}</td>
+                    <td className="p-2">{r.exam.totalMCQ - r.correctAnswers}</td>
+                    <td className="p-2">{new Date(r.gradedAt).toLocaleString()}</td>
+                    <td className="p-2">{r.rank}</td>
+                    <td className="p-2 text-center">
+                     <Link href={`/list/students/${r.quizAttempt.quizId}/quizview?studentName=${r.student.cnicNumber}&userRole=admin`}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="inline-flex items-center gap-1 text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400 transition"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </Button>
+                    </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Pagination */}
+        <div className="flex justify-between items-center mt-4">
+          <Button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
+            Previous
+          </Button>
+          <span className="text-sm text-slate-700">
+            Page {currentPage} of {totalPages || 1}
+          </span>
+          <Button disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
+            Next
+          </Button>
+        </div>
+
+        {/* Answer View Modal */}
+        {selectedAttempt && (
+          <Dialog open={true} onOpenChange={() => setSelectedAttempt(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Answers - {selectedAttempt.student.name}</DialogTitle>
+              </DialogHeader>
+              <div className="max-h-[400px] overflow-y-auto space-y-3 mt-2">
+                {selectedAttempt.answers.map((a: any) => (
+                  <div key={a.id} className="bg-slate-50 p-3 border rounded">
+                    <p className="font-semibold mb-1">{a.question.text}</p>
+                    <p>Answer: {a.answerText}</p>
+                    {a.question.type === "MULTIPLE_CHOICE" && (
+                      <p>Option: {a.QuestionOption?.text}</p>
+                    )}
+                    <p className="text-sm text-slate-500">Points: {a.pointsEarned}</p>
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

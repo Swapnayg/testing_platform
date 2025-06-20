@@ -58,7 +58,7 @@ type Quiz = {
   duration: string;
   totalMarks: number;
   progress: number;
-  status: "not-applied" | "upcoming" | "attempted";
+  status: "not_applied" | "pending_approval" | "upcoming" | "attempted";
   grade: string;
   category: string;
 };
@@ -86,9 +86,10 @@ interface ExamFormData {
 interface UpcomingQuizzesProps {
   quizzes: Quiz[];
   studentId:string,
+  hasPendingApproval: boolean;
 }
 
-const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId}) => {
+const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId, hasPendingApproval}) => {
   const [openModal, setOpenModal] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -135,7 +136,7 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId})
   const handleStartQuizInPopup = (quizId: string, username:string, totalMarks:number) => {
     // Create popup window with restricted features
     const popup = window.open(
-      `${window.location.origin}//list/myquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
+      `${window.location.origin}//startquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
       'QuizWindow',
       'width=1200,height=800,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,directories=no'
     );
@@ -394,6 +395,7 @@ useEffect(() => {
              <Button
                 onClick={() => {
                   if (quiz.status === "attempted") return;
+
                   if (quiz.status === "upcoming" && readyQuizzes[quiz.id]) {
                     if (quiz.quizId) {
                       handleStartQuizInPopup(quiz.quizId, studentId, quiz.totalMarks);
@@ -414,11 +416,16 @@ useEffect(() => {
                     ? "bg-gray-500 hover:bg-gray-600 cursor-not-allowed"
                     : quiz.status === "upcoming" && !readyQuizzes[quiz.id]
                     ? "bg-orange-500 hover:bg-orange-600"
+                    : hasPendingApproval &&
+                      (quiz.status === "not_applied" || quiz.status === "pending_approval")
+                    ? "bg-gray-400 cursor-not-allowed"
                     : "bg-emerald-600 hover:bg-emerald-700"
                 }`}
                 disabled={
                   quiz.status === "attempted" ||
-                  (quiz.status === "upcoming" && !readyQuizzes[quiz.id])
+                  (quiz.status === "upcoming" && !readyQuizzes[quiz.id]) ||
+                  (hasPendingApproval &&
+                    (quiz.status === "not_applied" || quiz.status === "pending_approval"))
                 }
               >
                 {quiz.status === "attempted" && "Attempted"}
@@ -426,9 +433,11 @@ useEffect(() => {
                   (readyQuizzes[quiz.id]
                     ? "Start Now"
                     : `Starts in ${quizTimers[quiz.id] || "..."}`)}
-                {quiz.status === "not-applied" && "Apply Now"}
+                {quiz.status === "not_applied" && "Apply Now"}
+                {quiz.status === "pending_approval" && "Pending Approval"}
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
+
 
 
             </div>

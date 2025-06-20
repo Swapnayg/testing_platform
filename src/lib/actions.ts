@@ -1222,3 +1222,83 @@ export const saveQuizToDatabase = async (data: CreateQuizData) => {
     throw error;
   }
 };
+
+
+// Get all exams for the dropdown
+export const getAllExams = async () => {
+  return await prisma.exam.findMany({
+  where: {
+    status: "COMPLETED", // assuming enum ExamStatus has COMPLETED
+  },
+  orderBy: {
+    endTime: 'desc',
+  },
+  include: {
+    subject: true,
+    grade: true,
+    category: true,
+  },
+});
+};
+
+
+// lib/actions.ts
+
+interface ExamResultFilter {
+  examId: string;
+  grade?: string;
+  subject?: string;
+}
+
+export const getacceptedCount = async ({ examId }: { examId: string }) => {
+  return await prisma.examOnRegistration.count({
+  where: {
+    examId: examId, // replace with your variable
+    registration: {
+      status: 'APPROVED', // ✅ replace with the exact enum value
+    },
+  },
+});
+};
+
+
+export const getFilteredExamResults = async ({
+  examId,
+  grade,
+  subject,
+}: ExamResultFilter) => {
+  return await prisma.result.findMany({
+  where: {
+    examId: examId, // 🔁 Replace with actual exam ID
+    status: 'NOT_GRADED', // ✅ filter for only not graded results
+  },
+  include: {
+    student: true,
+    exam: {
+      include: {
+        grade: true,
+        subject: true,
+        category: true, // optional, for more detail
+      },
+    },
+    quizAttempt: {
+      include: {
+        answers: {
+          include: {
+            question: {
+              include: {
+                options: true,
+              },
+            },
+            QuestionOption: true, // the selected option (if any)
+          },
+        },
+      },
+    },
+  },
+  orderBy: {
+    score: 'desc',
+  },
+});
+};
+

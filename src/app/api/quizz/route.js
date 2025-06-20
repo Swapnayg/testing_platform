@@ -40,7 +40,10 @@ export async function GET(request) {
 
         // STEP 1: Get all Registration IDs for this student
         const registrations = await prisma.registration.findMany({
-          where: { studentId: studentByRoll?.cnicNumber },
+          where: { 
+            studentId:student?.cnicNumber,
+            status: 'APPROVED', // 👈 filter for approved payments
+          },
           select: { id: true },
         });
         const registrationIds = registrations.map(r => r.id);
@@ -183,8 +186,8 @@ export async function POST(request) {
         if (!quizId || !rollNo) {
           return NextResponse.json({ message: 'Quiz and rollNo are required' }, { status: 400 });
         }
-        const studentByRoll = await prisma.student.findUnique({
-          where: { cnicNumber: rollNo},
+        const studentByRoll = await prisma.student.findFirst({
+          where: { rollNo: rollNo.toUpperCase()},
         });
         let quizAttempt;
 
