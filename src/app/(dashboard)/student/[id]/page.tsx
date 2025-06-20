@@ -35,6 +35,7 @@ export default async function QuizPage(
          <QuizResultsViewer
       quizId={id}
       username={username} 
+      userRole={"student"}
     />
     </div>
   );
