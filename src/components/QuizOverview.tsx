@@ -50,7 +50,7 @@ const QuizOverview = () => {
     },
     {
       title: 'Revenue',
-      value: 'Rs. ' + regSummary?.totalRevenue,
+      value: 'Rs. ' + (regSummary?.totalRevenue ?? 0),
       icon: IndianRupee,
       iconBg: 'bg-green-100',
       iconColor: 'text-green-600'

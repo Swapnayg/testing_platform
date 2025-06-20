@@ -17,7 +17,8 @@ export async function GET() {
     let revenue = 0;
 
     for (const reg of registrations) {
-      const amount = parseFloat(reg.totalAmount || '0') || 0;
+      const cleanedAmount = parseFloat((reg.totalAmount || '0').replace(/[^0-9.]/g, ''));
+      const amount = cleanedAmount || 0;
 
       switch (reg.status) {
         case 'APPROVED':

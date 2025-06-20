@@ -21,7 +21,8 @@ export async function GET() {
 
       if (reg.status === 'APPROVED') {
         approvedCount++;
-        totalRevenue += parseFloat(reg.totalAmount || '0');
+        const cleanedAmount = parseFloat((reg.totalAmount || '0').replace(/[^0-9.]/g, ''));
+        totalRevenue += cleanedAmount;
       } else if (reg.status === 'PENDING') {
         pendingCount++;
       }

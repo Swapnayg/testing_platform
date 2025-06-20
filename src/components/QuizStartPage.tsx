@@ -4,6 +4,7 @@ import { Clock, BookOpen, Award, Users, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { differenceInSeconds } from "date-fns";
 import Link from "next/link";
 
 interface QuizStartPageProps {
@@ -12,14 +13,25 @@ interface QuizStartPageProps {
 
 const QuizStartPage: React.FC<QuizStartPageProps> =  ({ username}) => {
 
+
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [buttonTexts, setButtonTexts] = useState<{ id: any; text: string }[]>([]);
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizId, setQuizId] = useState("");
   const [totalMarks, settotalMarks] = useState(0);
   const [isCompleted, setisCompleted] = useState(false);
+  const [countdowns, setCountdowns] = useState<{ [quizId: string]: number }>({});
 
-  const getStudentByRollNo = async (rollNo: string) => {
+  const formatTime = (secs: number) => {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${h.toString().padStart(2, "0")}:${m
+    .toString()
+    .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+};
+
+const getStudentByRollNo = async (rollNo: string) => {
   try {
     const response = await fetch(`/api/quizz?type=byRoll&rollNo=${encodeURIComponent(rollNo)}`);
     if (!response.ok) {
@@ -44,6 +56,26 @@ useEffect(() => {
   }
 }, [username]);
 
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCountdowns((prev) => {
+      const updated: typeof prev = {};
+
+      for (const quiz of quizzes) {
+        if (quiz.quizType === "upcoming") {
+          const now = new Date();
+          const startTime = new Date(quiz.startTime);
+          const diff = Math.floor((startTime.getTime() - now.getTime()) / 1000);
+          updated[quiz.id] = Math.max(diff, 0);
+        }
+      }
+
+      return updated;
+    });
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [quizzes]);
 
 const handleStartQuizInPopup = (quizId: string, username:string, totalMarks:number) => {
     // Create popup window with restricted features
@@ -66,15 +98,6 @@ const handleStartQuizInPopup = (quizId: string, username:string, totalMarks:numb
       alert('Please allow popups for this site to start the quiz');
     }
   };
-
-
-
-const getTextById = (id: any) => {
-  console.log(id);
-  console.log(buttonTexts);
-  const item = buttonTexts.find((entry) => entry.id === id);
-  return item?.text ?? "Default Text";
-};
 
   function getSubjectIcon(subject: string) {
     switch (subject) {
@@ -111,12 +134,17 @@ const getTextById = (id: any) => {
     {quizzes.map((quiz) => {
       const isCompleted = quiz.quizType === "completed";
       const isUpcoming = quiz.quizType === "upcoming";
+      const countdown = countdowns[quiz.id] ?? 0;
 
+      const isStartable = isUpcoming && countdown === 0;
       const btnText = isCompleted
         ? "Completed"
-        : isUpcoming
-        ? "Upcoming"
-        : "Start Now";
+        : isStartable
+        ? "Start Now"
+        : `Starts in ${formatTime(countdown)}`;
+
+      const isDisabled = isCompleted || (isUpcoming && countdown > 0);
+
 
       return (
         <Card
@@ -157,19 +185,24 @@ const getTextById = (id: any) => {
             </div>
 
             <Button
-              onClick={() => handleStartQuizInPopup(quiz.id, username, quiz.totalMarks)}
-              disabled={isCompleted}
+              onClick={() => {
+                if (!isDisabled) {
+                  handleStartQuizInPopup(quiz.quizId, username, quiz.totalMarks);
+                }
+              }}
+              disabled={isDisabled}
               className={`w-full ${
                 isCompleted
                   ? "bg-gray-400 cursor-not-allowed"
-                  : isUpcoming
-                  ? "bg-orange-500 hover:bg-orange-600"
-                  : "bg-slate-900 hover:bg-slate-800"
+                  : isStartable
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-orange-500 hover:bg-orange-600"
               } text-white font-medium py-2.5 group transition-all duration-200`}
             >
               {btnText}
               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
+
           </CardContent>
         </Card>
       );

@@ -2,6 +2,7 @@
 
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
+import { differenceInSeconds, formatDuration, intervalToDuration, isBefore } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,8 @@ export type ExamType = {
 type Quiz = {
   id: string;
   title: string;
+  startTime: Date;
+  quizId:string | null; // ✅ Now accepts null
   difficulty: "Beginner" | "Advanced" | "Expert";
   subject: string;
   instructor: string;
@@ -55,7 +58,7 @@ type Quiz = {
   duration: string;
   totalMarks: number;
   progress: number;
-  status: "not-started" | "upcoming" | "completed";
+  status: "not-applied" | "upcoming" | "attempted";
   grade: string;
   category: string;
 };
@@ -89,6 +92,9 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId})
   const [openModal, setOpenModal] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quizTimers, setQuizTimers] = useState<Record<string, string>>({});
+  const [readyQuizzes, setReadyQuizzes] = useState<Record<string, boolean>>({});
+
 
   const { toast } = useToast();
   const [formData, setFormData] = useState<ExamFormData>({
@@ -125,6 +131,28 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId})
     }
   };
 
+
+  const handleStartQuizInPopup = (quizId: string, username:string, totalMarks:number) => {
+    // Create popup window with restricted features
+    const popup = window.open(
+      `${window.location.origin}//list/myquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
+      'QuizWindow',
+      'width=1200,height=800,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,directories=no'
+    );
+    
+    if (popup) {
+      // Focus the popup window
+      popup.focus();
+      
+      // Disable right-click context menu in the popup
+      popup.addEventListener('load', () => {
+        popup.document.addEventListener('contextmenu', (e) => e.preventDefault());
+      });
+    } else {
+      // Fallback if popup is blocked
+      alert('Please allow popups for this site to start the quiz');
+    }
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -263,6 +291,36 @@ useEffect(() => {
   fetchExam();
 }, [selectedQuizId]);
 
+useEffect(() => {
+    const interval = setInterval(() => {
+      const updates: Record<string, string> = {};
+      const ready: Record<string, boolean> = {};
+
+      quizzes.forEach((quiz) => {
+        if (quiz.status === "upcoming") {
+          const start = new Date(quiz.startTime);
+          const now = new Date();
+
+          const secondsLeft = differenceInSeconds(start, now);
+
+          if (secondsLeft <= 0) {
+            updates[quiz.id] = "Ready";
+            ready[quiz.id] = true;
+          } else {
+            const duration = intervalToDuration({ start: now, end: start });
+            updates[quiz.id] = formatDuration(duration, { format: ["hours", "minutes", "seconds"] });
+            ready[quiz.id] = false;
+          }
+        }
+      });
+
+      setQuizTimers((prev) => ({ ...prev, ...updates }));
+      setReadyQuizzes((prev) => ({ ...prev, ...ready }));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [quizzes]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
@@ -275,91 +333,109 @@ useEffect(() => {
         </Button> */}
       </div>
 
-      <div className="flex flex-col gap-6">
-        {quizzes.map((quiz) => (
-          <Card
-            key={quiz.id}
-            className="bg-white border-emerald-100 shadow-lg hover:shadow-xl transition-all duration-300 group"
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-bold text-gray-900 text-lg capitalize">{quiz.title}</h3>
-                    <Badge
-                      variant="outline"
-                      className={`${
-                        quiz.difficulty === "Expert"
-                          ? "border-red-200 text-red-700 bg-red-50"
-                          : quiz.difficulty === "Advanced"
-                            ? "border-orange-200 text-orange-700 bg-orange-50"
-                            : "border-emerald-200 text-emerald-700 bg-emerald-50"
-                      }`}
-                    >
-                      {quiz.difficulty}
-                    </Badge>
-                  </div>
-                  <p className="text-emerald-600 font-medium mb-3">
-                    {quiz.subject} • {quiz.category} • {quiz.grade}
-                  </p>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-600 font-medium">Time Left</p>
-                      <p className="text-sm font-bold text-gray-900">{quiz.timeRemaining}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-600 font-medium">Questions</p>
-                      <p className="text-sm font-bold text-gray-900">{quiz.questions}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-600 font-medium">Duration</p>
-                      <p className="text-sm font-bold text-gray-900">{quiz.duration}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-600 font-medium">Total Marks</p>
-                      <p className="text-sm font-bold text-gray-900">{quiz.totalMarks}</p>
-                    </div>
-                  </div>
-
-                  {quiz.progress > 0 && (
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-600">Progress</span>
-                        <span className="text-emerald-600 font-medium">{quiz.progress}%</span>
-                      </div>
-                      <Progress value={quiz.progress} className="h-2" />
-                    </div>
-                  )}
+     <div className="flex flex-col gap-6">
+      {quizzes.map((quiz) => (
+        <Card key={quiz.id} className="bg-white border-emerald-100 shadow-lg hover:shadow-xl transition-all duration-300 group">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="font-bold text-gray-900 text-lg capitalize">{quiz.title}</h3>
+                  <Badge
+                    variant="outline"
+                    className={`${
+                      quiz.difficulty === "Expert"
+                        ? "border-red-200 text-red-700 bg-red-50"
+                        : quiz.difficulty === "Advanced"
+                        ? "border-orange-200 text-orange-700 bg-orange-50"
+                        : "border-emerald-200 text-emerald-700 bg-emerald-50"
+                    }`}
+                  >
+                    {quiz.difficulty}
+                  </Badge>
                 </div>
-                <Button
-                  onClick={() => {
+                <p className="text-emerald-600 font-medium mb-3">
+                  {quiz.subject} • {quiz.category} • {quiz.grade}
+                </p>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-600 font-medium">Quiz Date</p>
+                    <p className="text-sm font-bold text-gray-900">
+                        {new Date(quiz.startTime).toLocaleDateString("en-GB", {
+                          day: "2-digit", month: "short", year: "numeric",})}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-600 font-medium">Questions</p>
+                    <p className="text-sm font-bold text-gray-900">{quiz.questions}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-600 font-medium">Duration</p>
+                    <p className="text-sm font-bold text-gray-900">{quiz.duration}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-600 font-medium">Total Marks</p>
+                    <p className="text-sm font-bold text-gray-900">{quiz.totalMarks}</p>
+                  </div>
+                </div>
+
+                {quiz.progress > 0 && (
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Progress</span>
+                      <span className="text-emerald-600 font-medium">{quiz.progress}%</span>
+                    </div>
+                    <Progress value={quiz.progress} className="h-2" />
+                  </div>
+                )}
+              </div>
+
+             <Button
+                onClick={() => {
+                  if (quiz.status === "attempted") return;
+                  if (quiz.status === "upcoming" && readyQuizzes[quiz.id]) {
+                    if (quiz.quizId) {
+                      handleStartQuizInPopup(quiz.quizId, studentId, quiz.totalMarks);
+                    } else {
+                      toast({
+                        title: "Quiz Error",
+                        description: "Quiz ID is missing. Please contact support.",
+                        variant: "destructive",
+                      });
+                    }
+                  } else {
                     setSelectedQuizId(quiz.id);
                     setOpenModal(true);
-                  }}
-                  className={`ml-6 group-hover:scale-105 transition-transform shadow-lg text-white
-                    ${
-                      quiz.status === "completed"
-                        ? "bg-gray-500 hover:bg-gray-600 cursor-not-allowed"
-                        : quiz.status === "upcoming"
-                        ? "bg-orange-500 hover:bg-orange-600"
-                        : "bg-emerald-600 hover:bg-emerald-700"
-                    }
-                  `}
-                  disabled={quiz.status === "completed"}
-                >
-                  {quiz.status === "completed"
-                    ? "Completed"
-                    : quiz.status === "upcoming"
-                    ? "Upcoming"
-                    : "Apply Now"}
-                  <ChevronRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  }
+                }}
+                className={`ml-6 group-hover:scale-105 transition-transform shadow-lg text-white ${
+                  quiz.status === "attempted"
+                    ? "bg-gray-500 hover:bg-gray-600 cursor-not-allowed"
+                    : quiz.status === "upcoming" && !readyQuizzes[quiz.id]
+                    ? "bg-orange-500 hover:bg-orange-600"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
+                disabled={
+                  quiz.status === "attempted" ||
+                  (quiz.status === "upcoming" && !readyQuizzes[quiz.id])
+                }
+              >
+                {quiz.status === "attempted" && "Attempted"}
+                {quiz.status === "upcoming" &&
+                  (readyQuizzes[quiz.id]
+                    ? "Start Now"
+                    : `Starts in ${quizTimers[quiz.id] || "..."}`)}
+                {quiz.status === "not-applied" && "Apply Now"}
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+
+
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
 
       {openModal && (
 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

@@ -15,9 +15,7 @@ type ExamList = Exam & {
     category: Category;
   };
   subject: Subject;
-  _count:{
-    registrations:number;
-  };
+  approvedCount:number;
 };
 
 
@@ -108,7 +106,7 @@ const renderRow = (item: ExamList) => (
     <td>{item.totalMCQ}</td>
     <td>{item.totalMarks}</td>
     <td>{new Intl.DateTimeFormat().format(item.startTime)}</td>
-    <td className="text-center">{item._count.registrations}</td>
+    <td className="text-center">{item.approvedCount}</td>
     <td>
       {item.status === "NOT_STARTED" && (
         <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
@@ -126,7 +124,7 @@ const renderRow = (item: ExamList) => (
         </span>
       )}
     </td>
-    {(role === "admin" || role === "teacher") && (
+    {(role === "admin" || role === "teacher") && item.status === "NOT_STARTED" && (
       <td className="flex items-center gap-2">
         <FormContainer table="exam" type="update" data={item} />
         <FormContainer table="exam" type="delete" id={item.id} />
@@ -176,11 +174,16 @@ var [data, count] = await prisma.$transaction([
       timeLimit: true,
       startTime: true,
       endTime: true,
+      createdAt: true,
+      categoryId: true,
+      gradeId: true,
+      subjectId: true,
       grade: {
         select: {
           level: true,
           category: {
             select: {
+              id: true,
               catName: true
             }
           }
@@ -188,20 +191,33 @@ var [data, count] = await prisma.$transaction([
       },
       subject: {
         select: {
+          id: true,
           name: true
         }
       },
-      _count: {
+      registrations: {
         select: {
-          registrations: true // ✅ counts related registrations entries
-        }
-      }
+          registration: {
+            select: {
+              status: true,
+            },
+          },
+        },
+      },
     },
     take: ITEM_PER_PAGE,
     skip: ITEM_PER_PAGE * (p - 1),
   }),
   prisma.exam.count({ where }),
 ]);
+
+
+const exams: ExamList[] = data.map(exam => ({
+  ...exam,
+  approvedCount: exam.registrations.filter(
+    r => r.registration.status === 'APPROVED'
+  ).length
+}));
 
   if (data.length === 0) {
   //throw new Error('No exams found.');
@@ -230,7 +246,7 @@ var [data, count] = await prisma.$transaction([
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table columns={columns} renderRow={renderRow} data={exams} />
       {/* PAGINATION */}
       <Pagination page={p} count={count} />
     </div>

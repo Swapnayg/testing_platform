@@ -51,6 +51,8 @@ export async function POST(req) {
       grade: quiz.grade,
       subject: quiz.subject,
       totalMarks: quiz.totalMarks,
+      startTime:quiz.startDateTime,
+      endTime:quiz.endDateTime,
     };
 
     return NextResponse.json({ quizData }, { status: 200 });

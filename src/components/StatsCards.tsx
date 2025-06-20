@@ -58,7 +58,7 @@ const StatsCards = () => {
     },
     {
       title: 'Total Revenue',
-      value: 'Rs. ' + summary?.totalRevenue,
+      value: 'Rs. ' + (summary?.totalRevenue ?? 0),
       icon: IndianRupee,
       iconBg: 'bg-green-100',
       iconColor: 'text-green-600'

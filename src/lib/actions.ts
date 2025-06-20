@@ -297,6 +297,7 @@ export const createExam = async (
         endTime: data.endTime,
         totalMCQ: data.totalMCQ,
         totalMarks: data.totalMarks,
+        timeLimit:data.timeLimit,
       },
     });
 
@@ -404,7 +405,7 @@ export async function createRegistration(data: { name: string; status: "PENDING"
       publicMetadata:{role:"student"}
     });
   
-  const student =  await prisma.student.create({
+  const student: any = await prisma.student.create({
     data: {
       id: user.id,// Ensure 'id' is provided in the data argument
       name: data.name || '',
@@ -424,10 +425,11 @@ export async function createRegistration(data: { name: string; status: "PENDING"
       rollNo: "UIN" + rollNo.toString(),
     }
   });
+  const now = new Date();
   const examList = await prisma.exam.findMany({
     where: {
       startTime: {
-        gt: new Date(),
+        gte: now, // "greater than or equal to current date & time"
       },
       category: {
         catName: data.olympiadCategory || '',

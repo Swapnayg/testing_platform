@@ -36,88 +36,84 @@ export async function GET(request) {
         const studentByRoll = await prisma.student.findFirst({
           where: { rollNo: rollNo },
         });
+        const now = new Date();
+
+        // STEP 1: Get all Registration IDs for this student
+        const registrations = await prisma.registration.findMany({
+          where: { studentId: studentByRoll?.cnicNumber },
+          select: { id: true },
+        });
+        const registrationIds = registrations.map(r => r.id);
+
+        // STEP 2: Get all Exam IDs student registered for
+        const examRegistrations = await prisma.examOnRegistration.findMany({
+          where: {
+            registrationId: { in: registrationIds },
+          },
+          select: {
+            examId: true,
+          },
+        });
+        const registeredExamIds = examRegistrations.map(er => er.examId);
+
+        // STEP 3: Get Attempted Exams (has result and quizAttemptId is not null)
+        const attemptedResults = await prisma.result.findMany({
+          where: {
+            studentId: studentByRoll?.cnicNumber,
+            quizAttemptId: { not: null },
+            quizAttempt: {
+              answers: {
+                some: {}, // 👈 ensures at least one answer exists
+              },
+            },
+          },
+          include: {
+            exam: {
+              include: {
+                grade: { include: { category: true } },
+                subject: true,
+                quizzes: {
+                  select: { id: true }, // 👈 get Quiz ID
+                },
+              },
+            },
+          },
+        });
+
+        // STEP 4: Get Upcoming Exams (registered, not attempted, future)
+        const attemptedExamIds = attemptedResults.map(r => r.examId);
         const upcomingExams = await prisma.exam.findMany({
           where: {
-            registrations: {
-              some: {
-                registration: {
-                  studentId: studentByRoll?.cnicNumber,
-                },
-              },
+            id: {
+              in: registeredExamIds,
+              notIn: attemptedExamIds,
             },
-            results: {
-              none: {
-                studentId: studentByRoll?.cnicNumber,
-                quizAttemptId: { not: null },
-              },
-            },
-            startTime: {
-              gt: new Date(), // Upcoming only
-            },
+            OR: [
+              { startTime: { gt: now } },
+              { endTime: { gt: now } },
+            ],
           },
-          select: {
-            id: true,
-            title: true,
-            totalMCQ: true,
-            totalMarks: true,
-            timeLimit: true,
-            startTime: true,
-            endTime: true,
+          include: {
             grade: {
-              select: {
-                level: true,
-                category: {
-                  select: {
-                    catName: true,
-                  },
-                },
+              include: {
+                category: true,
               },
             },
-            subject: {
-              select: {
-                name: true,
-              },
+            subject: true,
+            quizzes: {
+              select: { id: true }, // 👈 get Quiz ID
             },
           },
         });
 
-        // Get all attempted quizzes by this student
-        const attemptedResults = await prisma.result.findMany({
-          where: { studentId:studentByRoll.cnicNumber },
-          select: {
-            exam: {
-              select: {
-                id: true,
-                title: true,
-                totalMCQ: true,
-                totalMarks: true,
-                timeLimit: true,
-                startTime: true,
-                endTime: true,
-                grade: {
-                  select: {
-                    level: true,
-                    category: {
-                      select: { catName: true },
-                    },
-                  },
-                },
-                subject: { select: { name: true } },
-              },
-            },
-            score: true,
-            correctAnswers: true,
-            status: true,
-            gradedAt: true,
-          },
-        });
-
-
+        // ✅ STEP 5: Format results
         const formattedResults = [
-          // Completed quizzes (attempted)
+          // Attempted exams (completed)
           ...attemptedResults.map(r => ({
             id: r.exam?.id,
             title: r.exam?.title,
+            quizId: r.exam.quizzes[0]?.id || null, // 👈 safely access first quiz ID
+            startTime:r.exam.startTime,
             subject: r.exam?.subject?.name || "Unknown",
             grade: r.exam?.grade?.level || "N/A",
             category: r.exam?.grade?.category?.catName || "N/A",
@@ -134,11 +130,9 @@ export async function GET(request) {
             endTime: r.endTime,
           })),
 
-          // Upcoming quizzes (not attempted)
+          // Upcoming exams (registered but not attempted)
           ...upcomingExams.map(e => {
-            const now = new Date();
-            const start = new Date(e.startTime);
-            const diffMs = start.getTime() - now.getTime();
+            const diffMs = new Date(e.startTime).getTime() - now.getTime();
             const timeRemaining = diffMs > 0
               ? `${Math.ceil(diffMs / (1000 * 60 * 60 * 24))} days`
               : "Starts today";
@@ -146,6 +140,8 @@ export async function GET(request) {
             return {
               id: e.id,
               title: e.title,
+              quizId: e.quizzes[0]?.id || null, // 👈 safely access first quiz ID
+              startTime:e.startTime,
               subject: e.subject?.name || "Unknown",
               grade: e.grade?.level || "N/A",
               category: e.grade?.category?.catName || "N/A",
@@ -163,6 +159,7 @@ export async function GET(request) {
             };
           }),
         ];
+
         return NextResponse.json({quizzes: formattedResults}, { status: 200 });
 
       default:
@@ -186,8 +183,8 @@ export async function POST(request) {
         if (!quizId || !rollNo) {
           return NextResponse.json({ message: 'Quiz and rollNo are required' }, { status: 400 });
         }
-        const studentByRoll = await prisma.student.findFirst({
-          where: { rollNo },
+        const studentByRoll = await prisma.student.findUnique({
+          where: { cnicNumber: rollNo},
         });
         let quizAttempt;
 

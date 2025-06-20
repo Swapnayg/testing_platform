@@ -14,9 +14,9 @@ const transporter = nodemailer.createTransport({
 });
 // POST request handler
 export async function POST(req, context) {
-  const { id } = context.params;
-  const { status } = await req.json();
+  const { status,id } = await req.json();
 
+  console.log(status,id );
   // Example create logic
     if (!['APPROVED', 'REJECTED'].includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });

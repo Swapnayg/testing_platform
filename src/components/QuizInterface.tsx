@@ -29,6 +29,8 @@ interface QuizDataModal {
   grade: string;
   subject: string;
   totalMarks: number;
+  startTime: string; // ISO string or Date, depending on your backend
+  endTime: string;   // ISO string or Date, depending on your backend
 }
 
 interface Answer {
@@ -85,6 +87,23 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
     }).join('');
   }
 
+
+  function getTimeRemaining(startTime: Date, endTime: Date): number {
+  const now = new Date();
+
+  if (now >= startTime && now <= endTime) {
+    const diffMs = endTime.getTime() - now.getTime();
+    const mins = Math.floor(diffMs / (1000 * 60));
+    return mins;
+  }
+
+  // Not ongoing or already ended
+  return 0;
+}
+
+console.log(attemptId);
+console.log(isSubmitting);
+
   // Load quiz data
     useEffect(() => {
       const fetchStudentQuizzes = async () => {
@@ -92,7 +111,8 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
         const data = JSON.parse(JSON.stringify(loadedQuiz));
       if (data) {
         setQuizData(data.quizData);
-        setTimeRemaining(data.quizData.timeLimit * 60); // Convert to seconds
+        const remainingMinutes = getTimeRemaining(new Date(data.quizData.startTime), new Date(data.quizData.endTime));
+        setTimeRemaining(remainingMinutes * 60); // Convert to seconds
       } 
        else {
         toast({
@@ -123,6 +143,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
         });
 
         const attempt = await res.json();
+        console.log(attempt);
         setAttemptId(attempt.id);
         toast({
           title: "Quiz Started",
@@ -223,11 +244,15 @@ const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
       title: "Submitting Quiz",
       description: "Please wait while we save your answers...",
     });
+    const remainingMinutes = getTimeRemaining(
+      new Date(quizData?.startTime ?? ''),
+      new Date(quizData?.endTime ?? '')
+    );
 
     const submissionData = {
       attemptId,
       answers: Array.from(answers.values()),
-      timeSpent: (quizData!.timeLimit * 60) - timeRemaining,
+      timeSpent: (remainingMinutes) - timeRemaining,
       endTime: new Date().toISOString(),
       unansweredCount,
       answeredCount 

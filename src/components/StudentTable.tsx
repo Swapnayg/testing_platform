@@ -42,6 +42,8 @@ const StudentTable = () => {
   const router = useRouter();
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState<"APPROVED" | "REJECTED" | null>(null);
+
 
   const handleViewReceipt = (url: string, studentId: string) => {
     setReceiptUrl(url);
@@ -53,29 +55,32 @@ const StudentTable = () => {
     setSelectedStudentId(null);
   };
 
-  const handleStatusUpdate = async (status: 'APPROVED' | 'REJECTED') => {
-  if (!selectedStudentId) return;
+  const handleStatusUpdate = async (status: "APPROVED" | "REJECTED") => {
+    if (!selectedStudentId) return;
 
-  try {
-    const res = await fetch(`/api/registrations/${selectedStudentId}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    setLoadingStatus(status); // Start loading
 
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/registrations/${selectedStudentId}/status`, {
+        method: "POST",
+        body: JSON.stringify({ status:status, selectedStudentId:selectedStudentId }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.ok) {
         closeModal();
-        router.refresh(); // Refresh the page or fetch again
+        window.location.reload(); // Refresh the page or fetch again
       } else {
-        console.error('Failed to delete student');
+        console.error("Failed to update student status");
       }
-   
-  } catch (err) {
-    console.error('Failed to update status', err);
-  }
-};
+    } catch (err) {
+      console.error("Failed to update status", err);
+    } finally {
+      setLoadingStatus(null); // Stop loading
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -339,16 +344,27 @@ const displayStudents = filteredStudents !== null && filteredStudents !== undefi
 
             <div className="mt-4 flex justify-end gap-3">
               <button
-                onClick={() => handleStatusUpdate('REJECTED')}
-                className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200"
+                onClick={() => handleStatusUpdate("REJECTED")}
+                disabled={loadingStatus === "REJECTED"}
+                className={`px-4 py-2 rounded ${
+                  loadingStatus === "REJECTED"
+                    ? "bg-red-300 text-red-800 cursor-not-allowed"
+                    : "bg-red-100 text-red-700 hover:bg-red-200"
+                }`}
               >
-                Reject
+                {loadingStatus === "REJECTED" ? "Rejecting..." : "Reject"}
               </button>
+
               <button
-                onClick={() => handleStatusUpdate('APPROVED')}
-                className="bg-green-100 text-green-700 px-4 py-2 rounded hover:bg-green-200"
+                onClick={() => handleStatusUpdate("APPROVED")}
+                disabled={loadingStatus === "APPROVED"}
+                className={`px-4 py-2 rounded ${
+                  loadingStatus === "APPROVED"
+                    ? "bg-green-300 text-green-800 cursor-not-allowed"
+                    : "bg-green-100 text-green-700 hover:bg-green-200"
+                }`}
               >
-                Accept
+                {loadingStatus === "APPROVED" ? "Accepting..." : "Accept"}
               </button>
             </div>
           </div>
