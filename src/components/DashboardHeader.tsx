@@ -11,13 +11,18 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 const genders = [
-  { key: "MALE", label: "Male" },
-  { key: "FEMALE", label: "Female" },
-  { key: "OTHER", label: "Other" },
+  { key: "male", label: "Male" },
+  { key: "female", label: "Female" },
+  { key: "other", label: "Other" },
 ];
 
 const religions = [
-  "Islam", "Christianity", "Hinduism", "Sikhism", "Buddhism", "Other",
+  { value: "islam", label: "Islam" },
+  { value: "christianity", label: "Christianity" },
+  { value: "hinduism", label: "Hinduism" },
+  { value: "sikhism", label: "Sikhism" },
+  { value: "buddhism", label: "Buddhism" },
+  { value: "other", label: "Other" },
 ];
 
 const fields = [
@@ -255,8 +260,10 @@ const handleSubmit = async () => {
                 className={`mt-1 w-full rounded border px-3 py-2 text-sm ${errors.religion ? "border-red-500" : "border-gray-300"}`}
               >
                 <option value="">Select Religion</option>
-                {religions.map(r => (
-                  <option key={r} value={r}>{r}</option>
+                    {religions.map((r) => (
+                    <option key={r.value} value={r.value}>
+                    {r.label}
+                </option>
                 ))}
               </select>
               {errors.religion && <p className="text-xs text-red-600">Required</p>}

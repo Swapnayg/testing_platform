@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Student {
   id: string;
@@ -25,14 +27,27 @@ interface Student {
   profilePicture?: string;
 }
 
-const genderOptions = ["Male", "Female", "Other"];
-const religionOptions = ["Islam", "Christianity", "Hinduism", "Other"];
+const genderOptions = [
+  { key: "male", label: "Male" },
+  { key: "female", label: "Female" },
+  { key: "other", label: "Other" },
+];
+const religionOptions = [
+  { value: "islam", label: "Islam" },
+  { value: "christianity", label: "Christianity" },
+  { value: "hinduism", label: "Hinduism" },
+  { value: "sikhism", label: "Sikhism" },
+  { value: "buddhism", label: "Buddhism" },
+  { value: "other", label: "Other" },
+];
+
 
 export default function StudentEditForm({ studentId }: { studentId: string }) {
   const router = useRouter();
   const [student, setStudent] = useState<Student | null>(null);
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
     fetch(`/api/studentData/${studentId}`)
@@ -40,141 +55,215 @@ export default function StudentEditForm({ studentId }: { studentId: string }) {
       .then(setStudent);
   }, [studentId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     if (!student) return;
     setStudent({ ...student, [e.target.name]: e.target.value });
-  };
-
-  const uploadToCloudinary = async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
-
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`,
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    const data = await res.json();
-    return data.secure_url as string;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!student) return;
+
+    const requiredFields = [
+      "name", "fatherName", "dateOfBirth", "religion", "gender", "cnicNumber",
+      "email", "mobileNumber", "city", "stateProvince", "addressLine1", "instituteName", "rollNo"
+    ];
+
+    const missingFields = requiredFields.filter((field) => !(student as any)[field]?.trim());
+
+    if (missingFields.length > 0) {
+      setErrors(missingFields.map((f) => `${f} is required.`));
+      return;
+    }
+
+    setErrors([]);
     setIsSubmitting(true);
 
-    let profilePictureUrl = student.profilePicture;
-
-    if (profileFile) {
-      try {
-        profilePictureUrl = await uploadToCloudinary(profileFile);
-      } catch (err) {
-        alert("Image upload failed");
-        setIsSubmitting(false);
-        return;
-      }
+    const formData = new FormData();
+    for (const key in student) {
+      formData.append(key, (student as any)[key]);
     }
+    if (profileFile) formData.append("profilePicture", profileFile);
 
-    const updatedStudent = { ...student, profilePicture: profilePictureUrl };
-
-    const res = await fetch(`/api/studentData/${studentId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedStudent),
+    await fetch(`/api/studentData/${studentId}`, {
+        method: 'POST', // ✅
+        body: formData,
     });
 
+    router.refresh();
     setIsSubmitting(false);
-
-    if (res.ok) {
-      alert("Student updated!");
-      router.refresh();
-    } else {
-      alert("Failed to update student.");
-    }
   };
 
   if (!student) return <div>Loading...</div>;
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 max-w-2xl mx-auto p-4">
-      <h2 className="text-xl font-semibold">Edit Student</h2>
+    <div className="w-full px-4 md:px-6 lg:px-10">
+        <form onSubmit={handleSubmit} className="bg-white shadow rounded-md p-6 space-y-6">
+            <h2 className="text-xl font-semibold mb-4">Edit Student</h2>
 
-      {Object.entries({
-        name: "Name",
-        fatherName: "Father's Name",
-        dateOfBirth: "Date of Birth",
-        cnicNumber: "CNIC Number",
-        email: "Email",
-        mobileNumber: "Mobile Number",
-        city: "City",
-        stateProvince: "State/Province",
-        addressLine1: "Address",
-        instituteName: "Institute Name",
-        others: "Others",
-        rollNo: "Roll Number",
-      }).map(([key, label]) => (
-        <div key={key}>
-          <Label htmlFor={key}>{label}</Label>
-          <Input
-            required
-            id={key}
-            name={key}
-            value={(student as any)[key] || ""}
-            onChange={handleChange}
-            type={key === "dateOfBirth" ? "date" : "text"}
-          />
+            {errors.length > 0 && (
+            <div className="bg-red-100 text-red-700 border border-red-300 p-3 rounded">
+                <ul className="list-disc ml-5">
+                {errors.map((err, i) => <li key={i}>{err}</li>)}
+                </ul>
+            </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Left Column */}
+
+            <div className="space-y-1">
+                <Label htmlFor="rollNo">Roll Number</Label>
+                <Input id="rollNo" name="rollNo" readOnly value={student.rollNo} onChange={handleChange} required />
+            </div>
+            <div className="space-y-1">
+                <Label htmlFor="cnicNumber">CNIC Number</Label>
+                <Input id="cnicNumber" name="cnicNumber" readOnly value={student.cnicNumber} onChange={handleChange} required />
+            </div>
+
+             <div className="space-y-1">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" name="name" value={student.name} onChange={handleChange} required />
+            </div>
+
+            <div className="space-y-1">
+                <Label htmlFor="fatherName">Father Name</Label>
+                <Input id="fatherName" name="fatherName" value={student.fatherName} onChange={handleChange} required />
+            </div>
+
+            <div className="space-y-1">
+                <Label htmlFor="email">Email</Label>
+                <Input type="email" id="email" name="email" value={student.email} onChange={handleChange} required />
+            </div>
+
+            <div className="space-y-1">
+                <Label htmlFor="mobileNumber">Mobile Number</Label>
+                <Input id="mobileNumber" name="mobileNumber" value={student.mobileNumber} onChange={handleChange} required />
+            </div>
+
+            <div className="space-y-1">
+                <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                <Input
+                type="date"
+                id="dateOfBirth"
+                name="dateOfBirth"
+                value={student.dateOfBirth ? new Date(student.dateOfBirth).toISOString().split("T")[0] : ""}
+                onChange={handleChange}
+                required
+                />
+            </div>
+
+            <div className="space-y-1">
+                <Label htmlFor="gender">Gender</Label>
+                <select
+                name="gender"
+                value={student.gender}
+                onChange={handleChange}
+                required
+                className="w-full border border-slate-300 rounded-md p-2 bg-white"
+                >
+                <option value="">Select Gender</option>
+                {genderOptions.map((g) => (
+                    <option key={g.key} value={g.key}>{g.label}</option>
+                ))}
+                </select>
+            </div>
+
+            <div className="space-y-1">
+                <Label htmlFor="religion">Religion</Label>
+                <select
+                name="religion"
+                value={student.religion}
+                onChange={handleChange}
+                required
+                className="w-full border border-slate-300 rounded-md p-2 bg-white"
+                >
+                <option value="">Select Religion</option>
+                {religionOptions.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+                </select>
+            </div>
+
+            <div className="space-y-1">
+                <Label htmlFor="instituteName">Institute Name</Label>
+                <Input id="instituteName" name="instituteName" value={student.instituteName} onChange={handleChange} required />
+            </div>
+
+            <div className="space-y-1">
+                <Label htmlFor="city">City</Label>
+                <Input id="city" name="city" value={student.city} onChange={handleChange} required />
+            </div>
+
+            <div className="space-y-1">
+                <Label htmlFor="stateProvince">State/Province</Label>
+                <Input id="stateProvince" name="stateProvince" value={student.stateProvince} onChange={handleChange} required />
+            </div>
+
+            <div className="space-y-1 md:col-span-2 lg:col-span-3">
+                <Label htmlFor="addressLine1">Address</Label>
+                <Textarea
+                id="addressLine1"
+                name="addressLine1"
+                value={student.addressLine1}
+                onChange={handleChange}
+                required
+                rows={3}
+                className="w-full border-slate-300"
+                />
+            </div>
+
+            <div className="space-y-1 md:col-span-2 lg:col-span-3">
+            <Label htmlFor="profilePicture">Profile Picture</Label>
+            <Input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("upload_preset", "school"); // 🔁 your preset
+
+                try {
+                    const res = await fetch("https://api.cloudinary.com/v1_1/ds50k7ryy/image/upload", {
+                    method: "POST",
+                    body: formData,
+                    });
+
+                    const data = await res.json();
+                    if (data.secure_url) {
+                    setStudent((prev) => prev ? { ...prev, profilePicture: data.secure_url } : prev);
+                    }
+                } catch (err) {
+                    console.error("Cloudinary upload error:", err);
+                }
+                }}
+            />
+            {student.profilePicture && (
+                <img
+                src={student.profilePicture}
+                alt="Profile"
+                className="mt-2 w-24 h-24 object-cover rounded-full border"
+                />
+            )}
+            </div>
+
+            </div>
+
+            <div className="flex justify-end">
+            <Button
+                type="submit"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                disabled={isSubmitting}
+                >
+                {isSubmitting ? "Updating..." : "Update Student"}
+            </Button>
+
+            </div>
+        </form>
         </div>
-      ))}
 
-      <div>
-        <Label htmlFor="gender">Gender</Label>
-        <select
-          name="gender"
-          value={student.gender}
-          onChange={handleChange}
-          required
-          className="w-full border rounded-md p-2"
-        >
-          {genderOptions.map((g) => (
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <Label htmlFor="religion">Religion</Label>
-        <select
-          name="religion"
-          value={student.religion}
-          onChange={handleChange}
-          required
-          className="w-full border rounded-md p-2"
-        >
-          {religionOptions.map((r) => (
-            <option key={r} value={r}>{r}</option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <Label htmlFor="profilePicture">Profile Picture</Label>
-        <Input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setProfileFile(e.target.files?.[0] || null)}
-        />
-        {student.profilePicture && (
-          <img src={student.profilePicture} alt="Profile" className="mt-2 w-24 h-24 object-cover rounded-full" />
-        )}
-      </div>
-
-      <Button type="submit" className="mt-4 bg-blue-600 text-white hover:bg-blue-700" disabled={isSubmitting}>
-        {isSubmitting ? "Updating..." : "Update Student"}
-      </Button>
-    </form>
   );
 }
