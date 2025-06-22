@@ -109,14 +109,35 @@ export async function GET(request) {
           },
         });
 
+        const absentExams = await prisma.exam.findMany({
+          where: {
+            id: {
+              in: registeredExamIds,
+              notIn: attemptedExamIds,
+            },
+            endTime: { lt: now }, // 🕒 already ended
+          },
+            include: {
+            grade: {
+              include: {
+                category: true,
+              },
+            },
+            subject: true,
+            quizzes: {
+              select: { id: true }, // 👈 get Quiz ID
+            },
+          },
+        });
+        console.log(absentExams);;
         // ✅ STEP 5: Format results
         const formattedResults = [
           // Attempted exams (completed)
+          
           ...attemptedResults.map(r => ({
             id: r.exam?.id,
             title: r.exam?.title,
-            quizId: r.exam.quizzes[0]?.id || null, // 👈 safely access first quiz ID
-            startTime:r.exam.startTime,
+            quizId:  r.exam.quizzes[0]?.id || null, // 👈 safely access first quiz ID
             subject: r.exam?.subject?.name || "Unknown",
             grade: r.exam?.grade?.level || "N/A",
             category: r.exam?.grade?.category?.catName || "N/A",
@@ -143,8 +164,7 @@ export async function GET(request) {
             return {
               id: e.id,
               title: e.title,
-              quizId: e.quizzes[0]?.id || null, // 👈 safely access first quiz ID
-              startTime:e.startTime,
+              quizId:e.exam.quizzes[0]?.id || null, // 👈 safely access first quiz ID
               subject: e.subject?.name || "Unknown",
               grade: e.grade?.level || "N/A",
               category: e.grade?.category?.catName || "N/A",
@@ -161,6 +181,25 @@ export async function GET(request) {
               endTime: e.endTime,
             };
           }),
+          ...absentExams.map(a => ({
+            id: a.id,
+            title: a.title,
+            quizId: a.quizzes[0]?.id || null, // safely access first quiz ID
+            subject: a.subject?.name || "Unknown",
+            grade: a.grade?.level || "N/A",
+            category: a.grade?.category?.catName || "N/A",
+            timeRemaining: "Missed", // clearer label than "Completed"
+            questions: a.totalMCQ ?? 0,
+            duration: `${a.timeLimit ?? 0} mins`,
+            totalMarks: a.totalMarks ?? 0,
+            score: null,
+            totalScore: null,
+            progress: 100,
+            status: "absent",
+            quizType: "completed",
+            startTime: a.startTime,
+            endTime: a.endTime,
+          })),
         ];
 
         return NextResponse.json({quizzes: formattedResults}, { status: 200 });

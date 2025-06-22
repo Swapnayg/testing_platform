@@ -58,7 +58,7 @@ type Quiz = {
   duration: string;
   totalMarks: number;
   progress: number;
-  status: "not_applied" | "pending_approval" | "upcoming" | "attempted";
+  status: "not_applied" | "pending_approval" | "upcoming" | "attempted" | "absent";
   grade: string;
   category: string;
 };
@@ -394,54 +394,54 @@ useEffect(() => {
                 )}
               </div>
 
-             <Button
-                onClick={() => {
-                  if (quiz.status === "attempted") return;
+            <Button onClick={() => {
+                if (quiz.status === "attempted" || quiz.status === "absent") return;
 
-                  if (quiz.status === "upcoming" && readyQuizzes[quiz.id]) {
-                    if (quiz.quizId) {
-                      handleStartQuizInPopup(quiz.quizId, studentId, quiz.totalMarks);
-                    } else {
-                      toast({
-                        title: "Quiz Error",
-                        description: "Quiz ID is missing. Please contact support.",
-                        variant: "destructive",
-                      });
-                    }
+                if (quiz.status === "upcoming" && readyQuizzes[quiz.id]) {
+                  if (quiz.quizId) {
+                    handleStartQuizInPopup(quiz.quizId, studentId, quiz.totalMarks);
                   } else {
-                    setSelectedQuizId(quiz.id);
-                    setOpenModal(true);
+                    toast({
+                      title: "Quiz Error",
+                      description: "Quiz ID is missing. Please contact support.",
+                      variant: "destructive",
+                    });
                   }
-                }}
-                className={`ml-6 group-hover:scale-105 transition-transform shadow-lg text-white ${
-                  quiz.status === "attempted"
-                    ? "bg-gray-500 hover:bg-gray-600 cursor-not-allowed"
-                    : quiz.status === "upcoming" && !readyQuizzes[quiz.id]
-                    ? "bg-orange-500 hover:bg-orange-600"
-                    : hasPendingApproval &&
-                      (quiz.status === "not_applied" || quiz.status === "pending_approval")
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700"
-                }`}
-                disabled={
-                  quiz.status === "attempted" ||
-                  (quiz.status === "upcoming" && !readyQuizzes[quiz.id]) ||
-                  (hasPendingApproval &&
-                    (quiz.status === "not_applied" || quiz.status === "pending_approval"))
+                } else {
+                  setSelectedQuizId(quiz.id);
+                  setOpenModal(true);
                 }
-              >
-                {quiz.status === "attempted" && "Attempted"}
-                {quiz.status === "upcoming" &&
-                  (readyQuizzes[quiz.id]
-                    ? "Start Now"
-                    : `Starts in ${quizTimers[quiz.id] || "..."}`)}
-                {quiz.status === "not_applied" && "Apply Now"}
-                {quiz.status === "pending_approval" && "Pending Approval"}
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-
-
-
+              }}
+              className={`ml-6 group-hover:scale-105 transition-transform shadow-lg text-white ${
+                quiz.status === "attempted"
+                  ? "bg-gray-500 hover:bg-gray-600 cursor-not-allowed"
+                  : quiz.status === "absent"
+                  ? "bg-red-500 hover:bg-red-600 cursor-not-allowed"
+                  : quiz.status === "upcoming" && !readyQuizzes[quiz.id]
+                  ? "bg-orange-500 hover:bg-orange-600"
+                  : hasPendingApproval &&
+                    (quiz.status === "not_applied" || quiz.status === "pending_approval")
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
+              disabled={
+                quiz.status === "attempted" ||
+                quiz.status === "absent" ||
+                (quiz.status === "upcoming" && !readyQuizzes[quiz.id]) ||
+                (hasPendingApproval &&
+                  (quiz.status === "not_applied" || quiz.status === "pending_approval"))
+              }
+            >
+              {quiz.status === "attempted" && "Attempted"}
+              {quiz.status === "absent" && "Absent"}
+              {quiz.status === "upcoming" &&
+                (readyQuizzes[quiz.id]
+                  ? "Start Now"
+                  : `Starts in ${quizTimers[quiz.id] || "..."}`)}
+              {quiz.status === "not_applied" && "Apply Now"}
+              {quiz.status === "pending_approval" && "Pending Approval"}
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
             </div>
           </CardContent>
         </Card>

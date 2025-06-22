@@ -127,20 +127,23 @@ const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: nu
       {/* Quiz Grid */}
 <div className="container mx-auto px-6 py-8">
   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-    {quizzes.map((quiz) => {
-      const isCompleted = quiz.quizType === "completed";
+   {quizzes.map((quiz) => {
+      const isCompleted = quiz.quizType === "completed" && quiz.status === "completed";
       const isUpcoming = quiz.quizType === "upcoming";
+      const isAbsent = quiz.status === "absent";
       const countdown = countdowns[quiz.id] ?? 0;
 
       const isStartable = isUpcoming && countdown === 0;
+
       const btnText = isCompleted
         ? "Completed"
+        : isAbsent
+        ? "Absent"
         : isStartable
         ? "Start Now"
         : `Starts in ${formatTime(countdown)}`;
 
-      const isDisabled = isCompleted || (isUpcoming && countdown > 0);
-
+      const isDisabled = isCompleted || isAbsent || (isUpcoming && countdown > 0);
 
       return (
         <Card
@@ -187,22 +190,24 @@ const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: nu
                 }
               }}
               disabled={isDisabled}
-              className={`w-full ${
+              className={`w-full text-white font-medium py-2.5 group transition-all duration-200 ${
                 isCompleted
                   ? "bg-gray-400 cursor-not-allowed"
+                  : isAbsent
+                  ? "bg-red-500 cursor-not-allowed"
                   : isStartable
                   ? "bg-emerald-600 hover:bg-emerald-700"
                   : "bg-orange-500 hover:bg-orange-600"
-              } text-white font-medium py-2.5 group transition-all duration-200`}
+              }`}
             >
               {btnText}
               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
-
           </CardContent>
         </Card>
       );
     })}
+
   </div>
 </div>
     </div>

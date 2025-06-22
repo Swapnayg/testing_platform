@@ -66,16 +66,17 @@ const student = await prisma.student.findFirst({
 const now = new Date();
 
 // STEP 1: Get all Registration IDs for this student
+// STEP 1: Get approved registrations
 const registrations = await prisma.registration.findMany({
   where: { 
-    studentId:student?.cnicNumber,
-    status: 'APPROVED', // 👈 filter for approved payments
-   },
+    studentId: student?.cnicNumber,
+    status: 'APPROVED',
+  },
   select: { id: true },
 });
 const registrationIds = registrations.map(r => r.id);
 
-// STEP 2: Get all Exam IDs student registered for
+// STEP 2: Get exam IDs from those registrations
 const examRegistrations = await prisma.examOnRegistration.findMany({
   where: {
     registrationId: { in: registrationIds },
@@ -86,19 +87,15 @@ const examRegistrations = await prisma.examOnRegistration.findMany({
 });
 const registeredExamIds = examRegistrations.map(er => er.examId);
 
-// STEP 3: Get Attempted Exams (has result)
+// STEP 3: Get attempted exams
 const attemptedExams = await prisma.exam.findMany({
   where: {
     results: {
       some: {
-        studentId:student?.cnicNumber,
-        quizAttemptId: {
-          not: null,
-        },
+        studentId: student?.cnicNumber,
+        quizAttemptId: { not: null },
         quizAttempt: {
-          answers: {
-            some: {}, // 👈 ensures at least one answer exists
-          },
+          answers: { some: {} },
         },
       },
     },
@@ -117,7 +114,7 @@ const attemptedExams = await prisma.exam.findMany({
 });
 const attemptedExamIds = attemptedExams.map(e => e.id);
 
-// STEP 4: Get Upcoming Exams (registered, not attempted, future)
+// STEP 4: Get upcoming exams (registered, not attempted, future)
 const upcomingExams = await prisma.exam.findMany({
   where: {
     id: {
@@ -127,7 +124,29 @@ const upcomingExams = await prisma.exam.findMany({
     OR: [
       { startTime: { gt: now } },
       { endTime: { gt: now } },
-    ],   // AND has not ended
+    ],
+  },
+include: {
+    grade: {
+      include: {
+        category: true,
+      },
+    },
+    subject: true,
+    quizzes: {
+      select: { id: true }, // 👈 get Quiz ID
+    },
+  },
+});
+
+// STEP 5: Get absent exams (registered, not attempted, already ended)
+const absentExams = await prisma.exam.findMany({
+  where: {
+    id: {
+      in: registeredExamIds,
+      notIn: attemptedExamIds,
+    },
+    endTime: { lt: now }, // 🕒 already ended
   },
   include: {
     grade: {
@@ -231,6 +250,25 @@ const combinedExams = [
     totalMarks: exam.totalMarks,
     progress: 0,
     status: "upcoming" as const,
+    grade: exam.grade?.level || "N/A",
+    category: exam.grade?.category?.catName || "N/A",
+  })),
+
+    // Absent Exams
+  ...absentExams.map(exam => ({
+    id: exam.id,
+    startTime: exam.startTime,
+    quizId: exam.quizzes[0]?.id || null,
+    title: exam.title,
+    difficulty: "Beginner" as const,
+    subject: exam.subject?.name || "Unknown",
+    instructor: "TBD",
+    timeRemaining: getTimeRemaining(exam.startTime),
+    questions: exam.totalMCQ ?? 0,
+    duration: `${exam.timeLimit ?? 0} mins`,
+    totalMarks: exam.totalMarks,
+    progress: 0,
+    status: "absent" as const,
     grade: exam.grade?.level || "N/A",
     category: exam.grade?.category?.catName || "N/A",
   })),
