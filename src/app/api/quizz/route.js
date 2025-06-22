@@ -324,11 +324,7 @@ export async function POST(request) {
           if (!result) {
             console.error('❌ No result found for this examId and studentId');
           } else {
-            console.log('✅ Found existing result:', result);
-          }
-
-
-          prisma.result.update({
+            await prisma.result.update({
               where: {
                 examId_studentId: {
                   examId: questionsWithOptions.exam.id,
@@ -336,14 +332,15 @@ export async function POST(request) {
                 }
               },
               data: {
-                score: totalScoreEarned,
+                score: totalScoreEarned + 1, // just for test
                 gradedAt: new Date(),
                 quizAttemptId: data.attemptId,
                 answeredQuestions: data.answeredCount,
                 correctAnswers: correctAnswerCount,
               }
-            }),
-
+            });
+            console.log('✅ Found existing result:', result);
+          } 
           // const [updatedAttempt, createdAnswers] = await prisma.$transaction([
           //   // prisma.quizAttempt.update({
           //   //   where: { id: data.attemptId },
