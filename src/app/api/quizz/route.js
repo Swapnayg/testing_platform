@@ -354,8 +354,6 @@ export async function POST(request) {
           // ]);
 
           console.log('✅ Transaction completed successfully:');
-          console.log('Updated Attempt:',);
-          console.log('Created Answers:',);
         } catch (error) {
           console.error('❌ Transaction failed:', error);
         }
