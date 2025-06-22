@@ -78,8 +78,9 @@ useEffect(() => {
 }, [quizzes]);
 
 const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: number) => {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const popup = window.open(
-    `${window.location.origin}/startquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
+    `${baseUrl}/startquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
     'QuizWindow',
     'width=1200,height=800,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,directories=no'
   );
