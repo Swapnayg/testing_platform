@@ -342,7 +342,7 @@ export async function POST(request) {
         }
 
         await new Promise(resolve => setTimeout(resolve, 1000));
-        return NextResponse.json({ attempt: updatedAttempt, answers: createdAnswers }, { status: 200 });
+        return NextResponse.json({  answers: createdAnswers }, { status: 200 });
 
       case 'updateanswers':
         const {uquizId,urollNo,uattemptId, udata } = body;
@@ -406,7 +406,7 @@ export async function POST(request) {
         // ✅ Calculate total score earned
         const totalScoreEarned1 = insertData1.reduce((sum, ans) => sum + ans.pointsEarned, 0);
         const correctAnswerCount1 = insertData1.filter((item) => item.isCorrect).length;
-        const [ updatedAnswers] = await prisma.$transaction([
+        const [ updatedAnswers1] = await prisma.$transaction([
           prisma.result.update({
             where: { 
               examId_studentId: {
@@ -427,7 +427,7 @@ export async function POST(request) {
         ]);
 
         await new Promise(resolve => setTimeout(resolve, 1000));
-        return NextResponse.json({ answers: updatedAnswers }, { status: 200 });
+        return NextResponse.json({ answers: updatedAnswers1 }, { status: 200 });
   
       default:
         return NextResponse.json({ message: 'Invalid POST type' }, { status: 400 });
