@@ -299,22 +299,15 @@ export async function POST(request) {
 
         try {
           console.log('⏳ Starting transaction with input:');
-          console.log('Attempt Data:', data);
-          console.log('Exam Info:', questionsWithOptions.exam);
-          console.log('Student Attempt:', attempt);
+          console.log('totalScoreEarned', totalScoreEarned);
+          console.log('Attempt Data attemptId:', data.attemptId);
+          console.log('Attempt Data answeredCount:', data.answeredCount);
+          console.log('Exam Info:', questionsWithOptions.exam.id);
+          console.log('Student Attempt:', attempt.studentId);
+          console.log('correctAnswerCount:',correctAnswerCount);
           console.log('Insert Answers Count:', insertData?.length);
 
-          const [updatedAttempt, createdAnswers] = await prisma.$transaction([
-            // prisma.quizAttempt.update({
-            //   where: { id: data.attemptId },
-            //   data: {
-            //     endTime: new Date(data.endTime),
-            //     isCompleted: true,
-            //     isSubmitted: true,
-            //     timeSpent: data.timeSpent,
-            //   },
-            // }),
-            prisma.result.update({
+          prisma.result.update({
               where: {
                 examId_studentId: {
                   examId: questionsWithOptions.exam.id,
@@ -329,10 +322,36 @@ export async function POST(request) {
                 correctAnswers: correctAnswerCount,
               }
             }),
-            // prisma.answer.createMany({
-            //   data: insertData,
-            // }),
-          ]);
+
+          // const [updatedAttempt, createdAnswers] = await prisma.$transaction([
+          //   // prisma.quizAttempt.update({
+          //   //   where: { id: data.attemptId },
+          //   //   data: {
+          //   //     endTime: new Date(data.endTime),
+          //   //     isCompleted: true,
+          //   //     isSubmitted: true,
+          //   //     timeSpent: data.timeSpent,
+          //   //   },
+          //   // }),
+          //   prisma.result.update({
+          //     where: {
+          //       examId_studentId: {
+          //         examId: questionsWithOptions.exam.id,
+          //         studentId: attempt.studentId,
+          //       }
+          //     },
+          //     data: {
+          //       score: totalScoreEarned,
+          //       gradedAt: new Date(),
+          //       quizAttemptId: data.attemptId,
+          //       answeredQuestions: data.answeredCount,
+          //       correctAnswers: correctAnswerCount,
+          //     }
+          //   }),
+          //   // prisma.answer.createMany({
+          //   //   data: insertData,
+          //   // }),
+          // ]);
 
           console.log('✅ Transaction completed successfully:');
           console.log('Updated Attempt:',);
