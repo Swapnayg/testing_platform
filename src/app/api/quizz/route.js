@@ -225,9 +225,14 @@ export async function POST(request) {
           return NextResponse.json({ message: 'Quiz and rollNo are required' }, { status: 400 });
         }
 
+        const studentByRoll2 = await prisma.student.findFirst({
+          where: { rollNo: arollNo.toUpperCase()},
+        });
+
         const attempt = await prisma.quizAttempt.findFirst({
           where: {
             quizId: aquizId, // <-- Replace with your actual attemptId variable
+            studentId:studentByRoll2.cnicNumber,
           },
         });
         const questionsWithOptions = await prisma.quiz.findFirst({
