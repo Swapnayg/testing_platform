@@ -302,21 +302,7 @@ export async function POST(request) {
         const totalScoreEarned2 = insertData.reduce((sum, ans) => sum + ans.pointsEarned, 0);
         const correctAnswerCount2 = insertData.filter((item) => item.isCorrect).length;
 
-        try {
-          // const result = await prisma.result.findUnique({
-          //   where: {
-          //     examId_studentId: {
-          //       examId: questionsWithOptions.exam.id,
-          //       studentId: attempt.studentId,
-          //     }
-          //   }
-          // });
-          // if (!result) {
-          //   console.error('❌ No result found for this examId and studentId');
-          // } else {
-            
-          //   console.log('✅ Found existing result:', result);
-          // } 
+        try { 
           const [updatedAttempt, createdAnswers] = await prisma.$transaction([
             prisma.quizAttempt.update({
               where: { id: data.attemptId },
@@ -327,7 +313,7 @@ export async function POST(request) {
                 timeSpent: data.timeSpent,
               },
             }),
-            await prisma.result.update({
+            prisma.result.update({
               where: {
                 examId_studentId: {
                   examId: questionsWithOptions.exam.id,
