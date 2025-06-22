@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getAllExams, getFilteredExamResults,getacceptedCount } from "@/lib/actions";
+import { getAllExams, getFilteredExamResults,getacceptedCount,getExamDetails } from "@/lib/actions";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -69,12 +69,13 @@ const loadFilteredResults = async (examId: string) => {
     const getcount = await getacceptedCount({ examId });
     setTotalStudents(getcount);
     // Add percentage and rank
+    const getExam = await getExamDetails({ examId });
     const ranked = assignRankByScore(rawResults);
     // Store in state
     setFilteredResults(ranked);
     setResults(ranked.slice(0, PAGE_SIZE));
     setCurrentPage(1);
-    setSelectedExamDetails(rawResults[0]?.exam ?? null);
+    setSelectedExamDetails(getExam);
   } catch (error) {
     console.error("Error loading filtered results:", error);
     setFilteredResults([]);
@@ -215,9 +216,18 @@ const loadFilteredResults = async (examId: string) => {
             <div>
               <span className="font-medium">Not Attempted:</span> {totalStudents - filteredResults.length}
             </div>
+            <div>
+              <span className="font-medium">Result Announced:</span>{" "}
+              {selectedExamDetails.resultDate ? (
+                <span className="text-slate-700">
+                  {new Date(selectedExamDetails.resultDate).toLocaleDateString()}
+                </span>
+              ) : (
+                <span className="text-red-600 font-semibold ml-1">Not Declared</span>
+              )}
+            </div>
           </div>
         </div>
-
       )}
 
         {/* Results Table */}

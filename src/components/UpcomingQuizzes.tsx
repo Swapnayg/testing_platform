@@ -261,7 +261,6 @@ async function getExamById(examId: string) {
 
 useEffect(() => {
   if (!selectedQuizId) return;
-
   const fetchExam = async () => {
     try {
       const data = await getExamById(selectedQuizId);

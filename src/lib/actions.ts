@@ -1261,6 +1261,14 @@ export const getacceptedCount = async ({ examId }: { examId: string }) => {
 });
 };
 
+export const getExamDetails = async ({ examId }: { examId: string }) => {
+  return await prisma.exam.findUnique({
+  where: {
+    id: examId, // replace with your variable
+  },
+});
+};
+
 
 export const getFilteredExamResults = async ({
   examId,
