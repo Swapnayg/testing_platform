@@ -68,6 +68,10 @@ const ReviewStep = () => {
                 <span className="font-medium text-gray-700">CNIC Number:</span>
                 <p className="text-gray-900">{formData.cnicNumber || 'Not provided'}</p>
               </div>
+              <div>
+                <span className="font-medium text-gray-700">Roll No:</span>
+                <p className="text-gray-900">{formData.rollNo || 'Not provided'}</p>
+              </div>
             </div>
             <div>
               <span className="font-medium text-gray-700">Profile Picture:</span>

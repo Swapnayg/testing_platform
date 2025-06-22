@@ -67,12 +67,13 @@ const SuccessStep = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
       >
-        <Card className="max-w-md mx-auto mb-6">
-          <CardContent className="p-6">
-            <h3 className="font-semibold text-gray-900 mb-2">
-              Application Details
+        <Card className="max-w-md mx-auto mb-6 shadow-md border border-gray-200">
+          <CardContent className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Application Confirmation
             </h3>
-            <div className="space-y-2 text-left">
+
+            <div className="space-y-2 text-sm text-gray-700">
               <div className="flex justify-between">
                 <span className="text-gray-600">Application ID:</span>
                 <span className="font-medium">{formData.applicationId || 'Not provided'}</span>
@@ -88,8 +89,35 @@ const SuccessStep = () => {
                 </span>
               </div>
             </div>
+
+            <div className="border-t pt-4 mt-4 space-y-2 text-sm text-gray-700">
+              <h4 className="font-semibold text-gray-800">Login Credentials</h4>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Username:</span>
+                <span className="font-medium">{formData.rollNo || 'Not generated'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Password:</span>
+                <span className="font-medium">{formData.cnicNumber || 'Not generated'}</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t mt-4 text-sm text-gray-700">
+              <p>
+                Please log in to the <span className="font-medium text-gray-900">Student Portal</span> to view your profile, exam details, and more.
+              </p>
+              <a
+                href="https://app.secondsweb.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-2 text-blue-600 font-medium hover:underline"
+              >
+                Go to Student Portal &rarr;
+              </a>
+            </div>
           </CardContent>
         </Card>
+
       </motion.div>
 
       <motion.div

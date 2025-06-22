@@ -396,11 +396,10 @@ export const deleteExam = async (
   }
 };
 
-export async function createRegistration(data: { name: string; status: "PENDING" | "APPROVED" | "REJECTED"; fatherName: string; registerdAt: Date; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any; }) {
+export async function createRegistration(data: { name: string; status: "PENDING" | "APPROVED" | "REJECTED"; fatherName: string; registerdAt: Date; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any;  rollNo: string; }) {
   try {
-    var rollNo = uuidTo6DigitNumber();
     const user = await clerkClient.users.createUser({
-      username: "UIN" + rollNo.toString(),
+      username: data.rollNo || '',
       password: data.cnicNumber || '',
       publicMetadata:{role:"student"}
     });
@@ -422,7 +421,7 @@ export async function createRegistration(data: { name: string; status: "PENDING"
       addressLine1: data.addressLine1 || '',
       instituteName: data.instituteName || '',
       others: "",
-      rollNo: "UIN" + rollNo.toString(),
+      rollNo: data.rollNo.toString(),
     }
   });
   const now = new Date();

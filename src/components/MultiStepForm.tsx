@@ -29,7 +29,8 @@ const personalInfoSchema = z.object({
   religion: z.string().min(1, 'Please select religion'),
   cnicNumber: z.string().regex(/^\d{5}-\d{7}-\d{1}$/, 'CNIC must be in format 12345-1234567-1'),
   status:z.enum(['PENDING', 'APPROVED', 'REJECTED']).default('PENDING'),
-  applicationId: z.string().min(2, 'ApplicationId is required')
+  applicationId: z.string().min(2, 'ApplicationId is required'),
+  rollNo: z.string().min(2, 'Roll number is required'),
 });
 
 const baseContactInfoSchema = z.object({

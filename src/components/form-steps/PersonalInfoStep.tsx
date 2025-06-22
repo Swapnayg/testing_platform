@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from 'lucide-react';
 import "react-datepicker/dist/react-datepicker.css";
 import { Textarea } from '@/components/ui/textarea';
+import { v4 as uuidv4 } from 'uuid';
 
 const PersonalInfoStep = () => {
   const { register, formState: { errors }, setValue, watch } = useFormContext();
@@ -28,7 +29,15 @@ const PersonalInfoStep = () => {
       return result;
   };
 
+  function uuidTo6DigitNumber() {
+    const uuid = uuidv4(); // Generate UUID
+    const hash = parseInt(uuid.replace(/-/g, '').slice(0, 12), 16); // Convert part of UUID to number
+    const sixDigit = hash % 900000 + 100000; // Ensure 6 digits
+    return sixDigit;
+  }
+
   const applicationId = generateApplicationId();
+  var rollNo = "UIN" + uuidTo6DigitNumber();
 
   const formatCNIC = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -70,6 +79,13 @@ const PersonalInfoStep = () => {
             id="applicationId"
             {...register('applicationId')}
             value={applicationId}
+            readOnly
+            className="hidden"
+          />
+           <Input
+            id="rollNo"
+            {...register('rollNo')}
+            value={rollNo}
             readOnly
             className="hidden"
           />
