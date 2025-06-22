@@ -305,15 +305,15 @@ export async function POST(request) {
           console.log('Insert Answers Count:', insertData?.length);
 
           const [updatedAttempt, createdAnswers] = await prisma.$transaction([
-            prisma.quizAttempt.update({
-              where: { id: data.attemptId },
-              data: {
-                endTime: new Date(data.endTime),
-                isCompleted: true,
-                isSubmitted: true,
-                timeSpent: data.timeSpent,
-              },
-            }),
+            // prisma.quizAttempt.update({
+            //   where: { id: data.attemptId },
+            //   data: {
+            //     endTime: new Date(data.endTime),
+            //     isCompleted: true,
+            //     isSubmitted: true,
+            //     timeSpent: data.timeSpent,
+            //   },
+            // }),
             prisma.result.update({
               where: {
                 examId_studentId: {
@@ -329,9 +329,9 @@ export async function POST(request) {
                 correctAnswers: correctAnswerCount,
               }
             }),
-            prisma.answer.createMany({
-              data: insertData,
-            }),
+            // prisma.answer.createMany({
+            //   data: insertData,
+            // }),
           ]);
 
           console.log('✅ Transaction completed successfully:');
