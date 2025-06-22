@@ -302,6 +302,21 @@ export async function POST(request) {
         const totalScoreEarned2 = insertData.reduce((sum, ans) => sum + ans.pointsEarned, 0);
         const correctAnswerCount2 = insertData.filter((item) => item.isCorrect).length;
 
+
+        const score = parseInt(totalScoreEarned2); // your earned marks
+        const passingThreshold = 0.4; // 40% passing mark (customize as needed)
+        const totalMarks2 = questionsWithOptions.exam.totalMarks || 100; // fallback to 100
+
+        let resultStatus = "NOT_GRADED";
+
+        if (score === 0 && data.answeredCount === 0) {
+          resultStatus = "ABSENT";
+        } else if (score / totalMarks2 >= passingThreshold) {
+          resultStatus = "PASSED";
+        } else {
+          resultStatus = "FAILED";
+        }
+
         try { 
           const [updatedAttempt, createdAnswers] = await prisma.$transaction([
             prisma.quizAttempt.update({
@@ -326,6 +341,7 @@ export async function POST(request) {
                 quizAttemptId: data.attemptId,
                 answeredQuestions: data.answeredCount,
                 correctAnswers: correctAnswerCount2,
+                status: resultStatus, // ✅ dynamically set status
               }
             }),
             prisma.answer.createMany({
@@ -403,6 +419,21 @@ export async function POST(request) {
         // ✅ Calculate total score earned
         const totalScoreEarned1 = insertData1.reduce((sum, ans) => sum + ans.pointsEarned, 0);
         const correctAnswerCount1 = insertData1.filter((item) => item.isCorrect).length;
+
+        
+        const score1 = parseInt(totalScoreEarned1); // your earned marks
+        const passingThreshold1 = 0.4; // 40% passing mark (customize as needed)
+        const totalMarks3 =  attempt1.quiz.exam.totalMarks || 100; // fallback to 100
+
+        let resultStatus1 = "NOT_GRADED";
+
+        if (score1 === 0 && udata.answeredCount === 0) {
+          resultStatus1 = "ABSENT";
+        } else if (score1 / totalMarks3 >= passingThreshold1) {
+          resultStatus1 = "PASSED";
+        } else {
+          resultStatus1 = "FAILED";
+        }
         const [ updatedAnswers1] = await prisma.$transaction([
           prisma.result.update({
             where: { 
@@ -416,6 +447,7 @@ export async function POST(request) {
               quizAttemptId:udata.attemptId,
               answeredQuestions:attempt1.quiz.totalQuestions,
               correctAnswers:correctAnswerCount1,
+              status: resultStatus, // ✅ dynamically set status
             }
           }),
           prisma.answer.createMany({
