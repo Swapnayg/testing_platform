@@ -40,6 +40,7 @@ export default function AdminAnnouncementPage() {
   const fetchGrades = async () => {
     const res = await fetch('/api/grades');
     const data = await res.json();
+    console.log(data);
     setGrades(data);
   };
 

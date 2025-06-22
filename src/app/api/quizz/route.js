@@ -297,34 +297,49 @@ export async function POST(request) {
         const totalScoreEarned = insertData.reduce((sum, ans) => sum + ans.pointsEarned, 0);
         const correctAnswerCount = insertData.filter((item) => item.isCorrect).length;
 
-        const [updatedAttempt, createdAnswers] = await prisma.$transaction([
-          prisma.quizAttempt.update({
-            where: { id: data.attemptId },
-            data: {
-              endTime: new Date(data.endTime),
-              isCompleted: true,
-              isSubmitted: true,
-              timeSpent: data.timeSpent,
-            },
-          }),
-          prisma.result.update({
-            where: { 
-              examId_studentId: {
-                examId: questionsWithOptions.exam.id,
-                studentId: attempt.studentId,
-            }},
-            data:{
-              score:totalScoreEarned,
-              gradedAt: new Date(),
-              quizAttemptId:data.attemptId,
-              answeredQuestions:data.answeredCount,
-              correctAnswers:correctAnswerCount,
-            }
-          }),
-          prisma.answer.createMany({
-            data: insertData,
-          }),
-        ]);
+        try {
+          console.log('⏳ Starting transaction with input:');
+          console.log('Attempt Data:', data);
+          console.log('Exam Info:', questionsWithOptions.exam);
+          console.log('Student Attempt:', attempt);
+          console.log('Insert Answers Count:', insertData?.length);
+
+          const [updatedAttempt, createdAnswers] = await prisma.$transaction([
+            prisma.quizAttempt.update({
+              where: { id: data.attemptId },
+              data: {
+                endTime: new Date(data.endTime),
+                isCompleted: true,
+                isSubmitted: true,
+                timeSpent: data.timeSpent,
+              },
+            }),
+            prisma.result.update({
+              where: {
+                examId_studentId: {
+                  examId: questionsWithOptions.exam.id,
+                  studentId: attempt.studentId,
+                }
+              },
+              data: {
+                score: totalScoreEarned,
+                gradedAt: new Date(),
+                quizAttemptId: data.attemptId,
+                answeredQuestions: data.answeredCount,
+                correctAnswers: correctAnswerCount,
+              }
+            }),
+            prisma.answer.createMany({
+              data: insertData,
+            }),
+          ]);
+
+          console.log('✅ Transaction completed successfully:');
+          console.log('Updated Attempt:', updatedAttempt);
+          console.log('Created Answers:', createdAnswers);
+        } catch (error) {
+          console.error('❌ Transaction failed:', error);
+        }
 
         await new Promise(resolve => setTimeout(resolve, 1000));
         return NextResponse.json({ attempt: updatedAttempt, answers: createdAnswers }, { status: 200 });
