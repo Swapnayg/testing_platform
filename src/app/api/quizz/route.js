@@ -312,6 +312,22 @@ export async function POST(request) {
           console.log('correctAnswerCount:',correctAnswerCount);
           console.log('Insert Answers Count:', insertData?.length);
 
+          const result = await prisma.result.findUnique({
+            where: {
+              examId_studentId: {
+                examId: questionsWithOptions.exam.id,
+                studentId: attempt.studentId,
+              }
+            }
+          });
+
+          if (!result) {
+            console.error('❌ No result found for this examId and studentId');
+          } else {
+            console.log('✅ Found existing result:', result);
+          }
+
+
           prisma.result.update({
               where: {
                 examId_studentId: {
