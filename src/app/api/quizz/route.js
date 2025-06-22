@@ -303,27 +303,30 @@ export async function POST(request) {
         const correctAnswerCount = insertData.filter((item) => item.isCorrect).length;
 
         try {
-          console.log('⏳ Starting transaction with input:');
-          console.log('totalScoreEarned', totalScoreEarned);
-          console.log('Attempt Data attemptId:', data.attemptId);
-          console.log('Attempt Data answeredCount:', data.answeredCount);
-          console.log('Exam Info:', questionsWithOptions.exam.id);
-          console.log('Student Attempt:', attempt.studentId);
-          console.log('correctAnswerCount:',correctAnswerCount);
-          console.log('Insert Answers Count:', insertData?.length);
-
-          const result = await prisma.result.findUnique({
-            where: {
-              examId_studentId: {
-                examId: questionsWithOptions.exam.id,
-                studentId: attempt.studentId,
-              }
-            }
-          });
-
-          if (!result) {
-            console.error('❌ No result found for this examId and studentId');
-          } else {
+          // const result = await prisma.result.findUnique({
+          //   where: {
+          //     examId_studentId: {
+          //       examId: questionsWithOptions.exam.id,
+          //       studentId: attempt.studentId,
+          //     }
+          //   }
+          // });
+          // if (!result) {
+          //   console.error('❌ No result found for this examId and studentId');
+          // } else {
+            
+          //   console.log('✅ Found existing result:', result);
+          // } 
+          const [updatedAttempt, createdAnswers] = await prisma.$transaction([
+            prisma.quizAttempt.update({
+              where: { id: data.attemptId },
+              data: {
+                endTime: new Date(data.endTime),
+                isCompleted: true,
+                isSubmitted: true,
+                timeSpent: data.timeSpent,
+              },
+            }),
             await prisma.result.update({
               where: {
                 examId_studentId: {
@@ -332,44 +335,17 @@ export async function POST(request) {
                 }
               },
               data: {
-                score: totalScoreEarned + 1, // just for test
+                score: parseInt(totalScoreEarned), // just for test
                 gradedAt: new Date(),
                 quizAttemptId: data.attemptId,
                 answeredQuestions: data.answeredCount,
                 correctAnswers: correctAnswerCount,
               }
-            });
-            console.log('✅ Found existing result:', result);
-          } 
-          // const [updatedAttempt, createdAnswers] = await prisma.$transaction([
-          //   // prisma.quizAttempt.update({
-          //   //   where: { id: data.attemptId },
-          //   //   data: {
-          //   //     endTime: new Date(data.endTime),
-          //   //     isCompleted: true,
-          //   //     isSubmitted: true,
-          //   //     timeSpent: data.timeSpent,
-          //   //   },
-          //   // }),
-          //   prisma.result.update({
-          //     where: {
-          //       examId_studentId: {
-          //         examId: questionsWithOptions.exam.id,
-          //         studentId: attempt.studentId,
-          //       }
-          //     },
-          //     data: {
-          //       score: totalScoreEarned,
-          //       gradedAt: new Date(),
-          //       quizAttemptId: data.attemptId,
-          //       answeredQuestions: data.answeredCount,
-          //       correctAnswers: correctAnswerCount,
-          //     }
-          //   }),
-          //   // prisma.answer.createMany({
-          //   //   data: insertData,
-          //   // }),
-          // ]);
+            }),
+            prisma.answer.createMany({
+              data: insertData,
+            }),
+          ]);
 
           console.log('✅ Transaction completed successfully:');
         } catch (error) {
