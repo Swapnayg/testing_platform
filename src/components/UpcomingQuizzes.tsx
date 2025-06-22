@@ -133,27 +133,23 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId, 
   };
 
 
-  const handleStartQuizInPopup = (quizId: string, username:string, totalMarks:number) => {
-    // Create popup window with restricted features
-    const popup = window.open(
-      `${window.location.origin}//startquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
-      'QuizWindow',
-      'width=1200,height=800,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,directories=no'
-    );
-    
-    if (popup) {
-      // Focus the popup window
-      popup.focus();
-      
-      // Disable right-click context menu in the popup
-      popup.addEventListener('load', () => {
-        popup.document.addEventListener('contextmenu', (e) => e.preventDefault());
-      });
-    } else {
-      // Fallback if popup is blocked
-      alert('Please allow popups for this site to start the quiz');
-    }
-  };
+const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: number) => {
+  const popup = window.open(
+    `${window.location.origin}/startquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
+    'QuizWindow',
+    'width=1200,height=800,scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,directories=no'
+  );
+
+  if (popup) {
+    popup.focus();
+    popup.addEventListener('load', () => {
+      popup.document.addEventListener('contextmenu', (e) => e.preventDefault());
+    });
+  } else {
+    alert('Please allow popups for this site to start the quiz');
+  }
+};
+
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
