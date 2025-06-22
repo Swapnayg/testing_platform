@@ -89,6 +89,7 @@ model Grade {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   Exam Exam[]
+  announcements Announcement[] @relation("AnnouncementGrades")
 }
 
 enum RegistrationStatus {
@@ -141,6 +142,7 @@ model Exam {
   endTime   DateTime
   status    ExamStatus @default(NOT_STARTED)
   createdAt DateTime   @default(now())
+  resultDate  DateTime?  // ✅ New optional field for result announcement
 
   timeLimit Int @default(30) // ⬅️ Added field (e.g., duration in minutes)
 
@@ -239,6 +241,7 @@ model Result {
   grade      String
   status     ResultStatus @default(NOT_GRADED)
   gradedAt   DateTime?
+  resultDeclared Boolean @default(false) // ✅ New boolean field
   startTime  DateTime
   endTime    DateTime
 
@@ -276,10 +279,13 @@ model Event {
 }
 
 model Announcement {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   title       String
   description String
-  date        DateTime
+  date        DateTime  @default(now())
+  isForAll    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  grades      Grade[]   @relation("AnnouncementGrades")
 }
 
 enum ExamStatus {

@@ -175,6 +175,7 @@ var [data, count] = await prisma.$transaction([
       startTime: true,
       endTime: true,
       createdAt: true,
+      resultDate: true,
       categoryId: true,
       gradeId: true,
       subjectId: true,
@@ -211,13 +212,14 @@ var [data, count] = await prisma.$transaction([
   prisma.exam.count({ where }),
 ]);
 
-
 const exams: ExamList[] = data.map(exam => ({
   ...exam,
+  resultDate: exam.resultDate ?? null,
   approvedCount: exam.registrations.filter(
     r => r.registration.status === 'APPROVED'
   ).length
 }));
+
 
   if (data.length === 0) {
   //throw new Error('No exams found.');

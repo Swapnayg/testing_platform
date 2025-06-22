@@ -1,6 +1,5 @@
 import Announcements from "@/components/Announcements";
 import BigCalendar from "@/components/BigCalender";
-import EventCalendar from "@/components/EventCalendar";
 import WelcomeCard from "@/components/WelcomCard";
 import UpcomingQuizzes from "@/components/UpcomingQuizzes";
 import { Student } from "@prisma/client";
@@ -280,7 +279,7 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
   return (
     <div className="p-4 flex flex-col gap-4">
       {/* Welcome Card at the top */}
-      <WelcomeCard />
+      <WelcomeCard username={username} />
 
       {/* Main content: Left and Right sections side by side */}
       <div className="flex flex-col xl:flex-row gap-4">
@@ -298,7 +297,6 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
 
         {/* RIGHT */}
         <div className="w-full xl:w-1/3 flex flex-col gap-8">
-          <EventCalendar />
           <Announcements />
         </div>
       </div>

@@ -1,12 +1,10 @@
 import Announcements from "@/components/Announcements";
 import AttendanceChartContainer from "@/components/AttendanceChartContainer";
 import CountChartContainer from "@/components/CountChartContainer";
-import EventCalendarContainer from "@/components/EventCalendarContainer";
 import FinanceChart from "@/components/FinanceChart";
 import UserCard from "@/components/UserCard";
 import type { Metadata } from 'next';
 import AttendanceChart from "@/components/AttendanceChart";
-import EventCalendar from "@/components/EventCalendar";
 
 export async function generateMetadata({
   searchParams,
@@ -57,7 +55,6 @@ export default async function AdminPage ({
       </div>
       {/* RIGHT */}
       <div className="w-full lg:w-1/3 flex flex-col gap-8">
-        <EventCalendar />
         <Announcements />
       </div>
     </div>

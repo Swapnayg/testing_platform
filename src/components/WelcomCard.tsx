@@ -80,7 +80,6 @@
 // components/WelcomeCard.tsx
 
 "use client";
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowUp, ArrowDown, BookOpen, CalendarCheck, Clock, Star } from "lucide-react";
@@ -130,7 +129,10 @@ const statsCards: StatCard[] = [
   },
 ];
 
-const WelcomeCard: React.FC = () => {
+interface WelcomeCardProps {
+  username: string;
+}
+const WelcomeCard: React.FC<WelcomeCardProps> = ({ username }) => {
   const currentDate = new Date();
 
   return (
@@ -143,7 +145,8 @@ const WelcomeCard: React.FC = () => {
             <AvatarFallback className="bg-white text-emerald-700 text-2xl font-bold">JD</AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome back, John Doe</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {username.charAt(0).toUpperCase() + username.slice(1)}!  
+            </h1>
             <p className="text-emerald-100 mb-3 text-lg">Ready to excel in your studies today?</p>
             <p className="text-emerald-200 text-sm font-medium">
               {currentDate.toLocaleDateString("en-US", {
