@@ -136,7 +136,6 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
           },
           body: JSON.stringify({type:"create",quizId:quizId, rollNo: username,totalMarks:totalMarks }), // data you want to send
         });
-
         const attempt = await res.json();
         setAttemptId(attempt.id);
         toast({

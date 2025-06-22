@@ -41,7 +41,7 @@ export async function GET(request) {
         // STEP 1: Get all Registration IDs for this student
         const registrations = await prisma.registration.findMany({
           where: { 
-            studentId:student?.cnicNumber,
+            studentId:studentByRoll?.cnicNumber,
             status: 'APPROVED', // 👈 filter for approved payments
           },
           select: { id: true },
@@ -183,10 +183,11 @@ export async function POST(request) {
       case 'create':
         // POST 1: Create new quiz Attempt
         const { quizId, rollNo, totalMarks } = body;
+        console.log(rollNo);
         if (!quizId || !rollNo) {
           return NextResponse.json({ message: 'Quiz and rollNo are required' }, { status: 400 });
         }
-        const studentByRoll = await prisma.student.findFirst({
+        const studentByRoll1 = await prisma.student.findFirst({
           where: { rollNo: rollNo.toUpperCase()},
         });
         let quizAttempt;
@@ -195,8 +196,8 @@ export async function POST(request) {
           quizAttempt = await prisma.quizAttempt.create({
             data: {
                 quizId: quizId,
-                studentId: studentByRoll.cnicNumber,
-                studentName: studentByRoll.name,
+                studentId: studentByRoll1.cnicNumber,
+                studentName: studentByRoll1.name,
                 startTime: new Date(),
                 totalScore:totalMarks,
             }
@@ -207,7 +208,7 @@ export async function POST(request) {
             quizAttempt = await prisma.quizAttempt.findFirst({
               where: {
                 quizId: quizId,
-                studentId: studentByRoll.cnicNumber,
+                studentId: studentByRoll1.cnicNumber,
               },
             });
             console.log('Student has already attempted this quiz.');

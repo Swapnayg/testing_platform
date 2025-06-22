@@ -286,7 +286,7 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
         {/* LEFT */}
         <div className="w-full xl:w-2/3">
           <div className="h-full bg-white p-4 rounded-md">
-          <UpcomingQuizzes quizzes={combinedExams} studentId={student?.cnicNumber ?? ""} hasPendingApproval={hasPendingApproval} />
+          <UpcomingQuizzes quizzes={combinedExams} studentId={username} hasPendingApproval={hasPendingApproval} />
 
           
             {/* <h1 className="text-xl font-semibold">Schedule (4A)</h1> */}

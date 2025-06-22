@@ -10,6 +10,7 @@ export async function GET() {
       startTime: {
         gte: nowMinusOneHour,
       },
+      status: "NOT_STARTED", 
     },
     select: {
       id: true,

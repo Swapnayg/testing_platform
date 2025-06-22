@@ -362,8 +362,14 @@ useEffect(() => {
                   <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-xs text-gray-600 font-medium">Quiz Date</p>
                     <p className="text-sm font-bold text-gray-900">
-                        {new Date(quiz.startTime).toLocaleDateString("en-GB", {
-                          day: "2-digit", month: "short", year: "numeric",})}
+                      {new Date(quiz.startTime).toLocaleString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true, // optional: use false for 24-hour format
+                      })}
                     </p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3">

@@ -145,7 +145,7 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ username }) => {
             <AvatarFallback className="bg-white text-emerald-700 text-2xl font-bold">JD</AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {username.charAt(0).toUpperCase() + username.slice(1)}!  
+            <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {username.toUpperCase()}!  
             </h1>
             <p className="text-emerald-100 mb-3 text-lg">Ready to excel in your studies today?</p>
             <p className="text-emerald-200 text-sm font-medium">
