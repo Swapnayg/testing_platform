@@ -1278,7 +1278,9 @@ export const getFilteredExamResults = async ({
   return await prisma.result.findMany({
   where: {
     examId: examId, // 🔁 Replace with actual exam ID
-    status: 'NOT_GRADED', // ✅ filter for only not graded results
+    status: {
+      in: ['PASSED', 'FAILED'], // ✅ Only include PASSED or FAILED
+    },
   },
   include: {
     student: true,

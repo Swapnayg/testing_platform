@@ -169,7 +169,6 @@ export async function GET(request) {
         return NextResponse.json({ message: 'Invalid GET type' }, { status: 400 });
     }
   } catch (error) {
-    console.error(error);
     return NextResponse.json({ message: 'Server Error', error }, { status: 500 });
   }
 }
@@ -183,7 +182,6 @@ export async function POST(request) {
       case 'create':
         // POST 1: Create new quiz Attempt
         const { quizId, rollNo, totalMarks } = body;
-        console.log(rollNo);
         if (!quizId || !rollNo) {
           return NextResponse.json({ message: 'Quiz and rollNo are required' }, { status: 400 });
         }
@@ -462,7 +460,6 @@ export async function POST(request) {
         return NextResponse.json({ message: 'Invalid POST type' }, { status: 400 });
     }
   } catch (error) {
-    console.error(error);
     return NextResponse.json({ message: 'Server Error', error }, { status: 500 });
   }
 }
