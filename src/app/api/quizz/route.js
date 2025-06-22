@@ -299,8 +299,8 @@ export async function POST(request) {
           };
         });
         // ✅ Calculate total score earned
-        const totalScoreEarned = insertData.reduce((sum, ans) => sum + ans.pointsEarned, 0);
-        const correctAnswerCount = insertData.filter((item) => item.isCorrect).length;
+        const totalScoreEarned2 = insertData.reduce((sum, ans) => sum + ans.pointsEarned, 0);
+        const correctAnswerCount2 = insertData.filter((item) => item.isCorrect).length;
 
         try {
           // const result = await prisma.result.findUnique({
@@ -335,11 +335,11 @@ export async function POST(request) {
                 }
               },
               data: {
-                score: parseInt(totalScoreEarned), // just for test
+                score: parseInt(totalScoreEarned2), // just for test
                 gradedAt: new Date(),
                 quizAttemptId: data.attemptId,
                 answeredQuestions: data.answeredCount,
-                correctAnswers: correctAnswerCount,
+                correctAnswers: correctAnswerCount2,
               }
             }),
             prisma.answer.createMany({
