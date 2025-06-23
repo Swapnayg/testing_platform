@@ -20,7 +20,7 @@ export async function GET(request) {
   const secret = searchParams.get("secret");
 
   if (secret !== process.env.CRON_SECRET) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    return new Response(JSON.stringify({ error: "Unauthorized",status: 401 }));
   }
 
   console.log("✅ Step: Results Cron job triggered at", new Date());
@@ -46,7 +46,7 @@ export async function GET(request) {
 
     const examIds = exams.map((e) => e.id);
     if (examIds.length === 0) {
-      return NextResponse.json({ message: "No exams with resultDate tomorrow." });
+      return Response(JSON.stringify({ message: "No exams with resultDate tomorrow." }));
     }
     // Step 2: Update related results
     const updateResult = await prisma.result.updateMany({
@@ -62,7 +62,7 @@ export async function GET(request) {
     console.log("✅ Step: Cron job finished successfully");
     return Response(JSON.stringify({message: "Results declared successfully.", updatedCount: updateResult.count, examIds,}));
   } catch (error) {
-    return Response(JSON.stringify({ error: error instanceof Error ? error.message : error }, { status: 500 }));
+    return Response(JSON.stringify({ error: error instanceof Error ? error.message : error,status: 500 }));
   }
 }
 
