@@ -85,7 +85,6 @@ const loadFilteredResults = async (examId: string) => {
   }
 };
 
-
   useEffect(() => {
     getAllExams().then(setExams);
   }, []);
