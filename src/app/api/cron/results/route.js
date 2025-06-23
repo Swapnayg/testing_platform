@@ -20,7 +20,7 @@ export async function GET(request) {
   const secret = searchParams.get("secret");
 
   if (secret !== process.env.CRON_SECRET) {
-    return new Response(JSON.stringify({ error: "Unauthorized",status: 401 }));
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
   console.log("✅ Step: Results Cron job triggered at", new Date());
