@@ -29,6 +29,7 @@ export async function GET() {
     });
 
     const examIds = exams.map((e) => e.id);
+    console.log(examIds);
 
     if (examIds.length === 0) {
       return NextResponse.json({ message: "No exams with resultDate today." });
@@ -48,6 +49,8 @@ export async function GET() {
         declaredOn: declaredAt,
       },
     });
+
+    console.log(examIds);
 
     return NextResponse.json({
       message: "Results declared successfully.",
