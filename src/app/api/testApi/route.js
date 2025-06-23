@@ -48,8 +48,6 @@ const examsToday = await prisma.exam.findMany({
   },
 });
 
-console.log(examsToday);
-
 const regId = [];
 
 for (const exam of examsToday) {
@@ -88,7 +86,6 @@ for (const exam of examsToday) {
     },
   });
 
-  console.log(matchingRegistrations);
 
 
   for (const matchOnReg of matchingRegistrations) {

@@ -24,140 +24,135 @@ export async function GET(request) {
 
   console.log("✅ Step: Cron job triggered at", new Date());
 
-const todayStart = new Date();
-todayStart.setHours(0, 0, 0, 0);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
 
-const todayEnd = new Date();
-todayEnd.setHours(23, 59, 59, 999);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
 
-const examsToday = await prisma.exam.findMany({
-  where: {
-    createdAt: {
-      gte: todayStart,
-      lte: todayEnd,
-    },
-  },
-  select: {
-    id: true,
-    title: true,
-    startTime: true,
-    endTime: true,
-    totalMCQ: true,
-    totalMarks: true,
-    subject: {
-      select: { name: true }
-    },
-    grade: {
-      select: {
-        level: true,
-        category: {
-          select: { catName: true }
-        }
-      },
-    },
-  },
-});
-
-const regId = [];
-
-console.log("🔍 Starting registration process for today's exams...");
-
-for (const exam of examsToday) {
-  console.log(`📘 Processing exam: ${exam.title} (${exam.id})`);
-
-  const { grade } = exam;
-  const examCategory = grade.category.catName;
-  const examGradeLevel = grade.level;
-
-  console.log(`🔎 Finding approved registrations for grade: ${examGradeLevel}, category: ${examCategory}`);
-
-  const matchingRegistrations = await prisma.registration.findMany({
+  const examsToday = await prisma.exam.findMany({
     where: {
-      status: 'APPROVED',
-      catGrade: examGradeLevel,
-      olympiadCategory: examCategory,
-      // Filter out those already registered for the exam
-      exams: {
-        none: {
-          examId: exam.id, // exclude those who already have this exam
-        },
+      createdAt: {
+        gte: todayStart,
+        lte: todayEnd,
       },
     },
     select: {
       id: true,
-      olympiadCategory: true,
-      catGrade: true,
-      studentId: true,
-      student: {
+      title: true,
+      startTime: true,
+      endTime: true,
+      totalMCQ: true,
+      totalMarks: true,
+      subject: {
+        select: { name: true }
+      },
+      grade: {
         select: {
-          name: true,
-          fatherName: true,
-          cnicNumber: true,
-          rollNo: true,
-          email: true,
-          instituteName: true,
+          level: true,
+          category: {
+            select: { catName: true }
+          }
         },
       },
     },
   });
 
-  console.log(`✅ Found ${matchingRegistrations.length} approved registrations`);
+  const regId = [];
 
-  for (const matchOnReg of matchingRegistrations) {
-    console.log(`📝 Registering student: ${matchOnReg.student.name} (${matchOnReg.studentId})`);
+  for (const exam of examsToday) {
 
-    try {
-      console.log(`➡️  Upserting ExamOnRegistration for regId: ${matchOnReg.id}`);
-      await prisma.examOnRegistration.upsert({
-        where: {
-          examId_registrationId: {
-            examId: exam.id,
-            registrationId: matchOnReg.id,
+    const { grade } = exam;
+    const examCategory = grade.category.catName;
+    const examGradeLevel = grade.level;
+
+    const matchingRegistrations = await prisma.registration.findMany({
+      where: {
+        status: 'APPROVED',
+        catGrade: examGradeLevel,
+        olympiadCategory: examCategory,
+        // Filter out those already registered for the exam
+        exams: {
+          none: {
+            examId: exam.id, // exclude those who already have this exam
           },
         },
-        update: {},
-        create: {
-          examId: exam.id,
-          registrationId: matchOnReg.id,
-        },
-      });
-      console.log("✅ ExamOnRegistration success");
-
-      console.log(`➡️  Upserting Result for studentId: ${matchOnReg.studentId}`);
-      await prisma.result.upsert({
-        where: {
-          examId_studentId: {
-            examId: exam.id,
-            studentId: matchOnReg.studentId,
+      },
+      select: {
+        id: true,
+        olympiadCategory: true,
+        catGrade: true,
+        studentId: true,
+        student: {
+          select: {
+            name: true,
+            fatherName: true,
+            cnicNumber: true,
+            rollNo: true,
+            email: true,
+            instituteName: true,
           },
         },
-        update: {},
-        create: {
-          examId: exam.id,
-          studentId: matchOnReg.studentId,
-          status: "NOT_GRADED",
-          score: 0,
-          totalScore: exam.totalMarks,
-          grade: '',
-          startTime: new Date(exam.startTime),
-          endTime: new Date(exam.endTime),
-        },
-      });
-      console.log("✅ Result upsert success");
+      },
+    });
 
-      if (!regId.includes(matchOnReg.id)) {
-        regId.push(matchOnReg.id);
-        console.log(`📌 Registered ID added: ${matchOnReg.id}`);
+
+
+    for (const matchOnReg of matchingRegistrations) {
+
+      try {
+          const existing = await prisma.examOnRegistration.findFirst({
+              where: {
+              registrationId: matchOnReg.id,
+          },
+          });
+          if (!existing) {
+              await prisma.examOnRegistration.upsert({
+              where: {
+              examId_registrationId: {
+                  examId: exam.id,
+                  registrationId: matchOnReg.id,
+              },
+              },
+              update: {},
+              create: {
+              examId: exam.id,
+              registrationId: matchOnReg.id,
+              },
+          });
+
+          await prisma.result.upsert({
+              where: {
+              examId_studentId: {
+                  examId: exam.id,
+                  studentId: matchOnReg.studentId,
+              },
+              },
+              update: {},
+              create: {
+              examId: exam.id,
+              studentId: matchOnReg.studentId,
+              status: "NOT_GRADED",
+              score: 0,
+              totalScore: exam.totalMarks,
+              grade: '',
+              startTime: new Date(exam.startTime),
+              endTime: new Date(exam.endTime),
+              },
+          });
+
+          if (!regId.includes(matchOnReg.id)) {
+              regId.push(matchOnReg.id);
+          }
       }
 
-    } catch (error) {
-      console.error(`❌ Error processing studentId: ${matchOnReg.studentId}, registrationId: ${matchOnReg.id}`, error);
+      } catch (error) {
+        console.error(`❌ Error processing studentId: ${matchOnReg.studentId}, registrationId: ${matchOnReg.id}`, error);
+      }
     }
   }
-}
 
-console.log("🎯 Final registration IDs:", regId);
-
+  console.log("🎯 Final registration IDs:", regId);
 
 return new Response(JSON.stringify({ message: "Cron executed" }), {
     status: 200,
