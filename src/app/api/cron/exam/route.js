@@ -60,10 +60,16 @@ const examsToday = await prisma.exam.findMany({
 
 const regId = [];
 
+console.log("🔍 Starting registration process for today's exams...");
+
 for (const exam of examsToday) {
+  console.log(`📘 Processing exam: ${exam.title} (${exam.id})`);
+
   const { grade } = exam;
   const examCategory = grade.category.catName;
   const examGradeLevel = grade.level;
+
+  console.log(`🔎 Finding approved registrations for grade: ${examGradeLevel}, category: ${examCategory}`);
 
   const matchingRegistrations = await prisma.registration.findMany({
     where: {
@@ -89,8 +95,13 @@ for (const exam of examsToday) {
     },
   });
 
+  console.log(`✅ Found ${matchingRegistrations.length} approved registrations`);
+
   for (const matchOnReg of matchingRegistrations) {
+    console.log(`📝 Registering student: ${matchOnReg.student.name} (${matchOnReg.studentId})`);
+
     try {
+      console.log(`➡️  Upserting ExamOnRegistration for regId: ${matchOnReg.id}`);
       await prisma.examOnRegistration.upsert({
         where: {
           examId_registrationId: {
@@ -104,7 +115,9 @@ for (const exam of examsToday) {
           registrationId: matchOnReg.id,
         },
       });
+      console.log("✅ ExamOnRegistration success");
 
+      console.log(`➡️  Upserting Result for studentId: ${matchOnReg.studentId}`);
       await prisma.result.upsert({
         where: {
           examId_studentId: {
@@ -124,18 +137,20 @@ for (const exam of examsToday) {
           endTime: new Date(exam.endTime),
         },
       });
+      console.log("✅ Result upsert success");
 
       if (!regId.includes(matchOnReg.id)) {
         regId.push(matchOnReg.id);
+        console.log(`📌 Registered ID added: ${matchOnReg.id}`);
       }
 
     } catch (error) {
-      console.error("❌ Failed:", error);
+      console.error(`❌ Error processing studentId: ${matchOnReg.studentId}, registrationId: ${matchOnReg.id}`, error);
     }
   }
 }
 
-console.log("✅ All done. Registration IDs:", regId);
+console.log("🎯 Final registration IDs:", regId);
 
 
 return new Response(JSON.stringify({ message: "Cron executed" }), {
