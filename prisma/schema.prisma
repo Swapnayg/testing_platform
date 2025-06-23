@@ -10,6 +10,9 @@ datasource db {
 model Admin {
   id       String @id
   username String @unique
+  // Notification Relations
+  sentNotifications       Notification[] @relation("AdminSentNotifications")
+  receivedNotifications   Notification[] @relation("AdminReceivedNotifications")
 }
 
 model Student {
@@ -33,6 +36,10 @@ model Student {
   Attendance     Attendance[]
   Registration   Registration[]
   attempts       QuizAttempt[]
+
+  // Notification Relations
+  sentNotifications       Notification[] @relation("StudentSentNotifications")
+  receivedNotifications   Notification[] @relation("StudentReceivedNotifications")
 }
 
 model Category {
@@ -259,6 +266,28 @@ model Result {
 
   @@unique([examId, studentId])
 }
+
+
+model Notification {
+  id             String   @id @default(uuid())
+  title          String
+  message        String   // This is effectively a 'text' field in Prisma
+
+  fromAdminId    String?  
+  toAdminId      String?  
+  fromStudentId  String?  
+  toStudentId    String?  
+
+  createdAt      DateTime @default(now())
+  isRead         Boolean  @default(false)
+
+  // Relations
+  fromAdmin      Admin?    @relation("AdminSentNotifications", fields: [fromAdminId], references: [username])
+  toAdmin        Admin?    @relation("AdminReceivedNotifications", fields: [toAdminId], references: [username])
+  fromStudent    Student?  @relation("StudentSentNotifications", fields: [fromStudentId], references: [cnicNumber])
+  toStudent      Student?  @relation("StudentReceivedNotifications", fields: [toStudentId], references: [cnicNumber])
+}
+
 
 model Attendance {
   id      Int      @id @default(autoincrement())

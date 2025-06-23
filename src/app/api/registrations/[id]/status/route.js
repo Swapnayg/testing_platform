@@ -95,6 +95,7 @@ export async function POST(req, context) {
               endTime: new Date(ex.endTime),
             },
         });
+      }
         const htmlTemplate = `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -222,8 +223,7 @@ export async function POST(req, context) {
             ],
         });
         
-        console.log('Email sent:', info.messageId);
-      }   
+        console.log('Email sent:', info.messageId);  
       } catch (error) {
       }
 

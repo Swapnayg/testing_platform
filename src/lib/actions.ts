@@ -1260,6 +1260,43 @@ export const getacceptedCount = async ({ examId }: { examId: string }) => {
 });
 };
 
+export const getFilteredStudentDetails = async ({ username }: { username: string }) => {
+  const studentByRoll = await prisma.student.findFirst({
+    where: { rollNo: username.toUpperCase() },
+  });
+  return await prisma.result.findMany({
+    where: {
+      resultDeclared: true,
+      studentId: studentByRoll?.cnicNumber || '', // Use the student's CNIC number
+    },
+    include: {
+      student: true,
+      exam: {
+        include: {
+          grade: true,
+          subject: true,
+          category: true, // optional, for more detail
+        },
+      },
+      quizAttempt: {
+        include: {
+          answers: {
+            include: {
+              question: {
+                include: {
+                  options: true,
+                },
+              },
+              QuestionOption: true, // the selected option (if any)
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
+
 export const getExamDetails = async ({ examId }: { examId: string }) => {
   return await prisma.exam.findUnique({
   where: {

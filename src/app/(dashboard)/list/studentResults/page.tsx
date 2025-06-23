@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-async-client-component */
 import React from 'react';
 import { auth,getAuth, clerkClient } from "@clerk/nextjs/server";
+import StudentResultsList from '@/components/StudentResult';
 
 export default async function StudentResult() {
 const { userId, sessionClaims } = auth();
@@ -15,7 +16,7 @@ if (userId) {
   username = user.username?.toString() ?? "";
 }
   return (
-    <div>student result page</div>
+    <StudentResultsList username={username} />
   );
 };
 
