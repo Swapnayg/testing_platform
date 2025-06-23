@@ -1,47 +1,53 @@
-import { NextResponse } from "next/server"; // ✅ required
-import prisma from "@/lib/prisma";
+// /app/api/cron/declare-results/route.js
 
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
+export const runtime = "edge";
 
-  if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  console.log("✅ Step: Results Cron job triggered at", new Date());
-
+export async function GET() {
   const now = new Date();
-  const tomorrowStart = new Date(now);
-  tomorrowStart.setDate(now.getDate() + 1);
-  tomorrowStart.setHours(0, 0, 0, 0);
-  const tomorrowEnd = new Date(tomorrowStart);
-  tomorrowEnd.setHours(23, 59, 59, 999);
+
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
 
   try {
+    // Step 1: Get exam IDs with resultDate == today
     const exams = await prisma.exam.findMany({
       where: {
         resultDate: {
-          gte: tomorrowStart,
-          lte: tomorrowEnd,
+          gte: todayStart,
+          lte: todayEnd,
         },
       },
-      select: { id: true },
+      select: {
+        id: true,
+      },
     });
 
     const examIds = exams.map((e) => e.id);
 
     if (examIds.length === 0) {
-      return NextResponse.json({ message: "No exams with resultDate tomorrow." });
+      return NextResponse.json({ message: "No exams with resultDate today." });
     }
 
-    const updateResult = await prisma.result.updateMany({
-      where: { examId: { in: examIds } },
-      data: { resultDeclared: true },
-    });
+    const declaredAt = new Date();
 
-    console.log("✅ Step: Cron job finished successfully");
+    // Step 2: Update related results with declared flag and date
+    const updateResult = await prisma.result.updateMany({
+      where: {
+        examId: {
+          in: examIds,
+        },
+      },
+      data: {
+        resultDeclared: true,
+        declaredOn: declaredAt,
+      },
+    });
 
     return NextResponse.json({
       message: "Results declared successfully.",

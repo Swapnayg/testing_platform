@@ -242,6 +242,7 @@ model Result {
   status     ResultStatus @default(NOT_GRADED)
   gradedAt   DateTime?
   resultDeclared Boolean @default(false) // ✅ New boolean field
+  declaredOn  DateTime?  // ✅ New optional field for result announcement
   startTime  DateTime
   endTime    DateTime
 
