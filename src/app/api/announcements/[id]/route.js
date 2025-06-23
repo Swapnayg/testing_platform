@@ -8,6 +8,26 @@ export async function POST(req, { params }) {
 
     const isForAll = gradeIds.length === 0;
 
+    // Step 1: Get previous gradeIds linked to this announcement
+    const existingAnnouncement = await prisma.announcement.findUnique({
+      where: { id: parseInt(id) },
+      include: { grades: true },
+    });
+
+    const previousGradeIds = existingAnnouncement?.grades.map((g) => g.id) || [];
+
+    // Step 2: Clear resultDate for exams of previous grades
+    if (previousGradeIds.length > 0) {
+      await prisma.exam.updateMany({
+        where: {
+          gradeId: { in: previousGradeIds },
+        },
+        data: {
+          resultDate: null,
+        },
+      });
+    }
+
     const updated = await prisma.announcement.update({
       where: { id: parseInt(id) },
       data: {
