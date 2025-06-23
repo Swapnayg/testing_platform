@@ -113,31 +113,31 @@ for (const exam of examsToday) {
             registrationId: matchOnReg.id,
             },
         });
+
+        await prisma.result.upsert({
+            where: {
+            examId_studentId: {
+                examId: exam.id,
+                studentId: matchOnReg.studentId,
+            },
+            },
+            update: {},
+            create: {
+            examId: exam.id,
+            studentId: matchOnReg.studentId,
+            status: "NOT_GRADED",
+            score: 0,
+            totalScore: exam.totalMarks,
+            grade: '',
+            startTime: new Date(exam.startTime),
+            endTime: new Date(exam.endTime),
+            },
+        });
+
+        if (!regId.includes(matchOnReg.id)) {
+            regId.push(matchOnReg.id);
+        }
     }
-
-    //   await prisma.result.upsert({
-    //     where: {
-    //       examId_studentId: {
-    //         examId: exam.id,
-    //         studentId: matchOnReg.studentId,
-    //       },
-    //     },
-    //     update: {},
-    //     create: {
-    //       examId: exam.id,
-    //       studentId: matchOnReg.studentId,
-    //       status: "NOT_GRADED",
-    //       score: 0,
-    //       totalScore: exam.totalMarks,
-    //       grade: '',
-    //       startTime: new Date(exam.startTime),
-    //       endTime: new Date(exam.endTime),
-    //     },
-    //   });
-
-      if (!regId.includes(matchOnReg.id)) {
-        regId.push(matchOnReg.id);
-      }
 
     } catch (error) {
       console.error(`❌ Error processing studentId: ${matchOnReg.studentId}, registrationId: ${matchOnReg.id}`, error);
