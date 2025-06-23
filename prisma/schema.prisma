@@ -281,11 +281,12 @@ model Event {
 model Announcement {
   id          Int       @id @default(autoincrement())
   title       String
-  description String
-  date        DateTime  @default(now())
-  isForAll    Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  grades      Grade[]   @relation("AnnouncementGrades")
+  description String     @db.Text  // ⬅️ Use Text column type
+  date        DateTime   @default(now())
+  isForAll    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  resultDate  DateTime?  // ✅ New optional field for result announcement
+  grades      Grade[]    @relation("AnnouncementGrades")
 }
 
 enum ExamStatus {

@@ -484,7 +484,7 @@ export async function POST(request) {
               quizAttemptId:udata.attemptId,
               answeredQuestions:attempt1.quiz.totalQuestions,
               correctAnswers:correctAnswerCount1,
-              status: resultStatus, // ✅ dynamically set status
+              status: resultStatus1, // ✅ dynamically set status
             }
           }),
           prisma.answer.createMany({
