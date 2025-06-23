@@ -45,7 +45,7 @@ export async function GET() {
         resultDeclared: true,
       },
     });
-
+    console.log("Results declared successfully.");
     return NextResponse.json({
       message: "Results declared successfully.",
       updatedCount: updateResult.count,
