@@ -76,6 +76,12 @@ for (const exam of examsToday) {
       status: 'APPROVED',
       catGrade: examGradeLevel,
       olympiadCategory: examCategory,
+      // Filter out those already registered for the exam
+      ExamOnRegistration: {
+        none: {
+          examId: exam.id, // exclude those who already have this exam
+        },
+      },
     },
     select: {
       id: true,
