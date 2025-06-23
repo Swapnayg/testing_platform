@@ -77,7 +77,7 @@ for (const exam of examsToday) {
       catGrade: examGradeLevel,
       olympiadCategory: examCategory,
       // Filter out those already registered for the exam
-      ExamOnRegistration: {
+      exams: {
         none: {
           examId: exam.id, // exclude those who already have this exam
         },
