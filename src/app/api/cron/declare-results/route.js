@@ -3,8 +3,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export const runtime = "edge";
-
 export async function GET() {
   const now = new Date();
   const tomorrowStart = new Date(now);
