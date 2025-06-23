@@ -89,35 +89,33 @@ for (const exam of examsToday) {
     },
   });
 
-  for (const reg of matchingRegistrations) {
+  for (const matchOnReg of matchingRegistrations) {
     try {
-      console.log("1");
       await prisma.examOnRegistration.upsert({
         where: {
           examId_registrationId: {
             examId: exam.id,
-            registrationId: reg.id,
+            registrationId: matchOnReg.id,
           },
         },
         update: {},
         create: {
           examId: exam.id,
-          registrationId: reg.id,
+          registrationId: matchOnReg.id,
         },
       });
-      console.log("2");
 
       await prisma.result.upsert({
         where: {
           examId_studentId: {
             examId: exam.id,
-            studentId: reg.studentId,
+            studentId: matchOnReg.studentId,
           },
         },
         update: {},
         create: {
           examId: exam.id,
-          studentId: reg.studentId,
+          studentId: matchOnReg.studentId,
           status: "NOT_GRADED",
           score: 0,
           totalScore: exam.totalMarks,
@@ -126,20 +124,19 @@ for (const exam of examsToday) {
           endTime: new Date(exam.endTime),
         },
       });
-      console.log("3");
 
-      if (!regId.includes(reg.id)) {
-        regId.push(reg.id);
+      if (!regId.includes(matchOnReg.id)) {
+        regId.push(matchOnReg.id);
       }
-      console.log("4");
+
     } catch (error) {
-      console.error(`❌ Failed for registration ID ${reg.id}`, error);
+      console.error("❌ Failed:", error);
     }
   }
 }
 
-console.log("✅ Completed registrations for exams created today.");
-console.log("✅ Registered IDs:", regId);
+console.log("✅ All done. Registration IDs:", regId);
+
 
 return new Response(JSON.stringify({ message: "Cron executed" }), {
     status: 200,
