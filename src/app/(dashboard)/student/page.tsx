@@ -1,16 +1,9 @@
 import Announcements from "@/components/Announcements";
-import BigCalendar from "@/components/BigCalender";
 import WelcomeCard from "@/components/WelcomCard";
 import UpcomingQuizzes from "@/components/UpcomingQuizzes";
-import { Student } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import Image from "next/image";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { GetServerSideProps } from 'next';
 import { auth,getAuth, clerkClient } from "@clerk/nextjs/server";
-import { Eye } from "lucide-react";
-
+import TodayResultPopup from "@/components/TodayResultPopup";
 
 function getTimeRemaining(startTime: Date) {
   const diff = new Date(startTime).getTime() - Date.now();
@@ -316,6 +309,8 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
 
   return (
     <div className="p-4 flex flex-col gap-4">
+
+      <TodayResultPopup />
       {/* Welcome Card at the top */}
       <WelcomeCard username={username} />
 

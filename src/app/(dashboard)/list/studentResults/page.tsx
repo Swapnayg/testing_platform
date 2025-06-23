@@ -1,14 +1,21 @@
 /* eslint-disable @next/next/no-async-client-component */
-"use client";
+import React from 'react';
+import { auth,getAuth, clerkClient } from "@clerk/nextjs/server";
 
-import React, { useEffect, useState } from "react";
+export default async function StudentResult() {
+const { userId, sessionClaims } = auth();
+const role = (sessionClaims?.metadata as { role?: string })?.role;
+const currentUserId = userId;
+const client = clerkClient();
 
-
-const ResultListPage = () => {
-  
+let user = null;
+var username = "";
+if (userId) {
+  user = await client.users.getUser(userId);
+  username = user.username?.toString() ?? "";
+}
   return (
-    <div>This is student result page</div>
+    <div>student result page</div>
   );
 };
 
-export default ResultListPage;
