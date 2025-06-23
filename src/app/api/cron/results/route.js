@@ -15,7 +15,6 @@ export async function GET() {
   todayEnd.setHours(23, 59, 59, 999);
 
   try {
-    // Step 1: Get exam IDs with resultDate == today
     const exams = await prisma.exam.findMany({
       where: {
         resultDate: {
@@ -23,28 +22,20 @@ export async function GET() {
           lte: todayEnd,
         },
       },
-      select: {
-        id: true,
-      },
+      select: { id: true },
     });
 
     const examIds = exams.map((e) => e.id);
-    console.log(examIds);
 
     if (examIds.length === 0) {
-      return NextResponse.json({ message: "No exams with resultDate today." });
+      return NextResponse.json({ message: "No exams with resultDate tomorrow." });
     }
 
     const declaredAt = new Date();
 
-    // Step 2: Update related results with declared flag and date
     const updateResult = await prisma.result.updateMany({
-      where: {
-        examId: {
-          in: examIds,
-        },
-      },
-      data: {
+      where: { examId: { in: examIds } },
+      data: { 
         resultDeclared: true,
         declaredOn: declaredAt,
       },
@@ -52,11 +43,15 @@ export async function GET() {
 
     console.log("Results declared successfully.");
 
+    console.log("✅ Step: Cron job finished successfully");
+
     return NextResponse.json({
       message: "Results declared successfully.",
       updatedCount: updateResult.count,
       examIds,
     });
+
+
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : error },
