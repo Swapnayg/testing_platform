@@ -50,7 +50,7 @@ export async function GET() {
       },
     });
 
-    console.log(examIds);
+    console.log("Results declared successfully.");
 
     return NextResponse.json({
       message: "Results declared successfully.",
