@@ -54,12 +54,7 @@ export async function GET(request) {
         },
       },
     });
-
-    // ✅ Extract all exam IDs
-    const examIds = examsToday.map(exam => exam.id);
-
-    console.log("🧾 All today's exam IDs:", examIds);
-
+    
     const regId = [];
 
     for (const exam of examsToday) {
