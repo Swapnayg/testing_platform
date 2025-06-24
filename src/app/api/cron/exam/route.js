@@ -32,6 +32,8 @@ export async function GET(request) {
     select: { id: true },
   });
 
+  const examIds = examsToday.map(exam => exam.id);
+
   const results = [];
 
   for (const exam of examsToday) {
@@ -39,7 +41,7 @@ export async function GET(request) {
       const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/cron/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examId: exam.id }),
+        body: JSON.stringify({ examId: exam.id, examIds:examIds }),
       });
       const data = await res.json();
       results.push({ examId: exam.id, status: res.status, data });

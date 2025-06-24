@@ -1,7 +1,7 @@
 
 import prisma from "@/lib/prisma";
 export async function POST(request) {
-  const { examId } = await request.json();
+  const { examId, examIds } = await request.json();
 
   if (!examId) {
     return new Response("Missing examId", { status: 400 });
@@ -45,7 +45,6 @@ export async function POST(request) {
       const exists = await prisma.examOnRegistration.findFirst({
         where: {
           registrationId: reg.id,
-          examId: exam.id,
         },
       });
 
@@ -57,27 +56,46 @@ export async function POST(request) {
           },
         });
 
-        await prisma.result.upsert({
-          where: {
-            examId_studentId: {
-              examId: exam.id,
-              studentId: reg.studentId,
-            },
-          },
-          update: {},
-          create: {
-            examId: exam.id,
-            studentId: reg.studentId,
-            status: "NOT_GRADED",
-            score: 0,
-            totalScore: exam.totalMarks,
-            grade: '',
-            startTime: new Date(exam.startTime),
-            endTime: new Date(exam.endTime),
-          },
-        });
+        // await prisma.result.upsert({
+        //   where: {
+        //     examId_studentId: {
+        //       examId: exam.id,
+        //       studentId: reg.studentId,
+        //     },
+        //   },
+        //   update: {},
+        //   create: {
+        //     examId: exam.id,
+        //     studentId: reg.studentId,
+        //     status: "NOT_GRADED",
+        //     score: 0,
+        //     totalScore: exam.totalMarks,
+        //     grade: '',
+        //     startTime: new Date(exam.startTime),
+        //     endTime: new Date(exam.endTime),
+        //   },
+        // });
 
         created++;
+      }
+      else
+      {
+        const existingExamRegs = await prisma.examOnRegistration.findMany({
+            where: {
+                registrationId: matchOnReg.id,
+                examId: { in: examIds },
+            },
+        });
+        const existingExamIds = existingExamRegs.map(e => e.examId);
+            if (!existingExamIds.includes(exam.id)) {
+                await prisma.examOnRegistration.create({
+                    data: {
+                        examId: exam.id,
+                        registrationId: reg.id,
+                    },
+                });
+                created++;
+            }
       }
     }
 
