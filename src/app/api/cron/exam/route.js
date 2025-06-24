@@ -140,9 +140,6 @@ export async function GET(request) {
                     registrationId: matchOnReg.id,
                 },
               });
-              if (!regId.includes(matchOnReg.id)) {
-                regId.push(matchOnReg.id);
-              }
             }
             }
           } catch (error) {
