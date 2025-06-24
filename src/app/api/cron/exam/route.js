@@ -55,6 +55,11 @@ export async function GET(request) {
       },
     });
 
+    // ✅ Extract all exam IDs
+    const examIds = examsToday.map(exam => exam.id);
+
+    console.log("🧾 All today's exam IDs:", examIds);
+
     const regId = [];
 
     for (const exam of examsToday) {
@@ -99,7 +104,6 @@ export async function GET(request) {
                 registrationId: matchOnReg.id,
               },
             });
-
             if (!existing) {
               await prisma.examOnRegistration.upsert({
                 where: {
@@ -114,30 +118,37 @@ export async function GET(request) {
                   registrationId: matchOnReg.id,
                 },
               });
-
-              await prisma.result.upsert({
-                where: {
-                  examId_studentId: {
-                    examId: exam.id,
-                    studentId: matchOnReg.studentId,
-                  },
-                },
-                update: {},
-                create: {
-                  examId: exam.id,
-                  studentId: matchOnReg.studentId,
-                  status: "NOT_GRADED",
-                  score: 0,
-                  totalScore: exam.totalMarks,
-                  grade: '',
-                  startTime: new Date(exam.startTime),
-                  endTime: new Date(exam.endTime),
-                },
-              });
-
               if (!regId.includes(matchOnReg.id)) {
                 regId.push(matchOnReg.id);
               }
+            }
+            else
+            {
+             const existing = await prisma.examOnRegistration.findFirst({
+              where: {
+                registrationId: matchOnReg.id,
+                examId: { in: examIds }, // ✅ check if any of today's exams are already linked
+              },
+            });
+
+            if (existing) {
+              await prisma.examOnRegistration.upsert({
+                  where: {
+                    examId_registrationId: {
+                      examId: exam.id,
+                      registrationId: matchOnReg.id,
+                    },
+                  },
+                  update: {},
+                  create: {
+                    examId: exam.id,
+                    registrationId: matchOnReg.id,
+                },
+              });
+              if (!regId.includes(matchOnReg.id)) {
+                regId.push(matchOnReg.id);
+              }
+            }
             }
           } catch (error) {
             console.error(`❌ Error processing studentId: ${matchOnReg.studentId}, registrationId: ${matchOnReg.id}`, error);
