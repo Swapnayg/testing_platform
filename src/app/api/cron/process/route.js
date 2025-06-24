@@ -1,5 +1,5 @@
-
 import prisma from "@/lib/prisma";
+
 export async function POST(request) {
   const { examId, examIds } = await request.json();
 
@@ -18,6 +18,10 @@ export async function POST(request) {
         },
       },
     });
+
+    if (!exam) {
+      return new Response("Exam not found", { status: 404 });
+    }
 
     const examCategory = exam.grade.category.catName;
     const examGradeLevel = exam.grade.level;
@@ -55,47 +59,26 @@ export async function POST(request) {
             registrationId: reg.id,
           },
         });
-
-        // await prisma.result.upsert({
-        //   where: {
-        //     examId_studentId: {
-        //       examId: exam.id,
-        //       studentId: reg.studentId,
-        //     },
-        //   },
-        //   update: {},
-        //   create: {
-        //     examId: exam.id,
-        //     studentId: reg.studentId,
-        //     status: "NOT_GRADED",
-        //     score: 0,
-        //     totalScore: exam.totalMarks,
-        //     grade: '',
-        //     startTime: new Date(exam.startTime),
-        //     endTime: new Date(exam.endTime),
-        //   },
-        // });
-
         created++;
-      }
-      else
-      {
+      } else if (examIds && Array.isArray(examIds)) {
         const existingExamRegs = await prisma.examOnRegistration.findMany({
-            where: {
-                registrationId: reg.id,
-                examId: { in: examIds },
-            },
+          where: {
+            registrationId: reg.id,
+            examId: { in: examIds },
+          },
         });
+
         const existingExamIds = existingExamRegs.map(e => e.examId);
-            if (!existingExamIds.includes(exam.id)) {
-                await prisma.examOnRegistration.create({
-                    data: {
-                        examId: exam.id,
-                        registrationId: reg.id,
-                    },
-                });
-                created++;
-            }
+
+        if (!existingExamIds.includes(exam.id)) {
+          await prisma.examOnRegistration.create({
+            data: {
+              examId: exam.id,
+              registrationId: reg.id,
+            },
+          });
+          created++;
+        }
       }
     }
 
@@ -103,6 +86,7 @@ export async function POST(request) {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
+
   } catch (err) {
     console.error("❌ Failed to process exam:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
