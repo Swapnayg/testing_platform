@@ -147,7 +147,8 @@ export async function GET(request) {
 
   console.log('🎯 Final processed registrations:', processedRegistrations.length);
 
-  console.log('🎯 Final processed registrations:', processedRegistrations)
+  console.log('🎯 Final processed registrations:', processedRegistrations);
+  
   return new Response(
     JSON.stringify({
       message: 'Cron executed successfully',
