@@ -54,7 +54,7 @@ export async function GET(request) {
         },
       },
     });
-    
+    const examIds = examsToday.map(exam => exam.id);
     const regId = [];
 
     for (const exam of examsToday) {
