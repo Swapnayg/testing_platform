@@ -29,34 +29,30 @@ export async function GET(request) {
     select: { id: true },
   });
 
-  const examIds = examsToday.map(exam => exam.id);
-  console.log(`📋 Found ${examIds.length} exam(s) today:`, examIds);
-
   const results = await Promise.allSettled(
-    examsToday.map(exam => {
+    examsToday.map(async exam => {
       console.log(`🚀 Triggering process for exam ID: ${exam.id}`);
-      return fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/cron/process`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examId: exam.id, examIds }),
-      })
-        .then(async res => {
-          const data = await res.json();
-          console.log(`✅ Response for exam ${exam.id}:`, data);
-          return {
-            examId: exam.id,
-            status: res.status,
-            data,
-          };
-        })
-        .catch(err => {
-          console.error(`❌ Failed to process exam ${exam.id}`, err);
-          return {
-            examId: exam.id,
-            status: 500,
-            data: { error: err.message },
-          };
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/cron/process`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ examId: exam.id }),
         });
+        const data = await res.json();
+        console.log(`✅ Response for exam ${exam.id}:`, data);
+        return await {
+          examId: exam.id,
+          status: res.status,
+          data,
+        };
+      } catch (err) {
+        console.error(`❌ Failed to process exam ${exam.id}`, err);
+        return {
+          examId: exam.id,
+          status: 500,
+          data: { error: err.message },
+        };
+      }
     })
   );
 

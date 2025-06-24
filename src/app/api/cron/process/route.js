@@ -1,9 +1,9 @@
 import prisma from "@/lib/prisma";
 
 export async function POST(request) {
-  const { examId, examIds } = await request.json();
+  const { examId } = await request.json();
 
-  console.log("📥 Received POST request with:", { examId, examIds });
+  console.log("📥 Received POST request with:", { examId });
 
   if (!examId) {
     console.warn("⚠️ Missing examId in request body.");
@@ -36,11 +36,21 @@ export async function POST(request) {
     const examCategory = exam.grade.category.catName;
     const examGradeLevel = exam.grade.level;
 
+
+    const existingExamOnRegs = await prisma.examOnRegistration.findMany({
+      select: { registrationId: true },
+    });
+
+    const existingRegistrationIds = existingExamOnRegs.map(e => e.registrationId);
+
     const matchingRegistrations = await prisma.registration.findMany({
       where: {
         status: 'APPROVED',
         catGrade: examGradeLevel,
         olympiadCategory: examCategory,
+        id: {
+          notIn: existingRegistrationIds, // 👈 manual exclusion
+        },
         exams: {
           none: {
             examId: exam.id,
@@ -58,15 +68,7 @@ export async function POST(request) {
     let created = 0;
 
     for (const reg of matchingRegistrations) {
-      console.log(`🔍 Checking registration ${reg.id} for student ${reg.studentId}`);
-
-      const exists = await prisma.examOnRegistration.findFirst({
-        where: {
-          registrationId: reg.id,
-        },
-      });
-
-      if (!exists) {
+        console.log(`🔍 Checking registration ${reg.id} for student ${reg.studentId}`);
         console.log(`🆕 Creating new examOnRegistration for registration ${reg.id}`);
         await prisma.examOnRegistration.create({
           data: {
@@ -98,59 +100,6 @@ export async function POST(request) {
         console.log(`📊 Upserted result for student ${reg.studentId}`);
 
         created++;
-      } else if (examIds && Array.isArray(examIds)) {
-        const existingExamRegs = await prisma.examOnRegistration.findMany({
-          where: {
-            registrationId: reg.id,
-            examId: { in: examIds },
-          },
-        });
-
-        const existingExamIds = existingExamRegs.map(e => e.examId);
-        console.log(`🧾 Existing exams for registration ${reg.id}:`, existingExamIds);
-
-        if (!existingExamIds.includes(exam.id)) {
-          console.log(`🆕 Adding missing examOnRegistration for exam ${exam.id} to registration ${reg.id}`);
-          await prisma.examOnRegistration.create({
-            data: {
-              examId: exam.id,
-              registrationId: reg.id,
-            },
-          });
-          try {
-            // 👇 Insert result record too
-            await prisma.result.upsert({
-              where: {
-                examId_studentId: {
-                  examId: exam.id,
-                  studentId: reg.studentId,
-                },
-              },
-              update: {}, // do nothing if exists
-              create: {
-                examId: exam.id,
-                studentId: reg.studentId,
-                status: "NOT_GRADED",
-                score: 0,
-                totalScore: exam.totalMarks,
-                grade: '',
-                startTime: new Date(exam.startTime),
-                endTime: new Date(exam.endTime),
-              },
-            });
-            console.log(`📊 Upserted result for student ${reg.studentId}`);
-
-            console.log(`📊 Result created for ${reg.studentId}`);
-          } catch (err) {
-            console.error(`❌ Failed to upsert result for ${reg.studentId}`, err);
-          }
-          created++;
-        } else {
-          console.log(`⚠️ Exam ${exam.id} already exists for registration ${reg.id}`);
-        }
-      } else {
-        console.log(`ℹ️ Registration ${reg.id} already processed, skipping.`);
-      }
     }
 
     console.log(`🏁 Finished processing. Total created: ${created}`);
