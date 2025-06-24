@@ -82,7 +82,7 @@ export async function POST(request) {
       {
         const existingExamRegs = await prisma.examOnRegistration.findMany({
             where: {
-                registrationId: matchOnReg.id,
+                registrationId: reg.id,
                 examId: { in: examIds },
             },
         });
