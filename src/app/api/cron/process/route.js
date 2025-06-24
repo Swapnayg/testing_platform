@@ -3,7 +3,10 @@ import prisma from "@/lib/prisma";
 export async function POST(request) {
   const { examId, examIds } = await request.json();
 
+  console.log("📥 Received POST request with:", { examId, examIds });
+
   if (!examId) {
+    console.warn("⚠️ Missing examId in request body.");
     return new Response("Missing examId", { status: 400 });
   }
 
@@ -20,8 +23,15 @@ export async function POST(request) {
     });
 
     if (!exam) {
+      console.warn(`⚠️ Exam not found for ID: ${examId}`);
       return new Response("Exam not found", { status: 404 });
     }
+
+    console.log("📄 Exam fetched:", {
+      id: exam.id,
+      category: exam.grade.category.catName,
+      gradeLevel: exam.grade.level,
+    });
 
     const examCategory = exam.grade.category.catName;
     const examGradeLevel = exam.grade.level;
@@ -43,9 +53,13 @@ export async function POST(request) {
       },
     });
 
+    console.log(`✅ Found ${matchingRegistrations.length} matching registrations.`);
+
     let created = 0;
 
     for (const reg of matchingRegistrations) {
+      console.log(`🔍 Checking registration ${reg.id} for student ${reg.studentId}`);
+
       const exists = await prisma.examOnRegistration.findFirst({
         where: {
           registrationId: reg.id,
@@ -53,6 +67,7 @@ export async function POST(request) {
       });
 
       if (!exists) {
+        console.log(`🆕 Creating new examOnRegistration for registration ${reg.id}`);
         await prisma.examOnRegistration.create({
           data: {
             examId: exam.id,
@@ -69,8 +84,10 @@ export async function POST(request) {
         });
 
         const existingExamIds = existingExamRegs.map(e => e.examId);
+        console.log(`🧾 Existing exams for registration ${reg.id}:`, existingExamIds);
 
         if (!existingExamIds.includes(exam.id)) {
+          console.log(`🆕 Adding missing examOnRegistration for exam ${exam.id} to registration ${reg.id}`);
           await prisma.examOnRegistration.create({
             data: {
               examId: exam.id,
@@ -78,9 +95,15 @@ export async function POST(request) {
             },
           });
           created++;
+        } else {
+          console.log(`⚠️ Exam ${exam.id} already exists for registration ${reg.id}`);
         }
+      } else {
+        console.log(`ℹ️ Registration ${reg.id} already processed, skipping.`);
       }
     }
+
+    console.log(`🏁 Finished processing. Total created: ${created}`);
 
     return new Response(JSON.stringify({ success: true, created }), {
       status: 200,
