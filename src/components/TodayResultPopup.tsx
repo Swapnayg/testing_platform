@@ -1,8 +1,11 @@
+/* eslint-disable @next/next/no-async-client-component */
 "use client";
 
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose,} from "@/components/ui/dialog"
-export default function TodayResultPopup() {
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose,} from "@/components/ui/dialog";
+
+export default function TodayResultPopup({ username }: { username: string }) {
+
   const [open, setOpen] = useState(false);
   type Result = {
     id: string | number;
@@ -17,7 +20,8 @@ export default function TodayResultPopup() {
   const [results, setResults] = useState<Result[]>([]);
 
   useEffect(() => {
-    fetch("/api/results/declared-today")
+    if (!username) return;
+    fetch(`/api/results/declared-today?username=${encodeURIComponent(username)}`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {

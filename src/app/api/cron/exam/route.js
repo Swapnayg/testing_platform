@@ -1,8 +1,6 @@
-// app/api/cron/daily/route.js
-
 import nodemailer from 'nodemailer';
-import prisma from "@/lib/prisma";
-import { generatePDFDocument } from "@/lib/actions";
+import prisma from '@/lib/prisma';
+import { generatePDFDocument } from '@/lib/actions'; // optional
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -12,17 +10,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
+  const secret = searchParams.get('secret');
 
   if (secret !== process.env.CRON_SECRET) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
-  console.log("✅ Step: Cron job triggered at", new Date());
+  console.log('✅ Step: Cron job triggered at', new Date());
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -45,43 +41,41 @@ export async function GET(request) {
       totalMCQ: true,
       totalMarks: true,
       subject: {
-        select: { name: true }
+        select: { name: true },
       },
       grade: {
         select: {
           level: true,
           category: {
-            select: { catName: true }
-          }
+            select: { catName: true },
+          },
         },
       },
     },
   });
 
-  const regId = [];
+  const processedRegistrations = [];
 
   for (const exam of examsToday) {
-
     const { grade } = exam;
     const examCategory = grade.category.catName;
     const examGradeLevel = grade.level;
+
+    console.log(`📝 Processing Exam ID: ${exam.id}`);
 
     const matchingRegistrations = await prisma.registration.findMany({
       where: {
         status: 'APPROVED',
         catGrade: examGradeLevel,
         olympiadCategory: examCategory,
-        // Filter out those already registered for the exam
         exams: {
           none: {
-            examId: exam.id, // exclude those who already have this exam
+            examId: exam.id,
           },
         },
       },
       select: {
         id: true,
-        olympiadCategory: true,
-        catGrade: true,
         studentId: true,
         student: {
           select: {
@@ -96,66 +90,87 @@ export async function GET(request) {
       },
     });
 
-
-
-    for (const matchOnReg of matchingRegistrations) {
-
+    for (const reg of matchingRegistrations) {
       try {
-          const existing = await prisma.examOnRegistration.findFirst({
-              where: {
-              registrationId: matchOnReg.id,
+        // Check if already exists
+        const exists = await prisma.examOnRegistration.findFirst({
+          where: {
+            registrationId: reg.id,
+            examId: exam.id,
           },
-          });
-          if (!existing) {
-              await prisma.examOnRegistration.upsert({
-              where: {
-              examId_registrationId: {
-                  examId: exam.id,
-                  registrationId: matchOnReg.id,
-              },
-              },
-              update: {},
-              create: {
+        });
+
+        if (!exists) {
+          await prisma.examOnRegistration.create({
+            data: {
               examId: exam.id,
-              registrationId: matchOnReg.id,
-              },
+              registrationId: reg.id,
+            },
           });
 
           await prisma.result.upsert({
-              where: {
+            where: {
               examId_studentId: {
-                  examId: exam.id,
-                  studentId: matchOnReg.studentId,
+                examId: exam.id,
+                studentId: reg.studentId,
               },
-              },
-              update: {},
-              create: {
+            },
+            update: {},
+            create: {
               examId: exam.id,
-              studentId: matchOnReg.studentId,
-              status: "NOT_GRADED",
+              studentId: reg.studentId,
+              status: 'NOT_GRADED',
               score: 0,
               totalScore: exam.totalMarks,
               grade: '',
               startTime: new Date(exam.startTime),
               endTime: new Date(exam.endTime),
-              },
+            },
           });
 
-          if (!regId.includes(matchOnReg.id)) {
-              regId.push(matchOnReg.id);
-          }
-      }
+          processedRegistrations.push({
+            examId: exam.id,
+            registrationId: reg.id,
+            studentId: reg.studentId,
+          });
 
+          console.log(`✅ Registered: RegID ${reg.id} for Exam ${exam.id}`);
+        }
       } catch (error) {
-        console.error(`❌ Error processing studentId: ${matchOnReg.studentId}, registrationId: ${matchOnReg.id}`, error);
+        console.error(
+          `❌ Error processing studentId: ${reg.studentId}, registrationId: ${reg.id}`,
+          error
+        );
       }
     }
   }
 
-  console.log("🎯 Final registration IDs:", regId);
+  console.log('🎯 Final processed registrations:', processedRegistrations.length);
 
-return new Response(JSON.stringify({ message: "Cron executed" }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  // Optional: Send summary email to admin
+  try {
+    if (processedRegistrations.length > 0) {
+      await transporter.sendMail({
+        from: process.env.GMAIL_USER,
+        to: 'infoswap90@gmail.com', // change to actual admin
+        subject: '📊 Daily Exam Registration Cron Summary',
+        text: `Successfully registered ${processedRegistrations.length} students for today's exams.\n\nTime: ${new Date().toLocaleString()}`,
+      });
+    }
+  } catch (emailError) {
+    console.error('📧 Email sending failed:', emailError);
+  }
+
+  return new Response(
+    JSON.stringify({
+      message: 'Cron executed successfully',
+      examsProcessed: examsToday.length,
+      registrationsCreated: processedRegistrations.length,
+      timestamp: new Date().toISOString(),
+    }),
+    {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
 }

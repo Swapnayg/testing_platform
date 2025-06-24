@@ -3,7 +3,17 @@ import prisma from '@/lib/prisma';
 import { NextResponse } from "next/server";
 import { startOfDay, endOfDay } from "date-fns";
 
-export async function GET() {
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const username = searchParams.get('username');
+
+  if (!username) {
+    return new Response(JSON.stringify({ error: 'Username is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const today = new Date();
   const start = startOfDay(today);
   const end = endOfDay(today);
@@ -15,6 +25,7 @@ export async function GET() {
         gte: start,
         lte: end,
       },
+      studentId: username, // 👈 Add this line
     },
     include: {
       exam: true,

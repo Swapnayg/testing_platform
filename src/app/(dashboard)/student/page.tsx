@@ -310,7 +310,7 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
   return (
     <div className="p-4 flex flex-col gap-4">
 
-      <TodayResultPopup />
+      <TodayResultPopup  username={student?.cnicNumber ?? ""}/>
       {/* Welcome Card at the top */}
       <WelcomeCard username={username} />
 
