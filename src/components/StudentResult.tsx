@@ -35,25 +35,7 @@ const StudentResultsList = ({ username }: { username: string;  }) => {
     const data = await res.json();
     console.log(data);
   };
-  function assignRankByScore(results: { score: number; totalScore: number }[]) {
-  const withPercent = results.map((r) => ({
-    ...r,
-    percentage: (r.score / r.totalScore) * 100,
-  }));
-
-  withPercent.sort((a, b) => b.percentage - a.percentage);
-
-  let rank = 1;
-  let prevPercentage: number | null = null;
-
-  return withPercent.map((r, index) => {
-    if (r.percentage !== prevPercentage) {
-      rank = index + 1;
-    }
-    prevPercentage = r.percentage;
-    return { ...r, rank };
-  });
-}
+  
 
 
 const loadFilteredResults = async (examId: string) => {
@@ -61,10 +43,6 @@ const loadFilteredResults = async (examId: string) => {
 
   try {
     const rawResults = await getFilteredStudentDetails({ username });
-
-    console.log(rawResults);
-    // Add percentage and rank
-    // Store in state
     setFilteredResults(rawResults);
     setResults(rawResults.slice(0, PAGE_SIZE));
     setCurrentPage(1);
@@ -162,7 +140,7 @@ const loadFilteredResults = async (examId: string) => {
                   <th className="p-2 text-left">Correct</th>
                   <th className="p-2 text-left">Incorrect</th>
                   <th className="p-2 text-left">Submitted</th>
-                  <th className="p-2 text-left">Rank</th>
+                  <th className="p-2 text-left">Grade</th>
                   <th className="p-2 text-center">Actions</th>    
                 </tr>
               </thead>
@@ -177,7 +155,7 @@ const loadFilteredResults = async (examId: string) => {
                     <td className="p-2">{r.correctAnswers}</td>
                     <td className="p-2">{r.exam.totalMCQ - r.correctAnswers}</td>
                     <td className="p-2">{new Date(r.gradedAt).toLocaleString()}</td>
-                    <td className="p-2">{r.rank}</td>
+                    <td className="p-2">{r.grade}</td>
                     <td className="p-2 text-center">
                      <Link href={`/list/students/${r.quizAttempt.quizId}/quizview?studentName=${r.student.cnicNumber}&userRole=student`}>
                       <Button

@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from "@/lib/prisma";
 import { QuestionType } from "@prisma/client";
 
+function getGrade(score, total) {
+  const percentage = (score / total) * 100;
+
+  if (percentage >= 90) return 'A+';
+  if (percentage >= 80) return 'A';
+  if (percentage >= 70) return 'B';
+  if (percentage >= 60) return 'C';
+  if (percentage >= 50) return 'D';
+  return 'F';
+}
 
 
 export async function GET(request) {
@@ -354,6 +364,8 @@ export async function POST(request) {
           resultStatus = "FAILED";
         }
 
+        const grade = getGrade(parseInt(score), parseInt(totalMarks2));
+
         try { 
           const [updatedAttempt, createdAnswers] = await prisma.$transaction([
             prisma.quizAttempt.update({
@@ -374,6 +386,7 @@ export async function POST(request) {
               },
               data: {
                 score: parseInt(totalScoreEarned2), // just for test
+                grade:grade,
                 gradedAt: new Date(),
                 quizAttemptId: data.attemptId,
                 answeredQuestions: data.answeredCount,
@@ -461,6 +474,7 @@ export async function POST(request) {
         const score1 = parseInt(totalScoreEarned1); // your earned marks
         const passingThreshold1 = 0.4; // 40% passing mark (customize as needed)
         const totalMarks3 =  attempt1.quiz.exam.totalMarks || 100; // fallback to 100
+        const grade2 = getGrade(parseInt(score1), parseInt(totalMarks3));
 
         let resultStatus1 = "NOT_GRADED";
 
@@ -481,6 +495,7 @@ export async function POST(request) {
             data:{
               score:totalScoreEarned1,
               gradedAt: new Date(),
+              grade:grade2,
               quizAttemptId:udata.attemptId,
               answeredQuestions:attempt1.quiz.totalQuestions,
               correctAnswers:correctAnswerCount1,
