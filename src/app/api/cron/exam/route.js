@@ -40,7 +40,7 @@ export async function GET(request) {
         });
         const data = await res.json();
         console.log(`✅ Response for exam ${exam.id}:`, data);
-        return await {
+        return {
           examId: exam.id,
           status: res.status,
           data,

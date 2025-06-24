@@ -36,7 +36,6 @@ export async function POST(request) {
     const examCategory = exam.grade.category.catName;
     const examGradeLevel = exam.grade.level;
 
-
     const existingExamOnRegs = await prisma.examOnRegistration.findMany({
       select: { registrationId: true },
     });
