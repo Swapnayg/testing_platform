@@ -124,14 +124,14 @@ export async function GET(request) {
             }
             else
             {
-             const existing = await prisma.examOnRegistration.findFirst({
+             const existingExamRegs = await prisma.examOnRegistration.findMany({
               where: {
                 registrationId: matchOnReg.id,
-                examId: { in: examIds }, // ✅ check if any of today's exams are already linked
+                examId: { in: examIds },
               },
             });
-
-            if (existing) {
+            const existingExamIds = existingExamRegs.map(e => e.examId);
+            if (!existingExamIds.includes(exam.id)) {
               await prisma.examOnRegistration.upsert({
                   where: {
                     examId_registrationId: {
