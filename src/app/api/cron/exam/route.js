@@ -9,6 +9,13 @@ export async function GET(request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
+  console.log("🧪 Runtime ENV:", {
+  NODE_ENV: process.env.NODE_ENV,
+  CRON_SECRET: !!process.env.CRON_SECRET,
+  GMAIL_USER: !!process.env.GMAIL_USER,
+  DATABASE_URL: !!process.env.DATABASE_URL,
+});
+
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
