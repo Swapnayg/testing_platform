@@ -74,6 +74,29 @@ export async function POST(request) {
             registrationId: reg.id,
           },
         });
+
+        // 👇 Insert result record too
+        await prisma.result.upsert({
+          where: {
+            examId_studentId: {
+              examId: exam.id,
+              studentId: reg.studentId,
+            },
+          },
+          update: {}, // do nothing if exists
+          create: {
+            examId: exam.id,
+            studentId: reg.studentId,
+            status: "NOT_GRADED",
+            score: 0,
+            totalScore: exam.totalMarks,
+            grade: '',
+            startTime: new Date(exam.startTime),
+            endTime: new Date(exam.endTime),
+          },
+        });
+        console.log(`📊 Upserted result for student ${reg.studentId}`);
+
         created++;
       } else if (examIds && Array.isArray(examIds)) {
         const existingExamRegs = await prisma.examOnRegistration.findMany({
@@ -94,6 +117,33 @@ export async function POST(request) {
               registrationId: reg.id,
             },
           });
+          try {
+            // 👇 Insert result record too
+            await prisma.result.upsert({
+              where: {
+                examId_studentId: {
+                  examId: exam.id,
+                  studentId: reg.studentId,
+                },
+              },
+              update: {}, // do nothing if exists
+              create: {
+                examId: exam.id,
+                studentId: reg.studentId,
+                status: "NOT_GRADED",
+                score: 0,
+                totalScore: exam.totalMarks,
+                grade: '',
+                startTime: new Date(exam.startTime),
+                endTime: new Date(exam.endTime),
+              },
+            });
+            console.log(`📊 Upserted result for student ${reg.studentId}`);
+
+            console.log(`📊 Result created for ${reg.studentId}`);
+          } catch (err) {
+            console.error(`❌ Failed to upsert result for ${reg.studentId}`, err);
+          }
           created++;
         } else {
           console.log(`⚠️ Exam ${exam.id} already exists for registration ${reg.id}`);
