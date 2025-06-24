@@ -50,11 +50,6 @@ export async function POST(request) {
         id: {
           notIn: existingRegistrationIds, // 👈 manual exclusion
         },
-        exams: {
-          none: {
-            examId: exam.id,
-          },
-        },
       },
       select: {
         id: true,
