@@ -58,7 +58,7 @@ const ReviewStep = ({ quizData, questions }: ReviewStepProps) => {
             </div>
             <div>
               <p className="text-sm text-slate-600">Grade</p>
-              <p className="font-medium text-slate-800">{quizData.grade || 'Not specified'}</p>
+              <p className="font-medium text-slate-800">{quizData.grades || 'Not specified'}</p>
             </div>
             <div>
               <p className="text-sm text-slate-600">Subject</p>

@@ -8,108 +8,102 @@ datasource db {
 }
 
 model Admin {
-  id       String @id
-  username String @unique
-  // Notification Relations
-  sentNotifications       Notification[] @relation("AdminSentNotifications")
-  receivedNotifications   Notification[] @relation("AdminReceivedNotifications")
+  id                    String         @id
+  username              String         @unique
+  sentNotifications     Notification[] @relation("AdminSentNotifications")
+  receivedNotifications Notification[] @relation("AdminReceivedNotifications")
 }
 
 model Student {
-  id             String
-  name           String?
-  fatherName     String?
-  dateOfBirth    DateTime
-  religion       String?
-  gender         String?
-  cnicNumber     String         @unique
-  profilePicture String?
-  email          String?
-  mobileNumber   String?
-  city           String?
-  stateProvince  String?
-  addressLine1   String?
-  instituteName  String?
-  others         String?
-  rollNo         String?
+  id                    String
+  name                  String?
+  fatherName            String?
+  dateOfBirth           DateTime
+  religion              String?
+  gender                String?
+  cnicNumber            String         @unique
+  profilePicture        String?
+  email                 String?
+  mobileNumber          String?
+  city                  String?
+  stateProvince         String?
+  addressLine1          String?
+  instituteName         String?
+  others                String?
+  rollNo                String?
+  gradeId               Int?
+  Attendance            Attendance[]
+  sentNotifications     Notification[] @relation("StudentSentNotifications")
+  receivedNotifications Notification[] @relation("StudentReceivedNotifications")
+  Registration          Registration[]
+  Result                Result[]
+  grade                 Grade?         @relation(fields: [gradeId], references: [id])
+  attempts              QuizAttempt[]
 
-  Result         Result[]
-  Attendance     Attendance[]
-  Registration   Registration[]
-  attempts       QuizAttempt[]
-
-  // Notification Relations
-  sentNotifications       Notification[] @relation("StudentSentNotifications")
-  receivedNotifications   Notification[] @relation("StudentReceivedNotifications")
-
-  // Foreign key to Grade
-  gradeId        Int?      // ✅ Fixed to match Grade.id (which is Int)
-  grade          Grade?    @relation(fields: [gradeId], references: [id])
+  @@index([gradeId], map: "Student_gradeId_fkey")
 }
 
 model Category {
   id      Int     @id @default(autoincrement())
   catName String  @unique
-  Grade   Grade[]
   Exam    Exam[]
+  Grade   Grade[]
 }
 
 model QuizAttempt {
   id          String    @id @default(cuid())
   quizId      String
   studentId   String
-  student     Student   @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
   studentName String
   startTime   DateTime  @default(now())
   endTime     DateTime?
   isCompleted Boolean   @default(false)
   isSubmitted Boolean   @default(false)
   totalScore  Int?
-  timeSpent   Int? // in seconds
-
-  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  answers     Answer[]
-  results     Result[]
+  timeSpent   Int?
   submittedAt DateTime?
+  results     Result[]
+  answers     Answer[]
+  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
 
   @@unique([quizId, studentId])
+  @@index([quizId], map: "quiz_attempts_quizId_fkey")
+  @@index([studentId], map: "quiz_attempts_studentId_fkey")
   @@map("quiz_attempts")
 }
 
 model Answer {
-  id           String   @id @default(cuid())
-  attemptId    String
-  questionId   String
-  answerText       String           @db.Text  // <-- Updated to support long text 
-  isCorrect    Boolean?
-  pointsEarned Int      @default(0)
-  answeredAt   DateTime @default(now())
-
+  id               String          @id @default(cuid())
+  attemptId        String
+  questionId       String
+  answerText       String          @db.Text
+  isCorrect        Boolean?
+  pointsEarned     Int             @default(0)
+  answeredAt       DateTime        @default(now())
+  questionOptionId String?
   attempt          QuizAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
   QuestionOption   QuestionOption? @relation(fields: [questionOptionId], references: [id])
-  questionOptionId String?
 
   @@unique([attemptId, questionId])
+  @@index([questionId], map: "answers_questionId_fkey")
+  @@index([questionOptionId], map: "answers_questionOptionId_fkey")
   @@map("answers")
 }
 
 model Grade {
-  id         Int      @id @default(autoincrement())
-  level      String   @unique
-  categoryId Int
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  Exam Exam[]
+  id            Int            @id @default(autoincrement())
+  level         String         @unique
+  categoryId    Int
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  students      Student[]
   announcements Announcement[] @relation("AnnouncementGrades")
-  students Student[] // 👈 One-to-many relationship
+  exams         Exam[]         // many-to-many with Exam
+
+  @@index([categoryId], map: "Grade_categoryId_fkey")
 }
 
-enum RegistrationStatus {
-  APPROVED
-  PENDING
-  REJECTED
-}
 
 model Registration {
   id                 Int                  @id @default(autoincrement())
@@ -125,21 +119,23 @@ model Registration {
   otherName          String?
   transactionReceipt String?
   applicationId      String?
-  status             RegistrationStatus // <- enum used here
+  status             RegistrationStatus
   studentId          String
-  student            Student              @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
   registerdAt        DateTime             @default(now())
   exams              ExamOnRegistration[]
+  student            Student              @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
+
+  @@index([studentId], map: "Registration_studentId_fkey")
 }
 
 model ExamOnRegistration {
   examId         String
   registrationId Int
+  exam           Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
-  exam         Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
-  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-
-  @@id([examId, registrationId]) // composite primary key
+  @@id([examId, registrationId])
+  @@index([registrationId], map: "ExamOnRegistration_registrationId_fkey")
 }
 
 model Subject {
@@ -149,70 +145,74 @@ model Subject {
 }
 
 model Exam {
-  id        String     @id @default(uuid())
-  title     String
-  startTime DateTime
-  endTime   DateTime
-  status    ExamStatus @default(NOT_STARTED)
-  createdAt DateTime   @default(now())
-  resultDate  DateTime?  // ✅ New optional field for result announcement
-
-  timeLimit Int @default(30) // ⬅️ Added field (e.g., duration in minutes)
+  id            String               @id @default(uuid())
+  title         String
+  startTime     DateTime
+  endTime       DateTime
+  status        ExamStatus           @default(NOT_STARTED)
+  createdAt     DateTime             @default(now())
+  resultDate    DateTime?
+  timeLimit     Int                  @default(30)
 
   categoryId    Int
   category      Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  gradeId       Int
-  grade         Grade                @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
   subjectId     Int
   subject       Subject              @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
   totalMCQ      Int
   totalMarks    Int
-  results       Result[]
+
+  grades        Grade[]              // ✅ Many-to-many with Grade
+
   attendance    Attendance[]
   registrations ExamOnRegistration[]
-  quizzes       Quiz[]
+  results       Result[]
+  quizzes       Quiz?
+
+  @@index([categoryId], map: "Exam_categoryId_fkey")
+  @@index([subjectId], map: "Exam_subjectId_fkey")
 }
 
 model Quiz {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   title          String
   category       String
-  grade          String
   subject        String
-  totalQuestions Int      @map("total_questions")
-  totalMarks     Int      @map("total_marks")
-  startDateTime  DateTime @map("start_date_time")
-  endDateTime    DateTime @map("end_date_time")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  timeLimit      Int      @default(30) // ⬅️ Added field (e.g., duration in minutes)
+  totalQuestions Int           @map("total_questions")
+  totalMarks     Int           @map("total_marks")
+  startDateTime  DateTime      @map("start_date_time")
+  endDateTime    DateTime      @map("end_date_time")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  examId         String        @unique
+  timeLimit      Int           @default(30)
 
-  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
-  examId String @unique
+  questions      Question[]
+  QuizAttempt    QuizAttempt[]
+  exam           Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
 
-  // Relations
-  questions   Question[]
-  QuizAttempt QuizAttempt[]
+  grades         String?
 
+  @@index([examId], map: "quizzes_examId_fkey")
   @@map("quizzes")
 }
 
 model Question {
-  id            String       @id @default(cuid())
-  quizId        String       @map("quiz_id")
+  id            String           @id @default(cuid())
+  quizId        String           @map("quiz_id")
   type          QuestionType
   text          String
   marks         Float
-  correctAnswer String?      @db.Text @map("correct_answer") // <-- Changed here
-  orderIndex    Int          @map("order_index")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  correctAnswer String?          @map("correct_answer") @db.Text
+  orderIndex    Int              @map("order_index")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  Answer        Answer[]
+  options       QuestionOption[]
+  quiz          Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
-  // Relations
-  quiz    Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  options QuestionOption[]
-  Answer  Answer[]
-
+  @@index([quizId], map: "questions_quiz_id_fkey")
   @@map("questions")
 }
 
@@ -224,86 +224,71 @@ model QuestionOption {
   orderIndex Int      @map("order_index")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
+  Answer     Answer[]
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  // Relations
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  Answer   Answer[]
-
+  @@index([questionId], map: "question_options_question_id_fkey")
   @@map("question_options")
 }
 
-enum QuestionType {
-  MULTIPLE_CHOICE @map("multiple_choice")
-  TRUE_FALSE      @map("true_false")
-  SHORT_TEXT      @map("short_text")
-  LONG_TEXT       @map("long_text")
-  NUMERICAL       @map("numerical")
-}
-
-enum ResultStatus {
-  NOT_GRADED // Exam submitted, but not yet graded
-  PASSED // Student passed the exam
-  FAILED // Student failed the exam
-  ABSENT // Student did not attend the exam
-}
-
 model Result {
-  id         Int          @id @default(autoincrement())
-  totalScore Int
-  score      Int
-  grade      String
-  status     ResultStatus @default(NOT_GRADED)
-  gradedAt   DateTime?
-  resultDeclared Boolean @default(false) // ✅ New boolean field
-  declaredOn  DateTime?  // ✅ New optional field for result announcement
-  startTime  DateTime
-  endTime    DateTime
-
-  answeredQuestions Int @default(0) // <-- New field
-  correctAnswers    Int @default(0) // <-- New field
-
-  examId    String?
-  exam      Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
-  studentId String
-  student   Student @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
-
-  quizAttemptId String? // <-- New optional field
-  quizAttempt   QuizAttempt? @relation(fields: [quizAttemptId], references: [id], onDelete: SetNull)
+  id                Int          @id @default(autoincrement())
+  totalScore        Int
+  score             Int
+  grade             String
+  status            ResultStatus @default(NOT_GRADED)
+  gradedAt          DateTime?
+  startTime         DateTime
+  endTime           DateTime
+  examId            String?
+  studentId         String
+  answeredQuestions Int          @default(0)
+  correctAnswers    Int          @default(0)
+  quizAttemptId     String?
+  resultDeclared    Boolean      @default(false)
+  declaredOn        DateTime?
+  exam              Exam?        @relation(fields: [examId], references: [id], onDelete: Cascade)
+  quizAttempt       QuizAttempt? @relation(fields: [quizAttemptId], references: [id])
+  student           Student      @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
 
   @@unique([examId, studentId])
+  @@index([examId], map: "Result_examId_fkey")
+  @@index([quizAttemptId], map: "Result_quizAttemptId_fkey")
+  @@index([studentId], map: "Result_studentId_fkey")
 }
-
 
 model Notification {
-  id             String   @id @default(uuid())
-  title          String
-  message        String   // This is effectively a 'text' field in Prisma
+  id            String   @id @default(uuid())
+  title         String
+  message       String
+  fromAdminId   String?
+  toAdminId     String?
+  fromStudentId String?
+  toStudentId   String?
+  createdAt     DateTime @default(now())
+  isRead        Boolean  @default(false)
+  fromAdmin     Admin?   @relation("AdminSentNotifications", fields: [fromAdminId], references: [username])
+  fromStudent   Student? @relation("StudentSentNotifications", fields: [fromStudentId], references: [cnicNumber])
+  toAdmin       Admin?   @relation("AdminReceivedNotifications", fields: [toAdminId], references: [username])
+  toStudent     Student? @relation("StudentReceivedNotifications", fields: [toStudentId], references: [cnicNumber])
 
-  fromAdminId    String?  
-  toAdminId      String?  
-  fromStudentId  String?  
-  toStudentId    String?  
-
-  createdAt      DateTime @default(now())
-  isRead         Boolean  @default(false)
-
-  // Relations
-  fromAdmin      Admin?    @relation("AdminSentNotifications", fields: [fromAdminId], references: [username])
-  toAdmin        Admin?    @relation("AdminReceivedNotifications", fields: [toAdminId], references: [username])
-  fromStudent    Student?  @relation("StudentSentNotifications", fields: [fromStudentId], references: [cnicNumber])
-  toStudent      Student?  @relation("StudentReceivedNotifications", fields: [toStudentId], references: [cnicNumber])
+  @@index([fromAdminId], map: "Notification_fromAdminId_fkey")
+  @@index([fromStudentId], map: "Notification_fromStudentId_fkey")
+  @@index([toAdminId], map: "Notification_toAdminId_fkey")
+  @@index([toStudentId], map: "Notification_toStudentId_fkey")
 }
 
-
 model Attendance {
-  id      Int      @id @default(autoincrement())
-  date    DateTime
-  present Boolean
-
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  present   Boolean
   studentId String
-  student   Student @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
   examId    String?
-  exam      Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
+  exam      Exam?    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [cnicNumber], onDelete: Cascade)
+
+  @@index([examId], map: "Attendance_examId_fkey")
+  @@index([studentId], map: "Attendance_studentId_fkey")
 }
 
 model Event {
@@ -317,29 +302,37 @@ model Event {
 model Announcement {
   id          Int       @id @default(autoincrement())
   title       String
-  description String     @db.Text  // ⬅️ Use Text column type
-  date        DateTime   @default(now())
-  isForAll    Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  resultDate  DateTime?  // ✅ New optional field for result announcement
-  grades      Grade[]    @relation("AnnouncementGrades")
+  description String    @db.Text
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  isForAll    Boolean   @default(false)
+  resultDate  DateTime?
+  grades      Grade[]   @relation("AnnouncementGrades")
+}
+
+enum RegistrationStatus {
+  APPROVED
+  PENDING
+  REJECTED
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE @map("multiple_choice")
+  TRUE_FALSE      @map("true_false")
+  SHORT_TEXT      @map("short_text")
+  LONG_TEXT       @map("long_text")
+  NUMERICAL       @map("numerical")
+}
+
+enum ResultStatus {
+  NOT_GRADED
+  PASSED
+  FAILED
+  ABSENT
 }
 
 enum ExamStatus {
-  NOT_STARTED // Exam has been scheduled but not yet started
-  IN_PROGRESS // Exam is currently being taken
-  COMPLETED // Exam has been finished by the participant
-}
-
-enum UserSex {
-  MALE
-  FEMALE
-}
-
-enum Day {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
 }

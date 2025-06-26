@@ -84,10 +84,9 @@ export const examSchema = z.object({
   totalMarks: z.coerce.number().min(1, { message: "Total Marks is required!" }),
   timeLimit: z.coerce.number().min(1, { message: "Time Limit is required!" }),
   categoryId: z.coerce.number({ message: "Category is required!" }),
-  gradeId: z.coerce.number({ message: "Grade is required!" }),
   subjectId: z.coerce.number({ message: "Subject is required!" }),
-  lessonId: z.coerce.number({ message: "Lesson is required!" }),
-  status: z.string(),
+  grades: z.array(z.coerce.number()).min(1, { message: "At least one grade must be selected!" }),
+  status: z.string().optional(),
 });
 
 export type ExamSchema = z.infer<typeof examSchema>;

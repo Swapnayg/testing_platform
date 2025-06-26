@@ -22,9 +22,9 @@ const MetadataStep = ({ quizData, setQuizData ,questions, setQuestions}: Metadat
   const [examValue, setExamValue] = useState("");
   const [randomQuestions, setRandomQuestions] = useState<Question[]>([]);
   const [showPrompt, setShowPrompt] = useState(false);
-  const handleInputChange = (field: keyof QuizData, value: string | number) => {
-    setQuizData({ ...quizData, [field]: value });
-  };
+  const handleInputChange = (field: keyof QuizData, value: string | number | string[] | number[]) => {
+      setQuizData({ ...quizData, [field]: value });
+    };
   type ExamType = {
     id: string;
     title: string;
@@ -66,8 +66,8 @@ const handleConfirm = () => {
     const selectedExam = exams.find((exam) => exam.id === examValue);
     setQuizData({
       title: selectedExam?.title !== undefined ? String(selectedExam.title) : "",
-      category: selectedExam?.category !== undefined ? String(selectedExam?.category) : "",
-      grade: selectedExam?.level !== undefined ? String(selectedExam?.level) : "",
+      category: selectedExam ? String(selectedExam.category ?? "") : "",
+      grades: selectedExam && Array.isArray((selectedExam as any).grades) ? (selectedExam as any).grades : [], // string list of grades
       subject: selectedExam?.subject !== undefined ? String(selectedExam?.subject) : "",
       totalQuestions: selectedExam && selectedExam.totalMCQ !== undefined ? Number(selectedExam.totalMCQ) : 0,
       totalMarks: selectedExam && selectedExam.totalMarks !== undefined ? Number(selectedExam.totalMarks) : 0,
@@ -128,8 +128,8 @@ const createQuiz = async (exmId: string) => {
     const selectedExam = exams.find((exam) => exam.id === exmId);
     setQuizData({
       title: selectedExam?.title !== undefined ? String(selectedExam.title) : "",
-      category: selectedExam?.category !== undefined ? String(selectedExam?.category) : "",
-      grade: selectedExam?.level !== undefined ? String(selectedExam?.level) : "",
+      category: selectedExam ? String(selectedExam.category ?? "") : "",
+      grades: selectedExam && Array.isArray((selectedExam as any).grades) ? (selectedExam as any).grades : [],  // string list of grades
       subject: selectedExam?.subject !== undefined ? String(selectedExam?.subject) : "",
       totalQuestions: selectedExam && selectedExam.totalMCQ !== undefined ? Number(selectedExam.totalMCQ) : 0,
       totalMarks: selectedExam && selectedExam.totalMarks !== undefined ? Number(selectedExam.totalMarks) : 0,
@@ -164,13 +164,15 @@ const createQuiz = async (exmId: string) => {
         status: exam.status,
         createdAt: new Date(exam.createdAt),
         categoryId: exam.categoryId,
-        gradeId: exam.gradeId,
         subjectId: exam.subjectId,
         totalMCQ: exam.totalMCQ,
-        category: exam.grade.category.catName,
-        level: exam.grade.level,
-        subject: exam.subject?.name ?? "", // Ensure subject is always present
+        subject: exam.subject?.name ?? "",
+        category: exam.grades[0]?.category?.catName ?? "", // from first grade's category
+        // ✅ Grades (Array of Grade Objects)
+        grades: exam.grades.map((g: any) => g.level), // array of grade levels
+
       }));
+
       setExams(formattedExams);
     });
 
@@ -199,15 +201,18 @@ const createQuiz = async (exmId: string) => {
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
             onChange={handleExamOnchange} value={quizData.examId}
           >
-            <option value="" key="" className='relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50'> Select an Exam</option>
-            {exams.map((exam: { id: string; title: string }) => (
-              <option className='relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
-                value={exam.id}
-                key={exam.id}
-              >
-                {exam.title}
-              </option>
-            ))}
+            <option value="" disabled selected className="text-gray-400">
+              Select an Exam
+            </option>
+              {exams.map((exam: { id: string; title: string }) => (
+                <option
+                  key={exam.id}
+                  value={exam.id}
+                  className="text-sm text-gray-700 hover:bg-blue-100 px-3 py-1"
+                >
+                  {exam.title}
+                </option>
+              ))}
           </select>
           </div>
           <div>
@@ -239,10 +244,10 @@ const createQuiz = async (exmId: string) => {
             <div>
               <Label htmlFor="grade" className="text-slate-700">Grade</Label>
               <Input
-                id="grade"
-                value={quizData.grade}
+                id="grades"
+                value={Array.isArray(quizData.grades) ? quizData.grades.join(", ") : quizData.grades}
                 readOnly
-                onChange={(e) => handleInputChange('grade', e.target.value)}
+                onChange={(e) => handleInputChange('grades', e.target.value.split(", ").map(Number))}
                 placeholder="e.g., 10th Grade"
                 className="border-slate-300 focus:border-slate-500"
               />

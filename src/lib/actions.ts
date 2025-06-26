@@ -292,13 +292,17 @@ export const createExam = async (
       data: {
         title: data.title,
         categoryId: data.categoryId,
-        gradeId: data.gradeId,
         subjectId: data.subjectId,
         startTime: data.startTime,
         endTime: data.endTime,
         totalMCQ: data.totalMCQ,
         totalMarks: data.totalMarks,
-        timeLimit:data.timeLimit,
+        timeLimit: data.timeLimit,
+
+        // 👇 Connect multiple grades
+        grades: {
+          connect: data.grades.map((gradeId: number) => ({ id: gradeId })),
+        },
       },
     });
 
@@ -323,7 +327,10 @@ export const updateExam = async (
       data: {
         title: data.title,
         categoryId: data.categoryId,
-        gradeId: data.gradeId,
+        // 👇 Connect multiple grades
+        grades: {
+          connect: data.grades.map((gradeId: number) => ({ id: gradeId })),
+        },
         subjectId: data.subjectId,
         startTime: data.startTime,
         endTime: data.endTime,
@@ -336,10 +343,10 @@ export const updateExam = async (
     const examWithId = await prisma.exam.findUnique({
       where: { id: data.id },
       include: {
-        grade: {
-          include:{
-            category:true,
-          }
+        grades: {
+          include: {
+            category: true,
+          },
         }, // pulls in the Grade relation
         subject:true,
       },
@@ -349,7 +356,7 @@ export const updateExam = async (
           where: {examId: data.id },
           data: { 
             title: data.title,
-            grade: examWithId?.grade.level || '',
+            grades:  examWithId?.grades.map(grade => grade.level).join(', ') || '',
             subject: examWithId?.subject.name || '',
             totalQuestions:  data.totalMCQ,
             totalMarks: data.totalMarks,
@@ -357,7 +364,7 @@ export const updateExam = async (
             startDateTime: data.startTime ? new Date(data.startTime) : new Date(),
             endDateTime: data.endTime ? new Date(data.endTime) : new Date(),
             // Provide valid values for category and exam as required by your schema
-            category: examWithId?.grade.category.catName, // Replace with actual categoryId
+            category: examWithId?.grades[0]?.category?.catName || '', // Use the first grade's category name
           },
         });
       }
@@ -448,8 +455,10 @@ export async function createRegistration(data: { name: string; status: "PENDING"
         category: {
           catName: data.olympiadCategory || '',
         },
-        grade: {
-        level:  data.catGrade || '',
+        grades: {
+          some: {
+            level: data.catGrade || '',
+          },
         },
       },
     });
@@ -951,7 +960,7 @@ export const updateAccept = async (
       if (user?.id) {
         const exams = await prisma.exam.findMany({
           where: {
-            grade: { level: register.catGrade ?? '' },
+            grades: { some: { level: register.catGrade ?? '' } },
             category: { catName:  register.olympiadCategory ?? '' },
             status: {
               in: ["NOT_STARTED", "IN_PROGRESS"],
@@ -972,7 +981,7 @@ export const updateAccept = async (
                 name:true
               }
             },
-            grade:{
+            grades:{
               select:{
                 level:true,
                 category:{
@@ -1168,25 +1177,26 @@ export const saveQuizToDatabase = async (data: CreateQuizData) => {
         examId: data.quiz.examId ,
       },
     });
+
     const createdQuiz = await prisma.quiz.create({
       data: {
         title: data.quiz.title,
-        grade: data.quiz.grade || '',
         subject: data.quiz.subject || '',
         totalQuestions: data.quiz.totalQuestions,
         totalMarks: data.quiz.totalMarks,
         timeLimit: data.quiz.timeLimit,
-        startDateTime: data.quiz.startDateTime ? new Date(data.quiz.startDateTime) : new Date(),
-        endDateTime: data.quiz.endDateTime ? new Date(data.quiz.endDateTime) : new Date(),
-        // Provide valid values for category and exam as required by your schema
-        category: data.quiz.category, // Replace with actual categoryId
-        examId: data.quiz.examId ,         // Replace with actual examId
-      },
+        startDateTime: new Date(data.quiz.startDateTime),
+        endDateTime: new Date(data.quiz.endDateTime),
+        category: data.quiz.category,
+        examId: data.quiz.examId,
+        // ✅ Connect multiple grades by IDs
+        grades: Array.isArray(data.quiz.grades) ? data.quiz.grades.join(', ') : data.quiz.grades,
+      }
     });
 
     console.log('Quiz created:', createdQuiz);
 
-    // Create questions for the quiz
+   // Create questions for the quiz
     const questionPromises = data.questions.map(async (question, index) => {
       const createdQuestion = await prisma.question.create({
         data: {
@@ -1248,7 +1258,7 @@ export const getAllExams = async () => {
   },
   include: {
     subject: true,
-    grade: true,
+    grades: true,
     category: true,
   },
 });
@@ -1287,7 +1297,7 @@ export const getFilteredStudentDetails = async ({ username }: { username: string
       student: true,
       exam: {
         include: {
-          grade: true,
+          grades: true,
           subject: true,
           category: true, // optional, for more detail
         },
@@ -1336,7 +1346,7 @@ export const getFilteredExamResults = async ({
     student: true,
     exam: {
       include: {
-        grade: true,
+        grades: true,
         subject: true,
         category: true, // optional, for more detail
       },

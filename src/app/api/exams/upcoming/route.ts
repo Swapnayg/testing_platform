@@ -22,10 +22,9 @@ export async function GET() {
       status: true,
       createdAt: true,
       categoryId: true,
-      gradeId: true,
       subjectId: true,
       totalMCQ: true,
-      grade: {
+      grades: {
         select: {
           level: true,
           category: {
@@ -42,6 +41,5 @@ export async function GET() {
       },
     },
   });
-
   return NextResponse.json(exams);
 }

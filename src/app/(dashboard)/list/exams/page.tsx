@@ -9,14 +9,44 @@ import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from 'next';
 
-type ExamList = Exam & {
-  grade: {
-    level: string;
-    category: Category;
+type ExamList = {
+  id: string;
+  title: string;
+  status: string;
+  totalMCQ: number;
+  totalMarks: number;
+  timeLimit: number;
+  startTime: string;
+  endTime: string;
+  createdAt: string;
+  resultDate: string | null;
+  categoryId: number;
+  subjectId: number;
+  subject: {
+    id: number;
+    name: string;
   };
-  subject: Subject;
-  approvedCount:number;
+  category: {
+    id: number;
+    catName: string;
+  };
+  grades: {
+    id: number;
+    level: string;
+    category: {
+      id: number;
+      catName: string;
+    };
+  }[];
+  registrations: {
+    registration: {
+      status: string;
+    };
+  }[];
+
+  approvedCount: number;
 };
+
 
 
 export async function generateMetadata({
@@ -57,11 +87,11 @@ const columns = [
   },
   {
     header: "Category",
-    accessor: "grade.category.catName",
+    accessor: "category.catName",
   },
   {
     header: "Grade",
-    accessor: "grade.level",
+    accessor: "grades.level",
     className: "hidden md:table-cell",
   },
   {
@@ -101,11 +131,11 @@ const renderRow = (item: ExamList) => (
   >
     <td className="flex items-center gap-4 p-4"> { item.title!.charAt(0).toLocaleUpperCase() + item.title!.slice(1)}</td>
     <td className="hidden md:table-cell">{ item.subject.name!.charAt(0).toLocaleUpperCase() + item.subject.name!.slice(1)}</td>
-    <td>{item.grade.category.catName}</td>
-    <td className="hidden md:table-cell">{item.grade.level}</td>
+    <td>{ item.category.catName} </td>
+    <td className="hidden md:table-cell">{item.grades.map(g => g.level).join(', ')}</td>
     <td>{item.totalMCQ}</td>
     <td>{item.totalMarks}</td>
-    <td>{new Intl.DateTimeFormat().format(item.startTime)}</td>
+    <td>{new Intl.DateTimeFormat().format(new Date(item.startTime))}</td>
     <td className="text-center">{item.approvedCount}</td>
     <td>
       {item.status === "NOT_STARTED" && (
@@ -139,29 +169,47 @@ const renderRow = (item: ExamList) => (
   const p = page;
 
   const where = {
-    OR: [
-        { title: { contains: queryParams.trim() } },
-        { grade: {
-            level: { contains: queryParams.trim() },
-            category: { catName: { contains: queryParams.trim()  } }
-          }
+  OR: [
+    {
+      title: { contains: queryParams.trim() },
+    },
+    {
+      grades: {
+        some: {
+          level: { contains: queryParams.trim()},
         },
-        { subject: { name: { contains: queryParams.trim()  } } },
-        ...(["NOT_STARTED", "IN_PROGRESS", "COMPLETED"].includes(queryParams.trim())
-      ? [{ status: { equals: queryParams.trim() as ExamStatus } }]
-      : []),
-      
-      ...( !isNaN(Number(queryParams.trim()))
-      ? [
-          { totalMCQ: Number(queryParams.trim()) },      // example numeric field
-          { totalMarks: Number(queryParams.trim()) },     // another example field
-        ]
-      : []),
+      },
+    },
+    {
+      grades: {
+        some: {
+          category: {
+            catName: { contains: queryParams.trim()},
+          },
+        },
+      },
+    },
+    {
+      subject: {
+        name: { contains: queryParams.trim() },
+      },
+    },
+    ...(
+      ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"].includes(queryParams.trim())
+        ? [{ status: { equals: queryParams.trim() as ExamStatus } }]
+        : []
+    ),
+    ...(
+      !isNaN(Number(queryParams.trim()))
+        ? [
+            { totalMCQ: Number(queryParams.trim()) },
+            { totalMarks: Number(queryParams.trim()) },
+          ]
+        : []
+    ),
+  ],
+};
 
-
-      ],
-  };
-  
 var [data, count] = await prisma.$transaction([
   prisma.exam.findMany({
     where,
@@ -177,10 +225,22 @@ var [data, count] = await prisma.$transaction([
       createdAt: true,
       resultDate: true,
       categoryId: true,
-      gradeId: true,
       subjectId: true,
-      grade: {
+      subject: {
         select: {
+          id: true,
+          name: true
+        }
+      },
+      category: {
+        select: {
+          id: true,
+          catName: true
+        }
+      },
+      grades: {
+        select: {
+          id: true,
           level: true,
           category: {
             select: {
@@ -188,13 +248,7 @@ var [data, count] = await prisma.$transaction([
               catName: true
             }
           }
-        }
-      },
-      subject: {
-        select: {
-          id: true,
-          name: true
-        }
+        },
       },
       registrations: {
         select: {
@@ -213,13 +267,39 @@ var [data, count] = await prisma.$transaction([
 ]);
 
 const exams: ExamList[] = data.map(exam => ({
-  ...exam,
-  resultDate: exam.resultDate ?? null,
+  id: exam.id,
+  title: exam.title,
+  status: exam.status,
+  totalMCQ: exam.totalMCQ,
+  totalMarks: exam.totalMarks,
+  timeLimit: exam.timeLimit,
+  startTime: exam.startTime instanceof Date ? exam.startTime.toISOString() : exam.startTime,
+  endTime: exam.endTime instanceof Date ? exam.endTime.toISOString() : exam.endTime,
+  createdAt: exam.createdAt instanceof Date ? exam.createdAt.toISOString() : exam.createdAt,
+  resultDate: exam.resultDate ? (exam.resultDate instanceof Date ? exam.resultDate.toISOString() : exam.resultDate) : null,
+  categoryId: exam.categoryId,
+  subjectId: exam.subjectId,
+  subject: {
+    id: exam.subject.id,
+    name: exam.subject.name,
+  },
+  category: {
+    id: exam.category.id,
+    catName: exam.category.catName,
+  },
+  registrations: exam.registrations,
   approvedCount: exam.registrations.filter(
     r => r.registration.status === 'APPROVED'
-  ).length
+  ).length,
+  grades: exam.grades.map(g => ({
+    id: g.id,
+    level: g.level,
+    category: {
+      id: g.category.id,
+      catName: g.category.catName,
+    }
+  }))
 }));
-
 
   if (data.length === 0) {
   //throw new Error('No exams found.');

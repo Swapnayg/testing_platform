@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller  } from "react-hook-form";
 import InputField from "../InputField";
 import {
   examSchema,
@@ -20,6 +20,10 @@ import { Dispatch, SetStateAction, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useWatch } from "react-hook-form";
+import Select from 'react-select';
+import { Grade } from "@prisma/client";
+
+type GradeOption = { value: number; label: string };
 
 const ExamForm = ({
   type,
@@ -32,24 +36,41 @@ const ExamForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    control,
-  } = useForm<ExamSchema>({
-    resolver: zodResolver(examSchema),
-  });
+const { categories, grades, subjects } = relatedData;
 
-  // AFTER REACT 19 IT'LL BE USEACTIONSTATE
+const {
+  register,
+  handleSubmit,
+  formState: { errors },
+  control,
+  setValue, // 👈 Add this
+} = useForm<ExamSchema>({
+  resolver: zodResolver(examSchema),
+  defaultValues: {
+    categoryId: data?.categoryId ?? categories[0]?.id ?? 0, // Fallback to 0 if category list is empty
+    grades: data?.grades?.map((g: { id: number }) => g.id) ?? [], 
+    title: data?.title ?? "",
+    totalMCQ: data?.totalMCQ ?? 0,
+    totalMarks: data?.totalMarks ?? 0,
+    timeLimit: data?.timeLimit ?? 0,
+    subjectId: data?.subjectId ?? 0,
+    startTime: data?.startTime ?? "",
+    endTime: data?.endTime ?? "",
+    status: data?.status ?? "DRAFT",
+  },
+});
 
-  const [state, formAction] = useActionState(
-    type === "create" ? createExam : updateExam,
-    {
-      success: false,
-      error: false,
-    }
-  );
+// AFTER REACT 19 IT'LL BE USEACTIONSTATE
+
+const [isLoading, setIsLoading] = useState(false);
+
+const [state, formAction] = useActionState(
+  type === "create" ? createExam : updateExam,
+  {
+    success: false,
+    error: false,
+  }
+);
 
   const startTime = useWatch({ control, name: "startTime" });
   const endTime = useWatch({ control, name: "endTime" });
@@ -57,47 +78,70 @@ const ExamForm = ({
   const [timeLimit, setTimeLimit] = useState<number | undefined>(data?.timeLimit);
 
 
-const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  const formData = new FormData(e.currentTarget);
-  const data = Object.fromEntries(formData.entries());
+const handleSubmit1 = async (formData: ExamSchema) => {
+  setIsLoading(true);
+  try {
+    const {
+      startTime,
+      endTime,
+      title,
+      totalMCQ,
+      totalMarks,
+      timeLimit,
+      categoryId,
+      subjectId,
+      id,
+      grades,
+    } = formData;
 
-  // Convert FormDataEntryValue to correct types
-  if (!data.startTime || !data.endTime || !data.title.toString().trim() || !data.totalMCQ.toString().trim() || !data.totalMarks.toString().trim()) {
-    toast.error("All Fields are required.");
-    return;
-  }
-  if (new Date(data.startTime as string).getTime() > new Date().getTime()) {
-    if (new Date(data.endTime as string).getTime() <= new Date(data.startTime as string).getTime()) {
-      toast.error("End Date must be greater than Start Date.");
+    if (!startTime || !endTime || !title.trim() || !totalMCQ || !totalMarks) {
+      toast.error("All fields are required.");
+      return;
     }
-    else
-    {
+
+    if (new Date(startTime).getTime() <= new Date().getTime()) {
+      toast.error("Start Date must be greater than today's date.");
+      return;
+    }
+
+    if (new Date(endTime).getTime() <= new Date(startTime).getTime()) {
+      toast.error("End Date must be after Start Date.");
+      return;
+    }
+
     const parsedData = {
-      title: data.title as string,
-      startTime: new Date(data.startTime as string),
-      endTime: new Date(data.endTime as string),
-      totalMCQ: data.totalMCQ ? Number(data.totalMCQ) : 0,
-      totalMarks: data.totalMarks ? Number(data.totalMarks) : 0,
-      timeLimit: typeof timeLimit === "number" ? timeLimit : 0,
-      categoryId: data.categoryId ? Number(data.categoryId) : 0,
-      gradeId: data.gradeId ? Number(data.gradeId) : 0,
-      subjectId: data.subjectId ? Number(data.subjectId) : 0,
-      lessonId: data.lessonId ? Number(data.lessonId) : 0,
-      id: data.id ? String(data.id) : undefined,
-      status: data.status as string,
+      title,
+      startTime,
+      endTime,
+      totalMCQ,
+      totalMarks,
+      timeLimit,
+      categoryId,
+      subjectId,
+      id,
+      grades,
     };
 
     formAction(parsedData);
-    }
-  }
-  else
-  {
-    toast.error("Start Date must be greater than Today's Date.");
+  } catch (err) {
+    console.error("Error in submission", err);
+    toast.error("Something went wrong.");
+  } finally {
+    setIsLoading(false);
   }
 };
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState(1);
+
+const formatDateTimeLocal = (date?: string | Date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState(
+    data?.categoryId ?? categories[0]?.id
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -107,6 +151,7 @@ const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
     const diffMs = end.getTime() - start.getTime();
     const diffMins = Math.max(Math.floor(diffMs / (1000 * 60)), 0); // prevent negatives
     setTimeLimit(diffMins);
+    setValue("timeLimit", diffMins); // 👈 this tells RHF
   }
     if (state.success) {
       toast(`Exam has been ${type === "create" ? "created" : "updated"}!`);
@@ -114,159 +159,224 @@ const handleSubmit1 = async (e: React.FormEvent<HTMLFormElement>) => {
       router.refresh();
     }
   }, [state, router, type, setOpen,startTime,endTime]);
+  const gradesList: Grade[] = relatedData.grades.filter(
+  (grade: Grade) => grade.categoryId === selectedCategoryId
+);
 
-  const { lessons, categories, grades, subjects } = relatedData;
-  const gradesList = grades.filter((grade: { categoryId: number; }) => grade.categoryId === selectedCategoryId);
-  console.log(data)
+  const gradeOptions: GradeOption[] = gradesList.map((g) => ({
+    value: g.id,
+    label: g.level,
+  }));
+
+  useEffect(() => {
+    if (data?.startTime) {
+      setValue("startTime", formatDateTimeLocal(data.startTime) as any, { shouldValidate: true });
+    }
+    if (data?.endTime) {
+      setValue("endTime", formatDateTimeLocal(data.endTime) as any, { shouldValidate: true });
+    }
+  }, [data, setValue]);
+
   return (
-    <form className="flex flex-col gap-8" onSubmit={handleSubmit1}>
-      <h1 className="text-xl font-semibold">
-        {type === "create" ? "Create a new exam" : "Update the exam"}
+    <form
+      className="space-y-8 p-6 bg-white shadow-xl rounded-2xl border border-gray-100"
+      onSubmit={handleSubmit(handleSubmit1, (errors) => { console.warn("❌ Form validation failed:", errors); })}// ✅ this is correct
+    >
+      <h1 className="text-2xl font-semibold text-gray-700">
+        {type === "create" ? "📘 Create a New Exam" : "📝 Update the Exam"}
       </h1>
 
-      <div className="flex justify-between flex-wrap gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <InputField
-          label="Exam title"
+          label="Exam Title"
           name="title"
           defaultValue={data?.title}
           register={register}
           error={errors?.title}
         />
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Category</label>
+
+        {/* Category */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-gray-600 font-medium">Category</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("categoryId")}
-            onChange={e => setSelectedCategoryId(Number(e.target.value))}
-          >
-            {categories.map((category: { id: number; catName: string }) => (
-              <option
-                value={category.id}
-                key={category.id}
-              >
-                {category.catName}
-              </option>
-            ))}
-          </select>
+          className="ring-1 ring-gray-300 px-3 py-2 rounded-md text-sm focus:ring-2 focus:ring-blue-500 transition"
+          {...register("categoryId")}
+          onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
+        >
+          {categories.map((category: { id: number; catName: string }) => (
+            <option value={category.id} key={category.id}>
+              {category.catName}
+            </option>
+          ))}
+        </select>
           {errors.categoryId?.message && (
-            <p className="text-xs text-red-400">
-              {errors.categoryId.message.toString()}
-            </p>
+            <p className="text-xs text-red-500">{errors.categoryId.message.toString()}</p>
           )}
         </div>
 
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Grade</label>
-          <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("gradeId")}
-          >
-            {gradesList.map((grade: { id: number; level: string }) => (
-              <option
-                value={grade.id}
-                key={grade.id}
-              >
-                {grade.level}
-              </option>
-            ))}
-          </select>
-          {errors.gradeId?.message && (
-            <p className="text-xs text-red-400">
-              {errors.gradeId.message.toString()}
-            </p>
+        {/* Grades (Multiple Select) */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-gray-600 font-medium">Grade(s)</label>
+          <Controller
+            control={control}
+            name="grades"
+            rules={{ required: "Please select at least one grade" }}
+            render={({ field }) => {
+              const selectedOptions = gradeOptions.filter(opt =>
+                Array.isArray(field.value) && field.value.includes(opt.value)
+              );
+
+              return (
+                <Select
+                  isMulti
+                  options={gradeOptions}
+                  value={selectedOptions}
+                  onChange={(selectedOptions) => {
+                    const selectedValues = selectedOptions
+                      ? selectedOptions.map((opt) => opt.value)
+                      : [];
+                    field.onChange(selectedValues);
+                    console.log("field.value", field.value);
+                    console.log("selectedOptions", selectedOptions);    
+                  }}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  className="react-select-container"
+                  classNamePrefix="select"
+                  placeholder="Select grades..."
+                  ref={field.ref}
+                />
+              );
+            }}
+          />
+          {errors.grades?.message && (
+            <p className="text-xs text-red-500">{errors.grades.message.toString()}</p>
           )}
         </div>
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Subject</label>
+
+        {/* Subject */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-gray-600 font-medium">Subject</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="ring-1 ring-gray-300 px-3 py-2 rounded-md text-sm focus:ring-2 focus:ring-blue-500 transition"
             {...register("subjectId")}
             defaultValue={data?.subjectId}
           >
             {subjects.map((subject: { id: number; name: string }) => (
-              <option
-                value={subject.id}
-                key={subject.id}
-                selected={data && subject.id === data.subjectId}
-              >
+              <option value={subject.id} key={subject.id}>
                 {subject.name}
               </option>
             ))}
           </select>
           {errors.subjectId?.message && (
-            <p className="text-xs text-red-400">
-              {errors.subjectId.message.toString()}
-            </p>
+            <p className="text-xs text-red-500">{errors.subjectId.message.toString()}</p>
           )}
         </div>
-        
+
+        {/* Date & Time Inputs */}
         <InputField
           label="Start Date"
           name="startTime"
-          defaultValue={data?.startTime}
+          type="datetime-local"
           register={register}
           error={errors?.startTime}
-          type="datetime-local"
         />
         <InputField
           label="End Date"
           name="endTime"
-          defaultValue={data?.endTime}
+          type="datetime-local"
           register={register}
           error={errors?.endTime}
-          type="datetime-local"
         />
+
+        {/* Numeric Inputs */}
         <InputField
-          type="number"
-          label="Total Mcq's"
+          label="Total MCQs"
           name="totalMCQ"
+          type="number"
           defaultValue={data?.totalMCQ}
           register={register}
           error={errors?.totalMCQ}
         />
         <InputField
-          type="number"
           label="Total Marks"
           name="totalMarks"
+          type="number"
           defaultValue={data?.totalMarks}
           register={register}
           error={errors?.totalMarks}
-          />
-          <InputField
-            type="number"
-            label="Time Limit (minutes)"
-            name="timeLimit"
-            defaultValue={timeLimit !== undefined ? String(timeLimit) : undefined}
-            readOnly
-            register={register}
-            error={errors?.timeLimit}
-          />
-
-
-      <InputField
-          type="hidden"
-          label=""
-          name="dummy"
-          register={register}
         />
+        <InputField
+          label="Time Limit (minutes)"
+          name="timeLimit"
+          type="number"
+          readOnly
+          defaultValue={timeLimit !== undefined ? String(timeLimit) : undefined}
+          register={register}
+          error={errors?.timeLimit}
+        />
+
+        {/* Hidden Fields */}
+        <InputField type="hidden" label="" name="dummy" register={register} />
         {data && (
           <InputField
+            hidden
             label="Id"
             name="id"
-            defaultValue={data?.id}
+            defaultValue={data.id}
             register={register}
             error={errors?.id}
-            hidden
           />
         )}
       </div>
+
+      {/* Error Message */}
       {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
+        <span className="text-red-600 text-sm font-medium">❌ Something went wrong!</span>
       )}
-      <button type="submit" className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
-      </button>
+
+      {/* Submit Button */}
+      <div className="flex justify-end z-50 relative">
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`${
+            isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+          } text-white font-semibold px-6 py-2 rounded-md transition shadow flex items-center justify-center gap-2`}
+        >
+          {isLoading ? (
+            <>
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              Processing...
+            </>
+          ) : (
+            <>
+              {type === "create" ? "Create Exam" : "Update Exam"}
+            </>
+          )}
+        </button>
+      </div>
     </form>
+
   );
 };
 

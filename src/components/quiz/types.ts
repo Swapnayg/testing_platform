@@ -2,7 +2,7 @@
 export interface QuizData {
   title: string;
   category: string;
-  grade: string;
+  grades: string;
   subject: string;
   totalQuestions: number;
   totalMarks: number;

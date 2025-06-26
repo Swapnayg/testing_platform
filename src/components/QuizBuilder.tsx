@@ -16,7 +16,7 @@ const QuizBuilder = () => {
   const [quizData, setQuizData] = useState<QuizData>({
     title: '',
     category: '',
-    grade: '',
+    grades: '',
     subject: '',
     totalQuestions: 5,
     totalMarks: 100,
@@ -94,7 +94,7 @@ const QuizBuilder = () => {
     setQuizData({
       title: '',
       category: '',
-      grade: '',
+      grades: '',
       subject: '',
       totalQuestions: 5,
       totalMarks: 100,
