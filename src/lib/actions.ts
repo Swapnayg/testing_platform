@@ -133,6 +133,7 @@ export const createStudent = async (
         instituteName: data.instituteName || '',
         others: "",
         rollNo: "UIN" + rollNo.toString(),
+        gradeId: data.gradeId !== undefined && data.gradeId !== null ? Number(data.gradeId) : undefined,
       },
     });
 
@@ -396,15 +397,27 @@ export const deleteExam = async (
   }
 };
 
-export async function createRegistration(data: { name: string; status: "PENDING" | "APPROVED" | "REJECTED"; fatherName: string; registerdAt: Date; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any;  rollNo: string; }) {
+export async function createRegistration(data: { name: string; status: "PENDING" | "APPROVED" | "REJECTED"; fatherName: string; registerdAt: Date; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any; rollNo: string; }) {
   try {
+    console.log(data);
     const user = await clerkClient.users.createUser({
       username: data.rollNo || '',
       password: data.cnicNumber || '',
       publicMetadata:{role:"student"}
     });
+
+    const grade = await prisma.grade.findUnique({
+      where: {
+        level:  data.catGrade || '',
+    },
+    select: {
+      id: true,
+    },
+  });
+
   
-  const student: any = await prisma.student.create({
+  if (grade) {
+    const student: any = await prisma.student.create({
     data: {
       id: user.id,// Ensure 'id' is provided in the data argument
       name: data.name || '',
@@ -422,24 +435,24 @@ export async function createRegistration(data: { name: string; status: "PENDING"
       instituteName: data.instituteName || '',
       others: "",
       rollNo: data.rollNo.toString(),
+      gradeId: grade.id, // Ensure 'gradeId' is provided in the data argument
     }
   });
-  const now = new Date();
-  const examList = await prisma.exam.findMany({
-    where: {
-      startTime: {
-        gte: now, // "greater than or equal to current date & time"
-      },
-      category: {
-        catName: data.olympiadCategory || '',
-      },
-      grade: {
-      level:  data.catGrade || '',
-      },
-    },
-    });
-    console.log(examList);
 
+    const now = new Date();
+    const examList = await prisma.exam.findMany({
+      where: {
+        startTime: {
+          gte: now, // "greater than or equal to current date & time"
+        },
+        category: {
+          catName: data.olympiadCategory || '',
+        },
+        grade: {
+        level:  data.catGrade || '',
+        },
+      },
+    });
     const newRegistration = await prisma.registration.create({
       data: {
         olympiadCategory: data.olympiadCategory || '',
@@ -469,6 +482,7 @@ export async function createRegistration(data: { name: string; status: "PENDING"
       skipDuplicates: true,
     });
     // revalidatePath("/list/students");
+  }
     return { success: true, error: false };
   } catch (err) {
     console.log(err);

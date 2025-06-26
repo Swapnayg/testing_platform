@@ -69,6 +69,7 @@ export const studentSchema = z.object({
   instituteName: z.string().min(1, { message: "Institute Name is required!" }),
   others: z.string(),
   rollNo: z.string(),
+  gradeId: z.coerce.number({ message: "Grade is required!" }),
 });
 
 export type StudentSchema = z.infer<typeof studentSchema>;

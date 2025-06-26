@@ -25,7 +25,6 @@ function uuidTo6DigitNumber() {
 export async function POST(req) {
   try {
     const body = await req.json();
-
     const existing = await prisma.student.findUnique({
       where: { cnicNumber: body.cnicNumber },
     });
@@ -36,16 +35,16 @@ export async function POST(req) {
         { status: 400 }
       );
     }
-
-    var rollNo = uuidTo6DigitNumber();   
+    
+    var rollNo = await uuidTo6DigitNumber();   
     const user = await clerkClient.users.createUser({
-        username: "UIN" + rollNo.toString(),
-        password: body.cnicNumber || '',
-        publicMetadata:{role:"student"}
+      username: "UIN" + rollNo.toString(),
+      password: body.cnicNumber || '',
+      publicMetadata: { role: "student" }
     });
     const student = await prisma.student.create({
       data: {
-        id:user.id,
+        id: user.id,
         name: body.name,
         fatherName: body.fatherName,
         dateOfBirth: new Date(body.dateOfBirth),
@@ -61,6 +60,7 @@ export async function POST(req) {
         instituteName: body.instituteName,
         others: "",
         rollNo: "UIN" + rollNo.toString(),
+        gradeId: parseInt(body.gradeId),
       },
     });
 

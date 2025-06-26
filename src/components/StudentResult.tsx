@@ -140,7 +140,7 @@ const loadFilteredResults = async (examId: string) => {
                   <th className="p-2 text-left">Correct</th>
                   <th className="p-2 text-left">Incorrect</th>
                   <th className="p-2 text-left">Submitted</th>
-                  <th className="p-2 text-left">Grade</th>
+                  <th className="p-2 text-left">Rank</th>
                   <th className="p-2 text-center">Actions</th>    
                 </tr>
               </thead>

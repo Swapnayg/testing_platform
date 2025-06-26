@@ -1,6 +1,6 @@
 "use client"
 import React from 'react';
-import { useState } from "react";
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,18 @@ import { Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import Select from 'react-select';
 
 const genders = [
   { key: "male", label: "Male" },
   { key: "female", label: "Female" },
   { key: "other", label: "Other" },
 ];
+
+interface Grade {
+  id: number;
+  level: string;
+}
 
 const religions = [
   { value: "islam", label: "Islam" },
@@ -51,11 +57,14 @@ type FormFields = {
   instituteName: string;
   gender: string;
   religion: string;
-  [key: string]: string; // Add this line to allow string indexing
+  gradeId: string;
+  [key: string]: string; // Add index signature
 };
 
 const DashboardHeader = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [grades, setGrades] = useState<Grade[]>([]);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const router = useRouter();
@@ -82,21 +91,40 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
         newErrors[field] = true;
       }
     });
+
+    // ✅ CNIC pattern check
+    const cnicRegex = /^[0-9]{5}-[0-9]{7}-[0-9]{1}$/;
+    if (form.cnicNumber && !cnicRegex.test(form.cnicNumber)) {
+      newErrors.cnicNumber = true;
+      setAlertMessage("CNIC format must be #####-#######-#");
+    }
+
     setErrors(newErrors);
     setImageError(!imageFile);
     return Object.keys(newErrors).length === 0 && imageFile !== null;
   };
 
-const handleSubmit = async () => {
-    if (!validate()) {
-      setAlertMessage("Please fill out all required fields.");
-      setAlertOpen(true);
-      return;
-    }
 
+  const fetchGrades = async () => {
+    const res = await fetch('/api/grades');
+    const data = await res.json();
+    setGrades(data.grades);
+  };
+
+const handleSubmit = async () => {
+  if (!validate()) {
+    setAlertMessage("Please fill out all required fields.");
+    setAlertOpen(true);
+    return;
+  }
+
+  setLoading(true); // Start loading
+
+  try {
     const imageForm = new FormData();
     imageForm.append("file", imageFile!);
-    imageForm.append("upload_preset", "school"); // ← replace
+    imageForm.append("upload_preset", "school");
+
     const imageRes = await fetch("https://api.cloudinary.com/v1_1/ds50k7ryy/image/upload", {
       method: "POST",
       body: imageForm,
@@ -117,6 +145,7 @@ const handleSubmit = async () => {
       }),
       headers: { "Content-Type": "application/json" },
     });
+
     if (res.status === 201) {
       setAlertMessage("Student added successfully.");
       setAlertOpen(true);
@@ -124,16 +153,31 @@ const handleSubmit = async () => {
       setImageFile(null);
       setImagePreview(null);
       setOpen(false);
-      router.refresh(); // Refresh the page or fetch again
+      router.refresh();
     } else if (res.status === 400) {
-      console.log("error");
-      setAlertMessage("Student already exits.");
+      setAlertMessage("Student already exists.");
       setAlertOpen(true);
-    } else if (res.status === 500) {
+    } else {
       setAlertMessage("Internal server error. Please try again.");
       setAlertOpen(true);
     }
-  };
+  } catch (err) {
+    console.error(err);
+    setAlertMessage("Unexpected error. Please try again.");
+    setAlertOpen(true);
+  } finally {
+    setLoading(false); // Stop loading
+  }
+};
+
+  useEffect(() => {
+    fetchGrades();
+  }, []);
+
+  const gradeOptions = grades.map((grade) => ({
+    value: grade.id,
+    label: grade.level,
+  }));
 
   return (
     <div className="flex justify-between items-start mb-8">
@@ -183,6 +227,42 @@ const handleSubmit = async () => {
                 className={errors.fatherName ? "border-red-500" : ""}
               />
               {errors.fatherName && <p className="text-xs text-red-600">Required</p>}
+            </div>
+
+            {/* Grade */}
+            <div>
+              <Label>Grade <span className="text-red-500">*</span></Label>
+             <Select
+                id="gradeId"
+                name="gradeId"
+                options={gradeOptions}
+                value={gradeOptions.find((opt) => opt.value === Number(form.gradeId)) || null}
+                onChange={(selected) => {
+                  setForm(prev => ({
+                    ...prev,
+                    gradeId: selected ? String(selected.value) : ""
+                  }));
+                  setErrors(prev => ({
+                    ...prev,
+                    gradeId: false
+                  }));
+                }}
+                placeholder="Select Grade"
+                className="mt-1 text-sm"
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    borderColor: errors.gradeId ? '#f87171' : '#d1d5db', // red-500 or gray-300
+                    boxShadow: 'none',
+                    '&:hover': {
+                      borderColor: errors.gradeId ? '#f87171' : '#9ca3af', // hover: red or gray-400
+                    },
+                  }),
+                }}
+              />
+
+              {errors.gradeId && <p className="text-xs text-red-600">Required</p>}
             </div>
 
             {/* Date of Birth */}
@@ -246,8 +326,9 @@ const handleSubmit = async () => {
                 value={form.cnicNumber}
                 onChange={handleChange}
                 className={errors.cnicNumber ? "border-red-500" : ""}
+                placeholder="12345-1234567-1"
               />
-              {errors.cnicNumber && <p className="text-xs text-red-600">Required</p>}
+              {errors.cnicNumber && <p className="text-xs text-red-600">Required and must match CNIC format</p>}
             </div>
 
             {/* Religion */}
@@ -342,7 +423,9 @@ const handleSubmit = async () => {
 
           <div className="flex justify-end gap-2 mt-6">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" className="bg-green-600 text-white">Submit</Button>
+            <Button type="submit" className="bg-green-600 text-white" disabled={loading}>
+              {loading ? "Submitting..." : "Submit"}
+            </Button>
           </div>
           
         </form>

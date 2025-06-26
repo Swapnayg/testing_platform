@@ -32,6 +32,7 @@ model Student {
   instituteName  String?
   others         String?
   rollNo         String?
+
   Result         Result[]
   Attendance     Attendance[]
   Registration   Registration[]
@@ -40,6 +41,10 @@ model Student {
   // Notification Relations
   sentNotifications       Notification[] @relation("StudentSentNotifications")
   receivedNotifications   Notification[] @relation("StudentReceivedNotifications")
+
+  // Foreign key to Grade
+  gradeId        Int?      // ✅ Fixed to match Grade.id (which is Int)
+  grade          Grade?    @relation(fields: [gradeId], references: [id])
 }
 
 model Category {
@@ -97,6 +102,7 @@ model Grade {
 
   Exam Exam[]
   announcements Announcement[] @relation("AnnouncementGrades")
+  students Student[] // 👈 One-to-many relationship
 }
 
 enum RegistrationStatus {

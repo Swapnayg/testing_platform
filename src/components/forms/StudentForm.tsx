@@ -72,6 +72,7 @@ const StudentForm = ({
       mobileNumber: rawData.mobileNumber ? String(rawData.mobileNumber) : undefined,
       instituteName: String(rawData.instituteName ?? ""),
       others: String(rawData.others ?? ""), // Add this line to include 'others'
+      grade: String(rawData.grade ?? data?.grade ?? ""), // Add grade property
     };
 
 
