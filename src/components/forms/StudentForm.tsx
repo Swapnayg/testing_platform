@@ -72,9 +72,12 @@ const StudentForm = ({
       mobileNumber: rawData.mobileNumber ? String(rawData.mobileNumber) : undefined,
       instituteName: String(rawData.instituteName ?? ""),
       others: String(rawData.others ?? ""), // Add this line to include 'others'
-      grade: String(rawData.grade ?? data?.grade ?? ""), // Add grade property
+      gradeId: rawData.gradeId
+        ? Number(rawData.gradeId)
+        : data?.gradeId !== undefined
+        ? Number(data.gradeId)
+        : 0, // Ensure gradeId is a number
     };
-
 
     startTransition(() => {
       formAction(studentData);
