@@ -60,6 +60,7 @@ export default async function SingleStudentPage({
       instituteName: true,
       others: true,
       rollNo: true,
+      gradeId: true,
     }
   });
 
