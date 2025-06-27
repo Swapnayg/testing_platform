@@ -22,75 +22,70 @@ export async function GET(request) {
   todayEnd.setHours(23, 59, 59, 999);
 
   try {
-    // Step 1: Get exams whose results are declared today
-    const exams = await prisma.exam.findMany({
+  const exams = await prisma.exam.findMany({
+    where: {
+      resultDate: {
+        gte: todayStart,
+        lte: todayEnd,
+      },
+    },
+    select: { id: true },
+  });
+
+  const examIds = exams.map((e) => e.id);
+
+  if (examIds.length === 0) {
+    return NextResponse.json({ message: "No exams with resultDate today." });
+  }
+
+  const declaredAt = new Date();
+
+  for (const examId of examIds) {
+    const results = await prisma.result.findMany({
       where: {
-        resultDate: {
-          gte: todayStart,
-          lte: todayEnd,
+        examId,
+        status: {
+          in: ['PASSED', 'FAILED'],
         },
       },
-      select: { id: true },
+      orderBy: {
+        score: 'desc',
+      },
+      select: {
+        id: true,
+        score: true,
+        status: true,
+      },
     });
 
-    const examIds = exams.map((e) => e.id);
+    // Assign ranks
+    let rank = 1;
+    let lastScore = null;
+    let sameRankCount = 0;
 
-    console.log("Exams with resultDate today:", examIds);
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const isSameScore = result.score === lastScore;
 
-    if (examIds.length === 0) {
-      return NextResponse.json({ message: "No exams with resultDate today." });
-    }
+      const currentRank = isSameScore ? rank : i + 1;
 
-    const declaredAt = new Date();
-
-    for (const examId of examIds) {
-      // Step 2: Get results for this exam, ordered by score DESC
-     const results = await prisma.result.findMany({
-        where: {
-          examId: examId,
-          status: {
-            in: ['PASSED', 'FAILED'],
-          },
-        },
-        orderBy: {
-          score: 'desc',
-        },
-        select: {
-          id: true,
-          score: true,
-          status: true,
+      await prisma.result.update({
+        where: { id: result.id },
+        data: {
+          grade: `${currentRank}`, // or Number(currentRank)
+          resultDeclared: true,
+          declaredOn: declaredAt,
         },
       });
-      console.log(results, "Results for exam ID:", examId);
 
-      // Step 3: Assign ranks
-      let currentRank = 1;
-      let previousScore = null;
-      let actualRank = 1;
-
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-
-        if (previousScore !== null && result.score < previousScore) {
-          actualRank = currentRank;
-        }
-
-        // Update result with rank in grade field
-        await prisma.result.update({
-          where: { id: result.id },
-          data: {
-            grade: `${actualRank}`, // Or Number(actualRank) if grade is numeric
-            resultDeclared: true,
-            declaredOn: declaredAt,
-          },
-        });
-
-        previousScore = result.score;
-        currentRank++;
+      lastScore = result.score;
+      if (!isSameScore) {
+        rank = i + 1;
       }
     }
+  }
 
-    return NextResponse.json({ message: "Results updated with ranks." });
+  return NextResponse.json({ message: "Results updated with ranks." });
 
   } catch (error) {
     console.error("Error updating results with rank:", error);

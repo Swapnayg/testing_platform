@@ -38,13 +38,13 @@ export async function POST(req) {
         if (resultDate && !isForAll) {
           await prisma.exam.updateMany({
             where: {
-              status: 'COMPLETED',
               grades: {
                 some: {
                   id: { in: gradeIds },
                 },
               },
               resultDate: null, // only update if not already set
+              status: 'COMPLETED', // ✅ properly inside the where clause
             },
             data: {
               resultDate: new Date(resultDate),

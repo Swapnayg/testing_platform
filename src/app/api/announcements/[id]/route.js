@@ -45,9 +45,9 @@ export async function POST(req, { params }) {
         },
       },
     });
+    
     if (resultDate && gradeIds.length > 0) {
       await prisma.exam.updateMany({
-        status: 'COMPLETED',
         where: {
           grades: {
             some: {
@@ -55,6 +55,7 @@ export async function POST(req, { params }) {
             },
           },
           resultDate: null, // only update if not already set
+          status: 'COMPLETED', // ✅ properly inside the where clause
         },
         data: {
           resultDate: new Date(resultDate),
