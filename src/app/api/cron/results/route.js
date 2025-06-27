@@ -43,12 +43,22 @@ export async function GET(request) {
 
     for (const examId of examIds) {
       // Step 2: Get results for this exam, ordered by score DESC
-      const results = await prisma.result.findMany({
-        where: { examId },
-        orderBy: { score: 'desc' },
-        select: { id: true, score: true }, // You can add more fields if needed
+     const results = await prisma.result.findMany({
+        where: {
+          examId,
+          status: {
+            in: ['PASSED', 'FAILED'],
+          },
+        },
+        orderBy: {
+          score: 'desc',
+        },
+        select: {
+          id: true,
+          score: true,
+          status: true,
+        },
       });
-
       console.log(results, "Results for exam ID:", examId);
 
       // Step 3: Assign ranks
