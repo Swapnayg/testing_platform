@@ -1307,6 +1307,9 @@ export const getFilteredStudentDetails = async ({ username }: { username: string
     where: {
       resultDeclared: true,
       studentId: studentByRoll?.cnicNumber || '', // Use the student's CNIC number
+      quizAttempt: {
+        isNot: null, // ✅ Exclude null quizAttempt
+      },
     },
     include: {
       student: true,

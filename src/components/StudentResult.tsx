@@ -36,6 +36,7 @@ const loadFilteredResults = async (examId: string) => {
 
   try {
     const rawResults = await getFilteredStudentDetails({ username });
+    console.log(rawResults);
     setFilteredResults(rawResults);
     setResults(rawResults.slice(0, PAGE_SIZE));
     setCurrentPage(1);
@@ -66,7 +67,7 @@ const loadFilteredResults = async (examId: string) => {
     const data = filteredResults.map((r) => ({
       Student: r.student.name,
       CNIC: r.student.cnicNumber,
-      Grade: r.exam.grade.level,
+      Grade: r.exam.grades.map((g: { level: any; }) => g.level).join(", "),
       Subject: r.exam.subject.name,
       Score: r.score,
       SubmittedAt: new Date(r.gradedAt).toLocaleString(),
@@ -141,7 +142,7 @@ const loadFilteredResults = async (examId: string) => {
                   <tr key={r.id} className="border-t">
                     
                     <td className="p-2">{r.student.name}</td>
-                    <td className="p-2">{r.exam.grade.level}</td>
+                    <td className="p-2">{r.exam.grades.map((g: { level: any; }) => g.level).join(", ")}</td>
                     <td className="p-2">{r.exam.subject.name}</td>
                     <td className="p-2">{r.score}</td>
                     <td className="p-2">{r.correctAnswers}</td>
