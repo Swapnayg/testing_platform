@@ -35,6 +35,8 @@ export async function GET(request) {
 
     const examIds = exams.map((e) => e.id);
 
+    console.log("Exams with resultDate today:", examIds);
+
     if (examIds.length === 0) {
       return NextResponse.json({ message: "No exams with resultDate today." });
     }
