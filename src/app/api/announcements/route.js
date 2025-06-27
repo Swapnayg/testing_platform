@@ -36,15 +36,20 @@ export async function POST(req) {
 
         // ✅ Optionally update resultDate in exams (if given)
         if (resultDate && !isForAll) {
-        await prisma.exam.updateMany({
+          await prisma.exam.updateMany({
             where: {
-            gradeId: { in: gradeIds },
-            resultDate: null, // only update if not set
+              status: 'COMPLETED',
+              grades: {
+                some: {
+                  id: { in: gradeIds },
+                },
+              },
+              resultDate: null, // only update if not already set
             },
             data: {
-            resultDate: new Date(resultDate),
+              resultDate: new Date(resultDate),
             },
-        });
+          });
         }
     return NextResponse.json(announcement);
   } catch (error) {

@@ -49,6 +49,8 @@ export async function GET(request) {
         select: { id: true, score: true }, // You can add more fields if needed
       });
 
+      console.log(results, "Results for exam ID:", examId);
+
       // Step 3: Assign ranks
       let currentRank = 1;
       let previousScore = null;

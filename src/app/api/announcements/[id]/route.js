@@ -20,7 +20,12 @@ export async function POST(req, { params }) {
     if (previousGradeIds.length > 0) {
       await prisma.exam.updateMany({
         where: {
-          gradeId: { in: previousGradeIds },
+          status: 'COMPLETED',
+          grades: {
+            some: {
+              id: { in: previousGradeIds },
+            },
+          },
         },
         data: {
           resultDate: null,
@@ -41,15 +46,20 @@ export async function POST(req, { params }) {
       },
     });
     if (resultDate && gradeIds.length > 0) {
-        await prisma.exam.updateMany({
-            where: {
-            gradeId: { in: gradeIds },
-            resultDate: null,
+      await prisma.exam.updateMany({
+        status: 'COMPLETED',
+        where: {
+          grades: {
+            some: {
+              id: { in: gradeIds },
             },
-            data: {
-            resultDate: new Date(resultDate),
-            },
-        });
+          },
+          resultDate: null, // only update if not already set
+        },
+        data: {
+          resultDate: new Date(resultDate),
+        },
+      });
     }
     return NextResponse.json(updated);
   } catch (error) {
