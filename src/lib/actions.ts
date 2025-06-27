@@ -328,8 +328,8 @@ export const updateExam = async (
         title: data.title,
         categoryId: data.categoryId,
         // 👇 Connect multiple grades
-        grades: {
-          connect: data.grades.map((gradeId: number) => ({ id: gradeId })),
+       grades: {
+          set: data.grades.map((gradeId: number) => ({ id: gradeId })),
         },
         subjectId: data.subjectId,
         startTime: data.startTime,
