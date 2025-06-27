@@ -276,7 +276,11 @@ const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
     });
 
     // ✅ Reload parent and close popup
-    window.opener?.location.reload(); 
+    // ✅ Delay to allow reload before closing
+    setTimeout(() => {
+      window.opener?.location.reload();
+      window.close();
+    }, 300);
     window.close(); 
 
   } catch (error) {

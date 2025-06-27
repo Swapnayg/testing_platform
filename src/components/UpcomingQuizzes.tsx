@@ -87,9 +87,10 @@ interface UpcomingQuizzesProps {
   quizzes: Quiz[];
   studentId:string,
   hasPendingApproval: boolean;
+  studentGrade:string;
 }
 
-const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId, hasPendingApproval}) => {
+const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId, hasPendingApproval,studentGrade}) => {
   const [openModal, setOpenModal] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,6 +135,7 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId, 
 
 
 const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: number) => {
+  console.log("fired");
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const popup = window.open(
     `${baseUrl}/startquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
@@ -222,7 +224,11 @@ const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: nu
         const attempt = await result.json();
         setSelectedQuizId(null); 
         setOpenModal(false);
-        window.opener?.location.reload();
+        // ✅ Delay to allow reload before closing
+        setTimeout(() => {
+          window.opener?.location.reload();
+          window.close();
+        }, 300);
         toast({
           title: "Registration Submitted",
           description: "Your exam registration has been submitted successfully!",
@@ -269,8 +275,7 @@ useEffect(() => {
         examId: data?.id ?? "",
         title: data?.title ?? "",
         subject: data?.subject?.name ?? "",
-        grade: data?.grade?.level ?? "",
-        category: data?.grade?.category?.catName ?? "",
+        category: data?.grades?.[0]?.category?.catName ?? "",
         bankName: "Bank of Punjab",
         accountTitle: "Great Future (SMC) Private Limited",
         accountNumber: "6020293165600018",
@@ -279,6 +284,7 @@ useEffect(() => {
         timeLimit: data?.timeLimit ?? 0,
         totalAmount: "Rs 330/-",
         dateOfPayment: new Date().toISOString().split("T")[0],
+        grade: studentGrade,
       });
     } catch (error) {
       console.error("Error fetching exam:", error);
@@ -394,13 +400,27 @@ useEffect(() => {
                 )}
               </div>
 
-            <Button onClick={() => {
-                if (quiz.status === "attempted" || quiz.status === "absent") return;
+            <Button
+              onClick={() => {
+                console.log("🔍 Quiz Clicked", {
+                  status: quiz.status,
+                  isReady: readyQuizzes[quiz.id],
+                  quizId: quiz.quizId,
+                });
 
+                // 1. If already attempted or absent — block action
+                if (quiz.status === "attempted" || quiz.status === "absent") {
+                  console.log("❌ Quiz already attempted or student marked absent.");
+                  return;
+                }
+
+                // 2. Ready to start and has quizId — proceed
                 if (quiz.status === "upcoming" && readyQuizzes[quiz.id]) {
                   if (quiz.quizId) {
+                    console.log("✅ Starting quiz now...");
                     handleStartQuizInPopup(quiz.quizId, studentId, quiz.totalMarks);
                   } else {
+                    console.log("⚠️ Quiz ID is missing.");
                     toast({
                       title: "Quiz Error",
                       description: "Quiz ID is missing. Please contact support.",
@@ -408,6 +428,8 @@ useEffect(() => {
                     });
                   }
                 } else {
+                  // 3. Not ready — open the modal
+                  console.log("⏳ Not ready or awaiting approval — opening modal.");
                   setSelectedQuizId(quiz.id);
                   setOpenModal(true);
                 }
@@ -442,6 +464,7 @@ useEffect(() => {
               {quiz.status === "pending_approval" && "Pending Approval"}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
+
             </div>
           </CardContent>
         </Card>

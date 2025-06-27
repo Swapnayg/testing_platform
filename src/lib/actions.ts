@@ -25,7 +25,23 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-
+type StudentExamMap = {
+  [studentId: string]: {
+    email: string;
+    rollNo: string;
+    registrations: {
+      registrationId: number;
+      registrationNumber: string;
+      title: string;
+      subject: string;
+      startTime: string;
+      endTime: string;
+      totalMCQ: string;
+      totalMarks: string;
+      cnicNumber: string;
+    }[];
+  };
+};
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -102,7 +118,6 @@ export const createStudent = async (
   currentState: CurrentState,
   data: StudentSchema
 ) => {
-  console.log(data);
   try {
 
 
@@ -287,7 +302,6 @@ export const createExam = async (
 ) => {
 
   try {
-    console.log(data);
     await prisma.exam.create({
       data: {
         title: data.title,
@@ -406,7 +420,6 @@ export const deleteExam = async (
 
 export async function createRegistration(data: { name: string; status: "PENDING" | "APPROVED" | "REJECTED"; fatherName: string; registerdAt: Date; dateOfBirth: Date; religion: string; cnicNumber: string; email: string; mobileNumber: string; city: string; stateProvince: string; addressLine1: string; instituteName: string; olympiadCategory: string; bankName: string; accountTitle: string; accountNumber: string; totalAmount: string; transactionId: string; dateOfPayment: Date; paymentOption: string; otherName: string; applicationId: string; gender: "male" | "female" | "other"; confirmEmail: string; catGrade: string; id?: number | undefined; profilePicture?: any; transactionReceipt?: any; rollNo: string; }) {
   try {
-    console.log(data);
     const user = await clerkClient.users.createUser({
       username: data.rollNo || '',
       password: data.cnicNumber || '',
@@ -1136,6 +1149,8 @@ export const updateAccept = async (
           totalMarks: exam.totalMarks?.toString() || '',
         }));
       }
+
+      
       const buffer = await generatePDFDocument(id, formattedExams);
       const fileName = `Test-slip-${user.rollNo || 'student'}-${Date.now()}.pdf`;
       const info = await transporter.sendMail({
@@ -1371,4 +1386,230 @@ export const getFilteredExamResults = async ({
   },
 });
 };
+
+export async function assignStudentsToExams() {
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const exams = await prisma.exam.findMany({
+      where: {
+        createdAt: {
+          gte: todayStart,
+          lte: todayEnd,
+        },
+      },
+      include: {
+        grades: true,
+        category: true,
+        subject: true,
+      },
+    });
+
+    const studentExamMap: Record<string, { email: string; cnicNumber: string; rollNo: string; registrations: any[] }> = {};
+
+    for (const exam of exams) {
+      for (const grade of exam.grades) {
+        const registrations = await prisma.registration.findMany({
+          where: {
+            status: "APPROVED",
+            olympiadCategory: exam.category.catName.toString(),
+            catGrade: grade.level,
+          },
+          include: {
+            student: {
+              select: {
+                email: true,
+                name: true,
+                cnicNumber: true,
+                rollNo: true,
+              },
+            },
+          },
+        });
+
+        for (const reg of registrations) {
+          const existing = await prisma.examOnRegistration.findFirst({
+            where: {
+              registrationId: reg.id,
+            },
+          });
+
+          let shouldCreate = false;
+
+          if (existing) {
+            const alreadyAssignedExamIds = await prisma.examOnRegistration.findMany({
+              where: {
+                registrationId: reg.id,
+                examId: {
+                  in: exams.map((e) => e.id),
+                },
+              },
+              select: {
+                examId: true,
+              },
+            });
+
+            const assignedExamIdSet = new Set(alreadyAssignedExamIds.map((e) => e.examId));
+
+            if (!assignedExamIdSet.has(exam.id)) {
+              shouldCreate = true;
+            }
+          } else {
+            shouldCreate = true;
+          }
+
+          if (shouldCreate) {
+            await prisma.examOnRegistration.create({
+              data: {
+                examId: exam.id,
+                registrationId: reg.id,
+              },
+            });
+
+            await prisma.result.create({
+              data: {
+                examId: exam.id,
+                studentId: reg.studentId,
+                status: "NOT_GRADED",
+                score: 0,
+                totalScore: exam.totalMarks,
+                grade: '',
+                startTime: new Date(exam.startTime),
+                endTime: new Date(exam.endTime),
+              },
+            });
+
+            // ✅ Track for email, registration, and student details
+            if (!studentExamMap[reg.studentId]) {
+              studentExamMap[reg.studentId] = {
+                email: reg.student.email!,
+                cnicNumber: reg.student.cnicNumber,
+                rollNo: reg.student.rollNo ?? '',
+                registrations: [],
+              };
+            }
+
+            studentExamMap[reg.studentId].registrations.push({
+              registrationId: reg.id,
+              registrationNumber: reg.applicationId ?? '',
+              title: exam.title,
+              subject: exam.subject.name,
+              startTime: exam.startTime,
+              endTime: exam.endTime,
+              totalMCQ: exam.totalMCQ || 0,
+              totalMarks: exam.totalMarks || 0,
+            });
+          }
+        }
+      }
+    };
+
+    for (const [studentId, { email, rollNo, registrations }] of Object.entries(studentExamMap)) {
+
+      const sortedRegistrations = [...registrations].sort((a, b) =>
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+
+      const formattedExams = sortedRegistrations.map((registration) => ({
+        title: registration.title,
+        subject: registration.subject,
+        startTime: new Date(registration.startTime).toLocaleString('en-IN', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }),
+        endTime: new Date(registration.endTime).toLocaleString('en-IN', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }),
+        registrationId: registration.registrationId,
+        registrationNumber: registration.registrationNumber,
+        totalMCQ: registration.totalMCQ,
+        totalMarks: registration.totalMarks,
+      }));
+        const logoUrl = `${process.env.APP_URL}/favicon.ico`;
+        const loginUrl = `${process.env.APP_URL}/`;
+        const studentCnic = rollNo.toString();
+        const studentPassword = registrations[0].cnicNumber || 'Not Provided';// ✅ use registration context
+
+        const htmlTemplate = `<div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: auto;">
+        <!-- Logo -->
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="` + logoUrl + `" alt="School Logo" style="max-height: 60px;" />
+        </div>
+
+        <h2 style="color: #4CAF50;">Welcome to the Student Portal 🎓</h2>
+
+        <p>Dear Student,</p>
+
+        <p>You have been successfully registered on the <strong>Student Portal</strong>. Below are your login details:</p>
+
+        <table style="margin: 15px 0; border-collapse: collapse; width: 100%;">
+          <tr>
+            <td style="padding: 8px; font-weight: bold; width: 30%;">🔗 Login URL:</td>
+            <td style="padding: 8px;">
+              <a href="` + loginUrl + `" target="_blank" style="color: #1a73e8;">` + loginUrl + `</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold;">👤 Username (CNIC):</td>
+            <td style="padding: 8px;"> ` + studentCnic + `</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold;">🔐 Password:</td>
+            <td style="padding: 8px;"> ` + studentPassword + `</td>
+          </tr>
+        </table>
+
+        <p>✅ Please log in using the above credentials. You will be asked to change your password upon first login.</p>
+
+        <p>If you experience any issues, contact us at <a href="mailto:support@yourschool.edu">support@yourschool.edu</a>.</p>
+
+        <br />
+        <p>Best regards,<br /><strong>Your School Administration</strong></p>
+
+        <hr style="margin-top: 30px;" />
+        <p style="font-size: 12px; color: #888;">This is an automated message. Please do not reply directly to this email.</p>
+      </div>
+
+          `;
+
+      const buffer = await generatePDFDocument(registrations[0].registrationId, formattedExams); // or use studentId if needed
+
+      const fileName = `Test-slip-${rollNo || 'student'}-${Date.now()}.pdf`;
+
+      const subject = `📘 Exam Scheduled: ${formattedExams[0].title} on ${formattedExams[0]?.startTime}`;
+
+      await transporter.sendMail({
+        from: process.env.GMAIL_USER!,
+        to: email,
+        subject: subject,
+        html: htmlTemplate,
+        attachments: [
+          {
+            filename: fileName,
+            content: buffer,
+            contentType: "application/pdf",
+          },
+        ],
+      });
+    }
+
+    revalidatePath("/dashboard/exams");
+    return { success: true };
+  } catch (err) {
+    console.error("❌ Error:", err);
+    return { success: false, error: "Assignment failed" };
+  }
+}
 

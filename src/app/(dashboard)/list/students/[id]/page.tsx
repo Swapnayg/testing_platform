@@ -96,7 +96,7 @@ export default async function SingleStudentPage({
           id: true,
           title: true,
           category: true,
-          grade: true,
+          grades: true,
           startDateTime: true,
           totalMarks: true,
           timeLimit: true,
@@ -282,7 +282,7 @@ return (
               <tr key={attempt.id} className="border-t hover:bg-gray-50">
                 <td className="px-4 py-2 border capitalize">{attempt.quiz.title}</td>
                 <td className="px-4 py-2 border">{attempt.quiz.category}</td>
-                <td className="px-4 py-2 border">{attempt.quiz.grade}</td>
+                <td className="px-4 py-2 border">{attempt.quiz.grades}</td>
                 <td className="px-4 py-2 border">
                   {new Date(attempt.quiz.startDateTime).toLocaleString("en-IN")}
                 </td>

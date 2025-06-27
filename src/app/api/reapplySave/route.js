@@ -19,6 +19,9 @@ export async function POST(req) {
     if (!data) {
       return NextResponse.json({ message: 'Student is required' }, { status: 400 });
     }
+    const studentByRoll = await prisma.student.findFirst({
+      where: { rollNo: studentId },
+    });
 
     const applicationId = generateApplicationId();
     const newRegistration = await prisma.registration.create({
@@ -37,7 +40,7 @@ export async function POST(req) {
         applicationId: applicationId,
         status: 'PENDING',
         registerdAt : new Date().toISOString(),
-        studentId: studentId
+        studentId: studentByRoll.cnicNumber,
       },
     });
     

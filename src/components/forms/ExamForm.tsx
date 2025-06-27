@@ -235,9 +235,7 @@ const formatDateTimeLocal = (date?: string | Date) => {
                     const selectedValues = selectedOptions
                       ? selectedOptions.map((opt) => opt.value)
                       : [];
-                    field.onChange(selectedValues);
-                    console.log("field.value", field.value);
-                    console.log("selectedOptions", selectedOptions);    
+                    field.onChange(selectedValues);    
                   }}
                   onBlur={field.onBlur}
                   name={field.name}

@@ -48,39 +48,45 @@ export async function POST(req, context) {
 
         const exams = await prisma.exam.findMany({
           where: {
-            grade: { level: latestRegistration.catGrade ?? '' },
-            category: { catName:  latestRegistration.olympiadCategory ?? '' },
+            grades: {
+              some: {
+                level: latestRegistration.catGrade ?? '',
+                category: {
+                  catName: latestRegistration.olympiadCategory ?? '',
+                },
+              },
+            },
             status: {
               in: ["NOT_STARTED", "IN_PROGRESS"],
             },
           },
-          select:
-          {
-            id:true,
-            title:true,
-            startTime:true,
-            endTime:true,
-            status:true,
-            subjectId:true,
-            totalMCQ:true,
-            totalMarks:true,
-            subject:{
+          select: {
+            id: true,
+            title: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+            subjectId: true,
+            totalMCQ: true,
+            totalMarks: true,
+            subject: {
               select: {
-                name:true
-              }
+                name: true,
+              },
             },
-            grade:{
-              select:{
-                level:true,
-                category:{
-                  select:{
-                    catName:true
-                  }
-                }
-              }
-            }
-          }
+            grades: {
+              select: {
+                level: true,
+                category: {
+                  select: {
+                    catName: true,
+                  },
+                },
+              },
+            },
+          },
         });
+
         try {
          for (const ex of exams) { 
             await prisma.result.create({

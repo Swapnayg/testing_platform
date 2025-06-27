@@ -14,7 +14,7 @@ export async function POST(req) {
         where: { id: quizid },
         include: {
           subject: true,
-          grade: {
+          grades: {
             include: {
               category: true,
             },

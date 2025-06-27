@@ -32,6 +32,12 @@ const student = await prisma.student.findFirst({
     rollNo: username,  // Replace with actual roll number
   },
   include: {
+    grade: {
+      select: {
+        id: true,
+        level: true,
+      },
+    },
     Result: true,
     Attendance: true,
     Registration: true,
@@ -42,7 +48,7 @@ const student = await prisma.student.findFirst({
             id: true,
             title: true,
             category: true,
-            grade: true,
+            grades: true,
             startDateTime: true,
             totalMarks: true,
             timeLimit: true,
@@ -94,7 +100,7 @@ const attemptedExams = await prisma.exam.findMany({
     },
   },
   include: {
-    grade: {
+    grades: {
       include: {
         category: true,
       },
@@ -114,13 +120,18 @@ const upcomingExams = await prisma.exam.findMany({
       in: registeredExamIds,
       notIn: attemptedExamIds,
     },
+    grades: {
+      some: {
+        id: student?.gradeId ?? undefined, // ✅ Match exam with student grade
+      },
+    },
     OR: [
       { startTime: { gt: now } },
       { endTime: { gt: now } },
     ],
   },
-include: {
-    grade: {
+  include: {
+    grades: {
       include: {
         category: true,
       },
@@ -132,6 +143,9 @@ include: {
   },
 });
 
+console.log(student?.gradeId, "Student Grade ID");
+console.log("Upcoming Exams:", upcomingExams);
+
 // STEP 5: Get absent exams (registered, not attempted, already ended)
 const absentExams = await prisma.exam.findMany({
   where: {
@@ -142,7 +156,7 @@ const absentExams = await prisma.exam.findMany({
     endTime: { lt: now }, // 🕒 already ended
   },
   include: {
-    grade: {
+    grades: {
       include: {
         category: true,
       },
@@ -159,6 +173,11 @@ const [notApplied, pendingApproval] = await Promise.all([
   prisma.exam.findMany({
     where: {
       startTime: { gt: new Date() },
+      grades: {
+      some: {
+        id: student?.gradeId ?? undefined, // ✅ Match exam with student grade
+      },
+      },
       registrations: {
         none: {
           registration: {
@@ -168,7 +187,7 @@ const [notApplied, pendingApproval] = await Promise.all([
       },
     },
     include: { 
-      grade: {
+      grades: {
         include: {
           category: true,
         },
@@ -192,7 +211,7 @@ const [notApplied, pendingApproval] = await Promise.all([
       },
     },
     include: { 
-        grade: {
+        grades: {
           include: {
             category: true,
           },
@@ -213,7 +232,7 @@ const combinedExams = [
   ...attemptedExams.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId: exam.quizzes[0]?.id || null,
+    quizId: Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -224,15 +243,15 @@ const combinedExams = [
     totalMarks: exam.totalMarks,
     progress: 100,
     status: "attempted" as const,
-    grade: exam.grade?.level || "N/A",
-    category: exam.grade?.category?.catName || "N/A",
+    grade: student?.grade?.level || "N/A",
+    category: exam.grades?.[0]?.category?.catName || "N/A",
   })),
 
   // Upcoming Exams
   ...upcomingExams.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId: exam.quizzes[0]?.id || null,
+    quizId:  Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -243,15 +262,15 @@ const combinedExams = [
     totalMarks: exam.totalMarks,
     progress: 0,
     status: "upcoming" as const,
-    grade: exam.grade?.level || "N/A",
-    category: exam.grade?.category?.catName || "N/A",
+    grade: student?.grade?.level || "N/A",
+    category: exam.grades?.[0]?.category?.catName || "N/A",
   })),
 
     // Absent Exams
   ...absentExams.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId: exam.quizzes[0]?.id || null,
+    quizId:  Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -262,15 +281,15 @@ const combinedExams = [
     totalMarks: exam.totalMarks,
     progress: 0,
     status: "absent" as const,
-    grade: exam.grade?.level || "N/A",
-    category: exam.grade?.category?.catName || "N/A",
+    grade: student?.grade?.level || "N/A",
+    category: exam.grades?.[0]?.category?.catName || "N/A",
   })),
 
   // Not Applied Exams
   ...formattedNotApplied.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId: exam.quizzes[0]?.id || null,
+    quizId: Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -281,15 +300,15 @@ const combinedExams = [
     totalMarks: exam.totalMarks,
     progress: 0,
     status: "not_applied" as const,
-    grade: exam.grade?.level || "N/A",
-    category: exam.grade?.category?.catName || "N/A",
+    grade: student?.grade?.level || "N/A",
+    category: exam.grades?.[0]?.category?.catName || "N/A",
   })),
 
   // Pending Approval Exams
   ...formattedPending.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId: exam.quizzes[0]?.id || null,
+    quizId: Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -300,8 +319,8 @@ const combinedExams = [
     totalMarks: exam.totalMarks,
     progress: 0,
     status: "pending_approval" as const,
-    grade: exam.grade?.level || "N/A",
-    category: exam.grade?.category?.catName || "N/A",
+    grade: student?.grade?.level || "N/A",
+    category: exam.grades?.[0]?.category?.catName || "N/A",
   })),
 ];
 
@@ -319,7 +338,7 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
         {/* LEFT */}
         <div className="w-full xl:w-2/3">
           <div className="h-full bg-white p-4 rounded-md">
-          <UpcomingQuizzes quizzes={combinedExams} studentId={username} hasPendingApproval={hasPendingApproval} />
+          <UpcomingQuizzes quizzes={combinedExams} studentId={username} hasPendingApproval={hasPendingApproval} studentGrade={student?.grade?.level || "N/A"}/>
 
           
             {/* <h1 className="text-xl font-semibold">Schedule (4A)</h1> */}
