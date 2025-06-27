@@ -30,13 +30,6 @@ const StudentResultsList = ({ username }: { username: string;  }) => {
   const [totalStudents, setTotalStudents] = useState(0);
 
 
-  const testApi = async () => {
-    const res = await fetch('/api/testApi');
-    const data = await res.json();
-    console.log(data);
-  };
-  
-
 
 const loadFilteredResults = async (examId: string) => {
   setLoading(true);
@@ -57,7 +50,6 @@ const loadFilteredResults = async (examId: string) => {
 
   useEffect(() => {
     if (username) {
-      testApi();
       loadFilteredResults(username);
     }
   }, [username]);

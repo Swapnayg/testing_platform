@@ -143,8 +143,6 @@ const upcomingExams = await prisma.exam.findMany({
   },
 });
 
-console.log(student?.gradeId, "Student Grade ID");
-console.log("Upcoming Exams:", upcomingExams);
 
 // STEP 5: Get absent exams (registered, not attempted, already ended)
 const absentExams = await prisma.exam.findMany({
@@ -232,7 +230,7 @@ const combinedExams = [
   ...attemptedExams.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId: Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
+    quizId:  exam.quizzes?.id || null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -251,7 +249,7 @@ const combinedExams = [
   ...upcomingExams.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId:  Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
+    quizId:   exam.quizzes?.id || null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -270,7 +268,7 @@ const combinedExams = [
   ...absentExams.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId:  Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
+    quizId:  exam.quizzes?.id || null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -289,7 +287,7 @@ const combinedExams = [
   ...formattedNotApplied.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId: Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
+    quizId:  exam.quizzes?.id || null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",
@@ -308,7 +306,7 @@ const combinedExams = [
   ...formattedPending.map(exam => ({
     id: exam.id,
     startTime: exam.startTime,
-    quizId: Array.isArray(exam.quizzes) && exam.quizzes.length > 0 ? exam.quizzes[0].id : null,
+    quizId:  exam.quizzes?.id || null,
     title: exam.title,
     difficulty: "Beginner" as const,
     subject: exam.subject?.name || "Unknown",

@@ -278,7 +278,7 @@ const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
     // ✅ Reload parent and close popup
     // ✅ Delay to allow reload before closing
     setTimeout(() => {
-      window.opener?.location.reload();
+      window.location.reload(); 
       window.close();
     }, 300);
     window.close(); 

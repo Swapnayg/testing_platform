@@ -97,7 +97,6 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId, 
   const [quizTimers, setQuizTimers] = useState<Record<string, string>>({});
   const [readyQuizzes, setReadyQuizzes] = useState<Record<string, boolean>>({});
 
-
   const { toast } = useToast();
   const [formData, setFormData] = useState<ExamFormData>({
     examId: "EX001",
@@ -135,7 +134,6 @@ const UpcomingQuizzes: React.FC<UpcomingQuizzesProps> = ({ quizzes , studentId, 
 
 
 const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: number) => {
-  console.log("fired");
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const popup = window.open(
     `${baseUrl}/startquiz/${quizId}?id=${quizId}&username=${username}&totalMarks=${totalMarks}`,
@@ -226,7 +224,7 @@ const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: nu
         setOpenModal(false);
         // ✅ Delay to allow reload before closing
         setTimeout(() => {
-          window.opener?.location.reload();
+          window.location.reload(); 
           window.close();
         }, 300);
         toast({

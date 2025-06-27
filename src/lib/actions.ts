@@ -1429,7 +1429,6 @@ export async function assignStudentsToExams() {
             },
           },
         });
-
         for (const reg of registrations) {
           const existing = await prisma.examOnRegistration.findFirst({
             where: {

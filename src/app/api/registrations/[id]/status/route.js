@@ -51,13 +51,10 @@ export async function POST(req, context) {
             grades: {
               some: {
                 level: latestRegistration.catGrade ?? '',
-                category: {
-                  catName: latestRegistration.olympiadCategory ?? '',
-                },
               },
             },
             status: {
-              in: ["NOT_STARTED", "IN_PROGRESS"],
+              in: ["NOT_STARTED"],
             },
           },
           select: {
@@ -86,7 +83,6 @@ export async function POST(req, context) {
             },
           },
         });
-
         try {
          for (const ex of exams) { 
             await prisma.result.create({
