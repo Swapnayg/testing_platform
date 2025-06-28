@@ -77,8 +77,10 @@ export async function GET(request) {
         const isSameScore = result.score === lastScore;
         const currentRank = isSameScore ? rank : i + 1;
 
+        console.log(`📝 Updating result ${result.id}: score=${result.score}, rank=${currentRank}`);
+
         try {
-          await prisma.result.update({
+          const updated = await prisma.result.update({
             where: { id: result.id },
             data: {
               grade: `${currentRank}`,
@@ -86,6 +88,7 @@ export async function GET(request) {
               declaredOn: declaredAt,
             },
           });
+          console.log(`✅ Updated result ${result.id}`, updated);
         } catch (err) {
           console.error(`❌ Error updating result ID ${result.id}:`, err);
         }
