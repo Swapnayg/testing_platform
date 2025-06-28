@@ -4,13 +4,18 @@ import { Pencil, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export type Grade = { id: number; level: string };
+export type Exam = { id: string; title: string; resultDate: string };
 
 export type Announcement = {
   id: number;
   title: string;
   description: string;
-  resultDate: string;
+  date: string;
+  resultDate?: string;
+  announcementType: "GENERAL" | "EXAM_RESULT";
+  isForAll: boolean;
   grades: Grade[];
+  exams: Exam[];
 };
 
 export function createColumns(
@@ -24,28 +29,41 @@ export function createColumns(
       enableSorting: true,
     },
     {
-      accessorFn: row => row.grades.map(g => g.level).join(", "),
-      id: "grades",
-      header: "Grades",
+      accessorKey: "announcementType",
+      header: "Type",
       enableSorting: true,
-      sortingFn: (a, b, columnId) =>
-        String(a.getValue(columnId)).localeCompare(String(b.getValue(columnId))),
+    },
+    {
+      accessorFn: row => row.announcementType === "GENERAL"
+        ? row.grades.map(g => g.level).join(", ")
+        : row.exams.map(e => e.title).join(", "),
+      id: "target",
+      header: "Targets",
+      enableSorting: false,
       cell: info => info.getValue() || "N/A",
     },
     {
       accessorKey: "resultDate",
-      header: "Date",
+      header: "Result Date",
       enableSorting: true,
-      cell: ({ getValue }) => {
-        const date = new Date(getValue() as string);
-        return date.toLocaleDateString();
+      cell: ({ getValue, row }) => {
+        if (row.original.announcementType === "EXAM_RESULT") {
+          const val = getValue() as string;
+          return val ? new Date(val).toLocaleDateString() : "-";
+        }
+        return "-";
       },
     },
     {
-      accessorFn: row => row.description,
-      id: "description",
+      accessorKey: "description",
       header: "Description",
       enableSorting: false,
+    },
+    {
+      accessorKey: "date",
+      header: "Created On",
+      enableSorting: true,
+      cell: ({ getValue }) => new Date(getValue() as string).toLocaleDateString(),
     },
     {
       id: "actions",

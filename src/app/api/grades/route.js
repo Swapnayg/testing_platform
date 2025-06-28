@@ -1,26 +1,18 @@
-// pages/api/grades.ts
+// app/api/grades/route.ts (or pages/api/grades.ts if using pages directory)
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request) {
-
+export async function GET() {
   try {
-    const examsWithoutResults = await prisma.exam.findMany({
-      where: {
-        resultDate: null,          // ✅ No result declared yet
-        status: 'COMPLETED',       // ✅ Only completed exams
-      },
+    const grades = await prisma.grade.findMany({
       select: {
         id: true,
-        title: true,
-        status: true,
+        level: true,
       },
+      orderBy: { id: "asc" },
     });
-
-
-    return NextResponse.json({ examsWithoutResults }, { status: 200 });
+    return NextResponse.json(grades);
   } catch (error) {
-    console.error('Error fetching grades:', error);
-    return NextResponse.json({ error: 'Error fetching grades.' }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch grades" }, { status: 500 });
   }
 }

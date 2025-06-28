@@ -4,56 +4,47 @@ import { NextResponse } from 'next/server';
 import prisma from "@/lib/prisma"; // or wherever your prisma client is
 
 export async function GET() {
-  try {
-    const announcements = await prisma.announcement.findMany({
-      include: { grades: true },
-      orderBy: { createdAt: 'desc' },
-    });
-    return NextResponse.json(announcements);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch announcements' }, { status: 500 });
-  }
+  const data = await prisma.announcement.findMany({
+    include: {
+      grades: true,
+      exams: true,
+    },
+    orderBy: { date: 'desc' },
+  });
+  return NextResponse.json(data);
 }
 
 export async function POST(req) {
-  try {
-        const { title, description, gradeIds = [], resultDate } = await req.json();
+  const body = await req.json();
+  const { title, description, resultDate, type, gradeIds, examIds } = body;
 
-        const isForAll = gradeIds.length === 0;
+  const newAnnouncement = await prisma.announcement.create({
+    data: {
+      title,
+      description,
+      resultDate: type === "EXAM_RESULT" ? new Date(resultDate) : null, // ✅ Set null for GENERAL
+      announcementType: type,
+      isForAll: !!gradeIds?.length && type === "GENERAL",
+      grades: gradeIds ? { connect: gradeIds.map(id => ({ id })) } : undefined,
+      exams: examIds ? { connect: examIds.map(id => ({ id })) } : undefined,
+    },
+  });
 
-        // ✅ Create announcement with optional grade associations
-        const announcement = await prisma.announcement.create({
-        data: {
-            title,
-            description,
-            isForAll,
-            resultDate: resultDate ? new Date(resultDate) : null, // ensure date is valid
-            grades: {
-            connect: isForAll ? [] : gradeIds.map((id) => ({ id })),
-            },
-        },
-        });
 
-        // ✅ Optionally update resultDate in exams (if given)
-        if (resultDate && !isForAll) {
-          await prisma.exam.updateMany({
-            where: {
-              grades: {
-                some: {
-                  id: { in: gradeIds },
-                },
-              },
-              resultDate: null, // only update if not already set
-              status: 'COMPLETED', // ✅ properly inside the where clause
-            },
-            data: {
-              resultDate: new Date(resultDate),
-            },
-          });
-        }
-    return NextResponse.json(announcement);
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Failed to create announcement' }, { status: 500 });
+  // Step 2: If EXAM_RESULT, update resultDate in associated exams
+  if (type === "EXAM_RESULT" && resultDate) {
+    await prisma.exam.updateMany({
+      where: {
+        id: { in: examIds },
+        resultDate: null,
+        status: "COMPLETED",
+      },
+      data: {
+        resultDate: new Date(resultDate),
+      },
+    });
   }
+
+
+  return NextResponse.json(newAnnouncement);
 }

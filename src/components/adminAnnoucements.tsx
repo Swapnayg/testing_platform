@@ -11,15 +11,16 @@ import { DataTable } from '@/components/ui/data-table';
 import { ArrowUp, ArrowDown } from "lucide-react";
 import AnnouncementsTable from './AnnouncementsTable';
 import type { Announcement } from './columns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
+
 
 interface Exam {
-  id: number;
+  id: string;
   title: string;
 }
 
 export default function AdminAnnouncementPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [exams, setExams] = useState<Exam[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selected, setSelected] = useState<number[]>([]);
   const [editing, setEditing] = useState<Announcement | null>(null);
@@ -27,20 +28,31 @@ export default function AdminAnnouncementPage() {
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    examIds: [] as number[],
-    resultDate: '', // ✅ new field
+  const [form, setForm] = useState<{
+    title: string;
+    description: string;
+    type: string;
+    resultDate: string;
+    gradeIds: number[];
+    examIds: string[];
+    isForAll: boolean;
+  }>({
+    title: "",
+    description: "",
+    type: "GENERAL",
+    resultDate: "",
+    gradeIds: [],
+    examIds: [],
+    isForAll: false,
   });
 
-  const fetchGrades = async () => {
-    const res = await fetch('/api/grades');
-    const data = await res.json();
-    setExams(data.examsWithoutResults);
-  };
+  const [grades, setGrades] = useState<{ id: number; level: string }[]>([]);
+  const [exams, setExams] = useState<{
+    grades: any; id: number; title: string; resultDate: string 
+}[]>([]);
+
 
   const fetchAnnouncements = async () => {
     const res = await fetch('/api/announcements');
@@ -49,89 +61,82 @@ export default function AdminAnnouncementPage() {
   };
 
   useEffect(() => {
-    fetchGrades();
+    fetch("/api/grades").then(res => res.json()).then(setGrades);
+    const selected = form.examIds.length > 0 ? `&selected=${form.examIds.join(",")}` : "";
+    fetch(`/api/annoucementExams?filter=undeclared${selected}`)
+    .then(res => res.json())
+    .then(setExams);
     fetchAnnouncements();
   }, []);
 
-
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      resultDate: '',
-      examIds: [],
-    });
-    setEditing(null); // reset edit mode if applicable
-};
   const handleEdit = (announcement: Announcement) => {
     setEditing(announcement);
-    setFormData({
+    setForm({
       title: announcement.title,
       description: announcement.description,
-      resultDate: announcement.resultDate.slice(0, 10), // assumes ISO format
-      examIds: announcement.grades.map((g: { id: number }) => g.id),
+      type: announcement.announcementType,
+      resultDate: announcement.resultDate || "",
+      gradeIds: announcement.grades?.map(g => g.id) || [],
+      examIds: announcement.exams?.map(e => String(e.id)) || [],
+      isForAll: announcement.isForAll,
     });
+    // ✅ Fetch exams for editing (include declared ones)
+    const selected = announcement.exams?.map(e => String(e.id)) || [];
+    fetch(`/api/annoucementExams?filter=undeclared${selected}`).then((res) => res.json()).then(setExams);
     setOpen(true);
   };
+
+useEffect(() => {
+    if (editing) {
+      setForm({
+        title: editing.title || "",
+        description: editing.description || "",
+        type: editing.announcementType || "GENERAL",
+        resultDate: editing.resultDate ? editing.resultDate : "",
+        gradeIds: editing.grades ? editing.grades.map((g: any) => g.id) : [],
+        examIds: editing.exams ? editing.exams.map((e: any) => e.id) : [],
+        isForAll: typeof editing.isForAll === "boolean" ? editing.isForAll : false,
+      });
+    }
+  }, [editing]);
+
+  const resetForm = () => {
+    setForm({
+      title: "",
+      description: "",
+      type: "GENERAL",
+      resultDate: "",
+      gradeIds: [],
+      examIds: [],
+      isForAll: false,
+    });
+    setEditing(null); // optional: reset edit mode
+};
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+
+  const method = editing ? "PUT" : "POST";
+  const url = editing ? `/api/announcements/${editing.id}` : "/api/announcements";
+
+  await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(form),
+  });
+
+  setForm({ title: "", description: "", type: "GENERAL", resultDate: "", gradeIds: [], examIds: [], isForAll: false });
+  setEditing(null);
+  fetchAnnouncements();
+  setOpen(false); // ✅ Close the modal
+  setLoading(false);
+};
+
 
   const handleDelete = async (id: number) => {
     await fetch(`/api/announcements/${id}`, { method: "DELETE" });
     setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-  };
-
-
-  const handleSubmit = async () => {
-    const { title, description, resultDate, examIds } = formData;
-
-    if (!title.trim()) {
-      setAlertMessage("Title is required.");
-      setAlertOpen(true);
-      return;
-    }
-
-    if (!description.trim()) {
-      setAlertMessage("Description is required.");
-      setAlertOpen(true);
-      return;
-    }
-
-    if (!resultDate) {
-      setAlertMessage("Result declaration date is required.");
-      setAlertOpen(true);
-      return;
-    }
-
-    if (examIds.length === 0) {
-      setAlertMessage("Please select at least one exam.");
-      setAlertOpen(true);
-      return;
-    }
-
-    const payload = {
-      title,
-      description,
-      resultDate,
-      examIds,
-    };
-    setIsSubmitting(true);
-    try {
-      const method = 'POST';
-      const endpoint = editing ? `/api/announcements/${editing.id}` : '/api/announcements';
-      await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      setOpen(false);
-      resetForm();
-      setEditing(null);
-      fetchAnnouncements();
-    } 
-    catch (err) {
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const filtered = Array.isArray(announcements)
@@ -162,73 +167,146 @@ export default function AdminAnnouncementPage() {
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-5">
-              {/* Title Input */}
-              <div>
-                <Label htmlFor="title" className="font-medium">Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  required
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Enter announcement title"
-                />
-              </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label>Title</Label>
+          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+        </div>
 
-              {/* Description */}
-              <div>
-                <Label htmlFor="description" className="font-medium">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  required
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Write a brief announcement..."
-                  rows={4}
-                />
-              </div>
-              <div>
-                <Label htmlFor="resultDate" className="font-medium">Result Declaration Date</Label>
-                <Input
-                  id="resultDate"
-                  type="date"
-                  required
-                  value={formData.resultDate}
-                  onChange={(e) => setFormData({ ...formData, resultDate: e.target.value })}
-                />
-              </div>
-              {/* Grades Section */}
-              <div>
-                <Label className="font-medium mb-2 block">Exams</Label>
-                <div className="border rounded-lg max-h-48 overflow-y-auto p-3 grid grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-4 bg-slate-50">
-                  {exams.map((exam) => (
-                    <label
-                      key={exam.id}
-                      className="inline-flex items-center space-x-2 text-sm text-gray-700"
-                    >
-                      <input
+        <div>
+          <Label>Description</Label>
+          <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
+        </div>
+
+        <div>
+          <Label>Type</Label>
+          <Select
+            value={form.type}
+            onValueChange={(value) =>
+              setForm({ ...form, type: value as "GENERAL" | "EXAM_RESULT", gradeIds: [], examIds: [], resultDate: "" })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select announcement type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="GENERAL">General</SelectItem>
+              <SelectItem value="EXAM_RESULT">Exam Result</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {form.type === "GENERAL" && (
+          <div>
+            <Label className="block mb-1">Grades</Label>
+
+            {/* Select All */}
+            <div className="mb-2">
+              <input
+                type="checkbox"
+                checked={form.isForAll}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setForm((prev) => ({
+                    ...prev,
+                    isForAll: checked,
+                    gradeIds: checked ? grades.map((g: any) => g.id) : [],
+                  }));
+                }}
+              />
+              <span className="ml-2 font-medium">Select All</span>
+            </div>
+
+            {/* Grade Options */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 border p-4 rounded bg-gray-50">
+              {grades.map((g: any) => (
+                <label key={g.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    value={g.id}
+                    checked={form.gradeIds.includes(g.id)}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      const updated = e.target.checked
+                        ? [...form.gradeIds, id]
+                        : form.gradeIds.filter((gid) => gid !== id);
+                      setForm({ ...form, gradeIds: updated, isForAll: false });
+                    }}
+                  />
+                  <span>{g.level}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {form.type === "EXAM_RESULT" && (
+          <>
+            <div>
+              <Label>Result Declaration Date</Label>
+              <Input
+                type="date"
+                value={form.resultDate ? form.resultDate.slice(0, 10) : ""}
+                onChange={(e) =>
+                  setForm({ ...form, resultDate: e.target.value })
+                }
+                required
+              />
+            </div>
+
+            <div className="mt-4">
+              <Label>Select Exams</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+                {exams.map((exam: any) => (
+                  <div key={exam.id} className="flex items-start gap-2 border p-3 rounded shadow-sm bg-gray-50" >
+                    <input
+                        id={`exam-${exam.id}`}
                         type="checkbox"
-                        className="form-checkbox text-blue-600 rounded"
-                        checked={formData.examIds.includes(exam.id)}
+                        value={exam.id}
+                        checked={form.examIds.includes(exam.id)}
                         onChange={(e) => {
-                          const updated = e.target.checked
-                            ? [...formData.examIds, exam.id]
-                            : formData.examIds.filter((id) => id !== exam.id);
-                          setFormData({ ...formData, examIds: updated });
+                          const examId = e.target.value;
+                          setForm((prev) => {
+                            const newIds = e.target.checked
+                              ? [...prev.examIds, examId]
+                              : prev.examIds.filter((id) => id !== examId);
+                            return { ...prev, examIds: newIds };
+                          });
                         }}
+                        className="accent-blue-600 mt-1"
                       />
-                      <span>{exam.title}</span>
-                    </label>
-                  ))}
+                  <label htmlFor={`exam-${exam.id}`} className="cursor-pointer">
+                    <div className="font-medium">{exam.title}</div>
+                    <div className="text-sm text-gray-500">
+                      Grades: {exam.grades?.map((g: any) => g.level).join(", ")}
+                    </div>
+                  </label>
                 </div>
+                ))}
               </div>
             </div>
+          </>
+        )}
 
-            {/* Footer Actions */}
-            <div className="mt-6 flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => { setOpen(false); resetForm();}}> Cancel</Button>
-             <Button onClick={handleSubmit} disabled={isSubmitting}> {isSubmitting ? "Saving..." : editing ? "Update" : "Save"} Announcement </Button>
-            </div>
+        <div className="flex gap-2 justify-end">
+          {!editing && (
+            <Button type="button" variant="outline" onClick={resetForm}>
+              Reset
+            </Button>
+          )}
+          <Button type="submit" disabled={loading}>
+            {loading
+              ? editing
+                ? "Updating..."
+                : "Adding..."
+              : editing
+                ? "Update"
+                : "Add"} Announcement
+          </Button>
+
+        </div>
+      </form>
+
           </DialogContent>
       </Dialog>
 

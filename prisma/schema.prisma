@@ -99,6 +99,7 @@ model Grade {
   category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   students      Student[]
   exams         Exam[]         // many-to-many with Exam
+  announcements Announcement[] @relation("AnnouncementGrades") // ✅ Add this
 
   @@index([categoryId], map: "Grade_categoryId_fkey")
 }
@@ -169,8 +170,8 @@ model Exam {
   results       Result[]
   quizzes       Quiz?
 
-  // ✅ Add this: announcements relation
-  announcements Announcement[] @relation("ExamAnnouncements")
+  announcements Announcement[] @relation("AnnouncementExams") // ✅ Add this
+
 
   @@index([categoryId], map: "Exam_categoryId_fkey")
   @@index([subjectId], map: "Exam_subjectId_fkey")
@@ -302,18 +303,23 @@ model Event {
 }
 
 model Announcement {
-  id          Int        @id @default(autoincrement())
-  title       String
-  description String     @db.Text
-  date        DateTime   @default(now())
-  createdAt   DateTime   @default(now())
-  isForAll    Boolean    @default(false)
-  resultDate  DateTime?
-  
-  // ✅ Add this: inverse relation
-  exams       Exam[] @relation("ExamAnnouncements")
+  id               Int          @id @default(autoincrement())
+  title            String
+  description      String       @db.Text
+  date             DateTime     @default(now())
+  createdAt        DateTime     @default(now())
+  resultDate       DateTime?
+  announcementType AnnouncementType
+  isForAll         Boolean      @default(false)
+
+  grades      Grade[]   @relation("AnnouncementGrades") // ✅ Connected to Grade
+  exams       Exam[]    @relation("AnnouncementExams")  // ✅ Connected to Exam
 }
 
+enum AnnouncementType {
+  GENERAL
+  EXAM_RESULT
+}
 
 enum RegistrationStatus {
   APPROVED

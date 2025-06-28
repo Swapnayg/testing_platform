@@ -1,81 +1,69 @@
-import { NextResponse } from 'next/server';
 import prisma from "@/lib/prisma";
+import { NextResponse } from 'next/server';
 
-export async function POST(req, { params }) {
+export async function PUT(req, { params }) {
+  const body = await req.json();
   const { id } = params;
-  try {
-    const { title, description, gradeIds, resultDate } = await req.json();
+  const {
+    title,
+    description,
+    resultDate,
+    type, // GENERAL or EXAM_RESULT
+    gradeIds = [],
+    examIds = [],
+    isForAll,
+  } = body;
 
-    const isForAll = gradeIds.length === 0;
+  // Step 1: Clear and update the announcement
+  const updatedAnnouncement = await prisma.announcement.update({
+    where: { id: parseInt(id) },
+    data: {
+      title,
+      description,
+      resultDate: type === "EXAM_RESULT" ? new Date(resultDate) : null, // ✅ Set null for GENERAL
+      announcementType: type,
+      isForAll: !!gradeIds?.length && type === "GENERAL",
+      grades: {
+        set: gradeIds.map(id => ({ id })), // 👈 Clears and sets new grades
+      },
+      exams: {
+        set: examIds.map(id => ({ id })), // 👈 Clears and sets new exams
+      },
+    },
+  });
 
-    // Step 1: Get previous gradeIds linked to this announcement
-    const existingAnnouncement = await prisma.announcement.findUnique({
-      where: { id: parseInt(id) },
-      include: { grades: true },
-    });
-
-    const previousGradeIds = existingAnnouncement?.grades.map((g) => g.id) || [];
-
-    // Step 2: Clear resultDate for exams of previous grades
-    if (previousGradeIds.length > 0) {
-      await prisma.exam.updateMany({
-        where: {
-          status: 'COMPLETED',
-          grades: {
-            some: {
-              id: { in: previousGradeIds },
-            },
-          },
-        },
-        data: {
-          resultDate: null,
-        },
-      });
-    }
-
-    const updated = await prisma.announcement.update({
-      where: { id: parseInt(id) },
+  // Step 2: If EXAM_RESULT, update resultDate on selected exams
+  if (type === "EXAM_RESULT" && resultDate && examIds.length > 0) {
+    await prisma.exam.updateMany({
+      where: {
+        id: { in: examIds },
+        resultDate: null,
+        status: "COMPLETED",
+      },
       data: {
-        title,
-        description,
-        isForAll,
-        resultDate: resultDate ? new Date(resultDate) : null, 
-        grades: {
-          set: gradeIds.map((gid) => ({ id: gid })), // reset relation
-        },
+        resultDate: new Date(resultDate),
       },
     });
-    
-    if (resultDate && gradeIds.length > 0) {
-      await prisma.exam.updateMany({
-        where: {
-          grades: {
-            some: {
-              id: { in: gradeIds },
-            },
-          },
-          resultDate: null, // only update if not already set
-          status: 'COMPLETED', // ✅ properly inside the where clause
-        },
-        data: {
-          resultDate: new Date(resultDate),
-        },
-      });
-    }
-    return NextResponse.json(updated);
+  }
+
+  return NextResponse.json(updatedAnnouncement);
+}
+
+export async function DELETE(req, { params }) {
+  const { id } = params;
+
+  if (!id) {
+    return new Response(JSON.stringify({ error: "ID not provided" }), { status: 400 });
+  }
+
+  try {
+    await prisma.announcement.delete({
+      where: { id: parseInt(id) },
+    });
+
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Failed to update announcement' }, { status: 500 });
+    return new Response(JSON.stringify({ error: "Failed to delete" }), { status: 500 });
   }
 }
 
-export async function DELETE(_req, { params }) {
-  const { id } = params;
-  try {
-    await prisma.announcement.delete({ where: { id: parseInt(id) } });
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Failed to delete announcement' }, { status: 500 });
-  }
-}
