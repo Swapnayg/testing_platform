@@ -62,9 +62,7 @@ export async function GET(request) {
           if (!studentByRoll) {
             return NextResponse.json({ message: 'Student not found' }, { status: 404 });
           }
-          console.log("✅ Student Found:", studentByRoll);
         } catch (err) {
-          console.error("❌ Error fetching student", err);
           return NextResponse.json({ message: 'Error fetching student', error: err }, { status: 500 });
         }
 
@@ -79,9 +77,7 @@ export async function GET(request) {
             },
             select: { id: true },
           });
-          console.log("✅ Registrations:", registrations);
         } catch (err) {
-          console.error("❌ Error fetching registrations", err);
           return NextResponse.json({ message: 'Error fetching registrations', error: err }, { status: 500 });
         }
 
@@ -95,9 +91,7 @@ export async function GET(request) {
             },
             select: { examId: true },
           });
-          console.log("✅ Exam Registrations:", examRegistrations);
         } catch (err) {
-          console.error("❌ Error fetching exam registrations", err);
           return NextResponse.json({ message: 'Error fetching exam registrations', error: err }, { status: 500 });
         }
 
@@ -124,9 +118,7 @@ export async function GET(request) {
               },
             },
           });
-          console.log("✅ Attempted Results:", attemptedResults);
         } catch (err) {
-          console.error("❌ Error fetching attempted results", err);
           return NextResponse.json({ message: 'Error fetching attempted results', error: err }, { status: 500 });
         }
 
@@ -134,8 +126,6 @@ export async function GET(request) {
         let upcomingExams = [], absentExams = [];
         try {
           const attemptedExamIds = attemptedResults.map(r => r.examId);
-          console.log("🧠 Attempted Exam IDs:", attemptedExamIds);
-          console.log("🧠 Registered Exam IDs:", registeredExamIds);
 
           upcomingExams = await prisma.exam.findMany({
             where: {
@@ -149,7 +139,6 @@ export async function GET(request) {
               quizzes: { select: { id: true } },
             },
           });
-          console.log("✅ Upcoming Exams:", upcomingExams);
 
           absentExams = await prisma.exam.findMany({
             where: {
@@ -163,28 +152,18 @@ export async function GET(request) {
               quizzes: { select: { id: true } },
             },
           });
-          console.log("✅ Absent Exams:", absentExams);
         } catch (err) {
-          console.error("❌ Error fetching upcoming/absent exams", err);
           return NextResponse.json({ message: 'Error fetching exams', error: err }, { status: 500 });
         }
 
-
-
         try {
-          // ✅ STEP 5: Format results
-
-          console.log("🔢 Attempted Results Count:", attemptedResults.length);
-          console.log("🔢 Upcoming Exams Count:", upcomingExams.length);
-          console.log("🔢 Absent Exams Count:", absentExams.length);
-
           const formattedResults = [
             // ✅ Attempted exams (completed)
             ...attemptedResults.map(r => {
               const formatted = {
                 id: r.exam?.id,
                 title: r.exam?.title,
-                quizId: r.exam.quizzes[0]?.id || null,
+                quizId: r.exam.quizzes?.id || null,
                 subject: r.exam?.subject?.name || "Unknown",
                 grade: studentByRoll.grade.level || "N/A",
                 category: r.exam?.grades[0]?.category?.catName || "N/A",
@@ -214,7 +193,7 @@ export async function GET(request) {
               const formatted = {
                 id: e.id,
                 title: e.title,
-                quizId: Array.isArray(e.quizzes) && e.quizzes.length > 0 ? e.quizzes[0].id : null,
+                quizId:  e.quizzes?.id || null,
                 subject: e.subject?.name || "Unknown",
                 grade: studentByRoll.grade.level || "N/A",
                 category: e.grades[0]?.category?.catName || "N/A",
@@ -239,7 +218,7 @@ export async function GET(request) {
               const formatted = {
                 id: a.id,
                 title: a.title,
-                quizId: a.quizzes[0]?.id || null,
+                quizId: a.quizzes?.id || null,
                 subject: a.subject?.name || "Unknown",
                 grade: studentByRoll.grade.level || "N/A",
                 category: a.grades[0]?.category?.catName || "N/A",
@@ -255,17 +234,12 @@ export async function GET(request) {
                 startTime: a.startTime,
                 endTime: a.endTime,
               };
-              console.log("❌ Absent Exam:", formatted);
               return formatted;
             }),
           ];
 
-          console.log("✅ Total Formatted Results:", formattedResults.length);
-          console.log("✅ Formatted Results:", formattedResults);
-
           return NextResponse.json({ quizzes: formattedResults }, { status: 200 });
         } catch (err) {
-          console.error("❌ Error formatting results", err);
           return NextResponse.json({ message: 'Error formatting results', error: err }, { status: 500 });
         }
 
@@ -442,7 +416,6 @@ export async function POST(request) {
               },
               data: {
                 score: parseInt(totalScoreEarned2), // just for test
-                grade:grade,
                 gradedAt: new Date(),
                 quizAttemptId: data.attemptId,
                 answeredQuestions: data.answeredCount,
@@ -551,7 +524,6 @@ export async function POST(request) {
             data:{
               score:totalScoreEarned1,
               gradedAt: new Date(),
-              grade:grade2,
               quizAttemptId:udata.attemptId,
               answeredQuestions:attempt1.quiz.totalQuestions,
               correctAnswers:correctAnswerCount1,

@@ -12,14 +12,14 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 import AnnouncementsTable from './AnnouncementsTable';
 import type { Announcement } from './columns';
 
-interface Grade {
+interface Exam {
   id: number;
-  level: string;
+  title: string;
 }
 
 export default function AdminAnnouncementPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [grades, setGrades] = useState<Grade[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selected, setSelected] = useState<number[]>([]);
   const [editing, setEditing] = useState<Announcement | null>(null);
@@ -32,15 +32,14 @@ export default function AdminAnnouncementPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    gradeIds: [] as number[],
-    sendToAll: false, // ✅ new field
+    examIds: [] as number[],
     resultDate: '', // ✅ new field
   });
 
   const fetchGrades = async () => {
     const res = await fetch('/api/grades');
     const data = await res.json();
-    setGrades(data.grades);
+    setExams(data.examsWithoutResults);
   };
 
   const fetchAnnouncements = async () => {
@@ -60,8 +59,7 @@ export default function AdminAnnouncementPage() {
       title: '',
       description: '',
       resultDate: '',
-      sendToAll: false,
-      gradeIds: [],
+      examIds: [],
     });
     setEditing(null); // reset edit mode if applicable
 };
@@ -71,8 +69,7 @@ export default function AdminAnnouncementPage() {
       title: announcement.title,
       description: announcement.description,
       resultDate: announcement.resultDate.slice(0, 10), // assumes ISO format
-      sendToAll: announcement.grades.length === grades.length,
-      gradeIds: announcement.grades.map((g) => g.id),
+      examIds: announcement.grades.map((g: { id: number }) => g.id),
     });
     setOpen(true);
   };
@@ -84,7 +81,7 @@ export default function AdminAnnouncementPage() {
 
 
   const handleSubmit = async () => {
-    const { title, description, resultDate, gradeIds } = formData;
+    const { title, description, resultDate, examIds } = formData;
 
     if (!title.trim()) {
       setAlertMessage("Title is required.");
@@ -104,8 +101,8 @@ export default function AdminAnnouncementPage() {
       return;
     }
 
-    if (gradeIds.length === 0) {
-      setAlertMessage("Please select at least one grade.");
+    if (examIds.length === 0) {
+      setAlertMessage("Please select at least one exam.");
       setAlertOpen(true);
       return;
     }
@@ -114,7 +111,7 @@ export default function AdminAnnouncementPage() {
       title,
       description,
       resultDate,
-      gradeIds,
+      examIds,
     };
     setIsSubmitting(true);
     try {
@@ -200,47 +197,27 @@ export default function AdminAnnouncementPage() {
                   onChange={(e) => setFormData({ ...formData, resultDate: e.target.value })}
                 />
               </div>
-              <div className="mb-2">
-                <label className="inline-flex items-center space-x-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    className="form-checkbox text-blue-600 rounded"
-                    checked={formData.sendToAll}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setFormData({
-                        ...formData,
-                        sendToAll: checked,
-                        gradeIds: checked ? grades.map((g) => g.id) : [], // ✅ Select or clear all
-                      });
-                    }}
-                  />
-                  <span>Send to All Grades</span>
-
-                </label>
-              </div>
-
               {/* Grades Section */}
               <div>
-                <Label className="font-medium mb-2 block">Grades</Label>
+                <Label className="font-medium mb-2 block">Exams</Label>
                 <div className="border rounded-lg max-h-48 overflow-y-auto p-3 grid grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-4 bg-slate-50">
-                  {grades.map((grade) => (
+                  {exams.map((exam) => (
                     <label
-                      key={grade.id}
+                      key={exam.id}
                       className="inline-flex items-center space-x-2 text-sm text-gray-700"
                     >
                       <input
                         type="checkbox"
                         className="form-checkbox text-blue-600 rounded"
-                        checked={formData.gradeIds.includes(grade.id)}
+                        checked={formData.examIds.includes(exam.id)}
                         onChange={(e) => {
                           const updated = e.target.checked
-                            ? [...formData.gradeIds, grade.id]
-                            : formData.gradeIds.filter((id) => id !== grade.id);
-                          setFormData({ ...formData, gradeIds: updated });
+                            ? [...formData.examIds, exam.id]
+                            : formData.examIds.filter((id) => id !== exam.id);
+                          setFormData({ ...formData, examIds: updated });
                         }}
                       />
-                      <span>{grade.level}</span>
+                      <span>{exam.title}</span>
                     </label>
                   ))}
                 </div>

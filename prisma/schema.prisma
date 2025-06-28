@@ -98,7 +98,6 @@ model Grade {
   categoryId    Int
   category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   students      Student[]
-  announcements Announcement[] @relation("AnnouncementGrades")
   exams         Exam[]         // many-to-many with Exam
 
   @@index([categoryId], map: "Grade_categoryId_fkey")
@@ -169,6 +168,9 @@ model Exam {
   registrations ExamOnRegistration[]
   results       Result[]
   quizzes       Quiz?
+
+  // ✅ Add this: announcements relation
+  announcements Announcement[] @relation("ExamAnnouncements")
 
   @@index([categoryId], map: "Exam_categoryId_fkey")
   @@index([subjectId], map: "Exam_subjectId_fkey")
@@ -300,15 +302,18 @@ model Event {
 }
 
 model Announcement {
-  id          Int       @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   title       String
-  description String    @db.Text
-  date        DateTime  @default(now())
-  createdAt   DateTime  @default(now())
-  isForAll    Boolean   @default(false)
+  description String     @db.Text
+  date        DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  isForAll    Boolean    @default(false)
   resultDate  DateTime?
-  grades      Grade[]   @relation("AnnouncementGrades")
+  
+  // ✅ Add this: inverse relation
+  exams       Exam[] @relation("ExamAnnouncements")
 }
+
 
 enum RegistrationStatus {
   APPROVED

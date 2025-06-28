@@ -276,13 +276,12 @@ const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
     });
 
     // ✅ Reload parent and close popup
-    // ✅ Delay to allow reload before closing
     setTimeout(() => {
-      window.location.reload(); 
-      window.close();
+      if (window.opener) {
+        window.opener.location.reload(); // Refresh the page that opened this popup
+      }
+      window.close(); // Close this popup
     }, 300);
-    window.close(); 
-
   } catch (error) {
     console.error('Quiz submission failed:', error);
     toast({

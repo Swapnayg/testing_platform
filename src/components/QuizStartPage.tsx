@@ -38,7 +38,6 @@ const getStudentByRollNo = async (rollNo: string) => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const results = await response.json();
-    console.log(results);
     return results;
   } catch (error) {
     return null;
