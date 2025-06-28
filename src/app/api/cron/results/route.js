@@ -6,103 +6,74 @@ import prisma from "@/lib/prisma";
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get("secret");
-
   if (secret !== process.env.CRON_SECRET) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
   const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = new Date(now).setHours(0, 0, 0, 0);
+  const todayEnd   = new Date(now).setHours(23, 59, 59, 999);
 
-  const todayEnd = new Date(now);
-  todayEnd.setHours(23, 59, 59, 999);
+  // 1️⃣ Fetch all exam IDs to process
+  const exams = await prisma.exam.findMany({
+    where: {
+      resultDate: { gte: new Date(todayStart), lte: new Date(todayEnd) },
+    },
+    select: { id: true },
+  });
+  const examIds = exams.map(e => e.id);
+  console.log("🧪 Exams to process:", examIds);
 
-  console.log("✅ Step: Cron job triggered at", now);
+  if (examIds.length === 0) {
+    return NextResponse.json({ message: "No exams with resultDate today." });
+  }
 
-  try {
-    const exams = await prisma.exam.findMany({
-      where: {
-        resultDate: {
-          gte: todayStart,
-          lte: todayEnd,
-        },
-      },
-      select: { id: true },
-    });
+  const declaredAt = new Date();
 
-    const examIds = exams.map((e) => e.id);
+  // 2️⃣ Split into two roughly equal batches
+  const mid = Math.ceil(examIds.length / 2);
+  const batch1 = examIds.slice(0, mid);
+  const batch2 = examIds.slice(mid);
 
-    console.log("🧪 Exams with resultDate today:", examIds);
-
-    if (examIds.length === 0) {
-      return NextResponse.json({ message: "No exams with resultDate today." });
-    }
-
-    const declaredAt = new Date();
-
-    for (const examId of examIds) {
+  // 3️⃣ Define a helper to process one batch
+  const processBatch = async (ids) => {
+    for (const examId of ids) {
       console.log("📌 Processing examId:", examId);
-
       const results = await prisma.result.findMany({
-        where: {
-          examId,
-          status: {
-            in: ['PASSED', 'FAILED'],
-          },
-        },
-        orderBy: {
-          score: 'desc',
-        },
-        select: {
-          id: true,
-          score: true,
-          status: true,
-        },
+        where: { examId, status: { in: ["PASSED", "FAILED" ] } },
+        orderBy: { score: "desc" },
+        select: { id: true, score: true },
       });
+      console.log(`📊 Found ${results.length} results for ${examId}`);
 
-      console.log(`📊 Found ${results.length} results for exam ${examId}`);
-
-      let rank = 1;
-      let lastScore = null;
-
+      let rank = 1, lastScore = null;
       for (let i = 0; i < results.length; i++) {
-        const result = results[i];
+        const { id, score } = results[i];
+        if (score == null) { console.warn(`⚠️ Skipping ${id}, null score`); continue; }
 
-        if (result.score === null) {
-          console.warn(`⚠️ Skipping result ${result.id} due to null score`);
-          continue;
-        }
-
-        const isSameScore = result.score === lastScore;
-        const currentRank = isSameScore ? rank : i + 1;
-
-        console.log(`📝 Updating result ${result.id}: score=${result.score}, rank=${currentRank}`);
+        const same = score === lastScore;
+        const currentRank = same ? rank : i + 1;
+        console.log(`📝 Updating result ${id}: rank=${currentRank}`);
 
         try {
-          const updated = await prisma.result.update({
-            where: { id: result.id },
-            data: {
-              grade: `${currentRank}`,
-              resultDeclared: true,
-              declaredOn: declaredAt,
-            },
+          await prisma.result.update({
+            where: { id },
+            data: { grade: `${currentRank}`, resultDeclared: true, declaredOn: declaredAt },
           });
-          console.log(`✅ Updated result ${result.id}`, updated);
+          console.log(`✅ Updated ${id}`);
         } catch (err) {
-          console.error(`❌ Error updating result ID ${result.id}:`, err);
+          console.error(`❌ Error updating ${id}:`, err);
         }
 
-        lastScore = result.score;
-        if (!isSameScore) {
-          rank = i + 1;
-        }
+        if (!same) rank = i + 1;
+        lastScore = score;
       }
     }
-    console.log("Results updated with ranks.");
-    return NextResponse.json({ message: "Results updated with ranks." });
-  } catch (error) {
-    console.error("❌ Error updating results with rank:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
-  }
+  };
+
+  // 4️⃣ Run both batches in parallel
+  await Promise.all([processBatch(batch1), processBatch(batch2)]);
+  console.log("🎉 All batches complete");
+
+  return NextResponse.json({ message: "Results ranked in two parallel batches." });
 }
