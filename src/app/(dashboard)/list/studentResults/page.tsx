@@ -16,9 +16,6 @@ export default async function StudentResult() {
     username = user.username?.toString() ?? "";
   }
 
-
-
-  
   return (
     <StudentResultsList username={username} />
   );
