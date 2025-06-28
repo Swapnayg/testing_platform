@@ -201,13 +201,13 @@ const loadFilteredResults = async (examId: string) => {
       pdf.text('Director', 80, sigY, { align: 'center' });
       pdf.setDrawColor(0, 0, 0); // Black color
       pdf.setLineWidth(1);
-      pdf.line(45, sigY - 15, 115, sigY - 15);
+      pdf.line(45, sigY - 10, 115, sigY - 10);
 
       // Academic Officer signature with 1px black line
       pdf.text('Academic Officer', pageWidth - 80, sigY, { align: 'center' });
       pdf.setDrawColor(0, 0, 0); // Black color
       pdf.setLineWidth(1);
-      pdf.line(pageWidth - 115, sigY - 15, pageWidth - 45, sigY - 15);
+      pdf.line(pageWidth - 115, sigY - 10, pageWidth - 45, sigY - 10);
 
       // Add decorative flower symbols in corners (no @ symbols)
       pdf.setFont('helvetica', 'normal');

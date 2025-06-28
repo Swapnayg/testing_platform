@@ -76,7 +76,13 @@ const Menu = async () => {
           icon: "/announcement.png",
           label: "Announcements",
           href: "/list/announcements",
-          visible: ["admin", "teacher", "student", "parent"],
+          visible: ["admin"],
+        },
+        {
+          icon: "/announcement.png",
+          label: "Announcements",
+          href: "/list/studentAnnoucement",
+          visible: ["student"],
         },
         {
           icon: "/profile.png",

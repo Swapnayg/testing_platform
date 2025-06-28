@@ -38,7 +38,6 @@ export async function GET(request) {
   // 3️⃣ Define a helper to process one batch
   const processBatch = async (ids) => {
     for (const examId of ids) {
-      console.log("📌 Processing examId:", examId);
       const results = await prisma.result.findMany({
         where: { examId, status: { in: ["PASSED", "FAILED" ] } },
         orderBy: { score: "desc" },
@@ -53,14 +52,12 @@ export async function GET(request) {
 
         const same = score === lastScore;
         const currentRank = same ? rank : i + 1;
-        console.log(`📝 Updating result ${id}: rank=${currentRank}`);
 
         try {
           await prisma.result.update({
             where: { id },
             data: { grade: `${currentRank}`, resultDeclared: true, declaredOn: declaredAt },
           });
-          console.log(`✅ Updated ${id}`);
         } catch (err) {
           console.error(`❌ Error updating ${id}:`, err);
         }
