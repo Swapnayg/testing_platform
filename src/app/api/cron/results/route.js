@@ -43,7 +43,7 @@ export async function GET(request) {
   for (const examId of examIds) {
     const results = await prisma.result.findMany({
       where: {
-        examId,
+        examId: examId,
         status: {
           in: ['PASSED', 'FAILED'],
         },
