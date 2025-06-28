@@ -96,7 +96,7 @@ export async function GET(request) {
         }
       }
     }
-
+    console.log("Results updated with ranks.");
     return NextResponse.json({ message: "Results updated with ranks." });
   } catch (error) {
     console.error("❌ Error updating results with rank:", error);
