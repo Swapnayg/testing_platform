@@ -62,7 +62,9 @@ export async function GET(request) {
           if (!studentByRoll) {
             return NextResponse.json({ message: 'Student not found' }, { status: 404 });
           }
+          console.log("✅ Student Found:", studentByRoll);
         } catch (err) {
+          console.error("❌ Error fetching student", err);
           return NextResponse.json({ message: 'Error fetching student', error: err }, { status: 500 });
         }
 
@@ -77,7 +79,9 @@ export async function GET(request) {
             },
             select: { id: true },
           });
+          console.log("✅ Registrations:", registrations);
         } catch (err) {
+          console.error("❌ Error fetching registrations", err);
           return NextResponse.json({ message: 'Error fetching registrations', error: err }, { status: 500 });
         }
 
@@ -87,11 +91,13 @@ export async function GET(request) {
         try {
           examRegistrations = await prisma.examOnRegistration.findMany({
             where: {
-              registrationId: { in: registrations.map(r => r.id) },
+              registrationId: { in: registrationIds },
             },
             select: { examId: true },
           });
+          console.log("✅ Exam Registrations:", examRegistrations);
         } catch (err) {
+          console.error("❌ Error fetching exam registrations", err);
           return NextResponse.json({ message: 'Error fetching exam registrations', error: err }, { status: 500 });
         }
 
@@ -118,18 +124,18 @@ export async function GET(request) {
               },
             },
           });
+          console.log("✅ Attempted Results:", attemptedResults);
         } catch (err) {
+          console.error("❌ Error fetching attempted results", err);
           return NextResponse.json({ message: 'Error fetching attempted results', error: err }, { status: 500 });
         }
 
-
         // STEP 4: Get Upcoming Exams (registered, not attempted, future)
-        const attemptedExamIds = attemptedResults.map(r => r.examId);
         let upcomingExams = [], absentExams = [];
         try {
           const attemptedExamIds = attemptedResults.map(r => r.examId);
-          const registeredExamIds = examRegistrations.map(e => e.examId);
-          const now = new Date();
+          console.log("🧠 Attempted Exam IDs:", attemptedExamIds);
+          console.log("🧠 Registered Exam IDs:", registeredExamIds);
 
           upcomingExams = await prisma.exam.findMany({
             where: {
@@ -143,6 +149,8 @@ export async function GET(request) {
               quizzes: { select: { id: true } },
             },
           });
+          console.log("✅ Upcoming Exams:", upcomingExams);
+
           absentExams = await prisma.exam.findMany({
             where: {
               id: { in: registeredExamIds, notIn: attemptedExamIds },
@@ -155,91 +163,112 @@ export async function GET(request) {
               quizzes: { select: { id: true } },
             },
           });
+          console.log("✅ Absent Exams:", absentExams);
         } catch (err) {
+          console.error("❌ Error fetching upcoming/absent exams", err);
           return NextResponse.json({ message: 'Error fetching exams', error: err }, { status: 500 });
         }
 
-        console.log(absentExams);
 
 
         try {
           // ✅ STEP 5: Format results
-        const formattedResults = [
-          // Attempted exams (completed)
-          
-          ...attemptedResults.map(r => ({
-            id: r.exam?.id,
-            title: r.exam?.title,
-            quizId:  r.exam.quizzes[0]?.id || null, // 👈 safely access first quiz ID
-            subject: r.exam?.subject?.name || "Unknown",
-            grade: studentByRoll.grade.level || "N/A",
-            category: r.exam?.grades[0]?.category?.catName || "N/A",
-            timeRemaining: "Completed",
-            questions: r.exam?.totalMCQ ?? 0,
-            duration: `${r.exam?.timeLimit ?? 0} mins`,
-            totalMarks: r.exam?.totalMarks ?? 0,
-            score: r.score,
-            totalScore: r.totalScore,
-            progress: 100,
-            status: "completed",
-            quizType: "completed",
-            startTime: r.startTime,
-            endTime: r.endTime,
-          })),
 
-          // Upcoming exams (registered but not attempted)
-          ...upcomingExams.map(e => {
-            const diffMs = new Date(e.startTime).getTime() - now.getTime();
-            const timeRemaining = diffMs > 0
-              ? `${Math.ceil(diffMs / (1000 * 60 * 60 * 24))} days`
-              : "Starts today";
+          console.log("🔢 Attempted Results Count:", attemptedResults.length);
+          console.log("🔢 Upcoming Exams Count:", upcomingExams.length);
+          console.log("🔢 Absent Exams Count:", absentExams.length);
 
-            return {
-              id: e.id,
-              title: e.title,
-              quizId:e.quizzes[0]?.id || null, // 👈 safely access first quiz ID
-              subject: e.subject?.name || "Unknown",
-              grade: studentByRoll.grade.level || "N/A",
-              category: e.grades[0]?.category?.catName || "N/A",
-              timeRemaining,
-              questions: e.totalMCQ ?? 0,
-              duration: `${e.timeLimit ?? 0} mins`,
-              totalMarks: e.totalMarks ?? 0,
-              score: null,
-              totalScore: null,
-              progress: 0,
-              status: "not-started",
-              quizType: "upcoming",
-              startTime: e.startTime,
-              endTime: e.endTime,
-            };
-          }),
-          ...absentExams.map(a => ({
-            id: a.id,
-            title: a.title,
-            quizId: a.quizzes[0]?.id || null, // safely access first quiz ID
-            subject: a.subject?.name || "Unknown",
-            grade: studentByRoll.grade.level || "N/A",
-            category: a.grades[0]?.category?.catName || "N/A",
-            timeRemaining: "Missed", // clearer label than "Completed"
-            questions: a.totalMCQ ?? 0,
-            duration: `${a.timeLimit ?? 0} mins`,
-            totalMarks: a.totalMarks ?? 0,
-            score: null,
-            totalScore: null,
-            progress: 100,
-            status: "absent",
-            quizType: "completed",
-            startTime: a.startTime,
-            endTime: a.endTime,
-          })),
-        ];// Your final formatting logic
+          const formattedResults = [
+            // ✅ Attempted exams (completed)
+            ...attemptedResults.map(r => {
+              const formatted = {
+                id: r.exam?.id,
+                title: r.exam?.title,
+                quizId: r.exam.quizzes[0]?.id || null,
+                subject: r.exam?.subject?.name || "Unknown",
+                grade: studentByRoll.grade.level || "N/A",
+                category: r.exam?.grades[0]?.category?.catName || "N/A",
+                timeRemaining: "Completed",
+                questions: r.exam?.totalMCQ ?? 0,
+                duration: `${r.exam?.timeLimit ?? 0} mins`,
+                totalMarks: r.exam?.totalMarks ?? 0,
+                score: r.score,
+                totalScore: r.totalScore,
+                progress: 100,
+                status: "completed",
+                quizType: "completed",
+                startTime: r.startTime,
+                endTime: r.endTime,
+              };
+              console.log("✅ Attempted Exam:", formatted);
+              return formatted;
+            }),
+
+            // ✅ Upcoming exams (registered but not attempted)
+            ...upcomingExams.map(e => {
+              const diffMs = new Date(e.startTime).getTime() - now.getTime();
+              const timeRemaining = diffMs > 0
+                ? `${Math.ceil(diffMs / (1000 * 60 * 60 * 24))} days`
+                : "Starts today";
+
+              const formatted = {
+                id: e.id,
+                title: e.title,
+                quizId: Array.isArray(e.quizzes) && e.quizzes.length > 0 ? e.quizzes[0].id : null,
+                subject: e.subject?.name || "Unknown",
+                grade: studentByRoll.grade.level || "N/A",
+                category: e.grades[0]?.category?.catName || "N/A",
+                timeRemaining,
+                questions: e.totalMCQ ?? 0,
+                duration: `${e.timeLimit ?? 0} mins`,
+                totalMarks: e.totalMarks ?? 0,
+                score: null,
+                totalScore: null,
+                progress: 0,
+                status: "not-started",
+                quizType: "upcoming",
+                startTime: e.startTime,
+                endTime: e.endTime,
+              };
+              console.log("⏳ Upcoming Exam:", formatted);
+              return formatted;
+            }),
+
+            // ✅ Absent exams (missed after end)
+            ...absentExams.map(a => {
+              const formatted = {
+                id: a.id,
+                title: a.title,
+                quizId: a.quizzes[0]?.id || null,
+                subject: a.subject?.name || "Unknown",
+                grade: studentByRoll.grade.level || "N/A",
+                category: a.grades[0]?.category?.catName || "N/A",
+                timeRemaining: "Missed",
+                questions: a.totalMCQ ?? 0,
+                duration: `${a.timeLimit ?? 0} mins`,
+                totalMarks: a.totalMarks ?? 0,
+                score: null,
+                totalScore: null,
+                progress: 100,
+                status: "absent",
+                quizType: "completed",
+                startTime: a.startTime,
+                endTime: a.endTime,
+              };
+              console.log("❌ Absent Exam:", formatted);
+              return formatted;
+            }),
+          ];
+
+          console.log("✅ Total Formatted Results:", formattedResults.length);
+          console.log("✅ Formatted Results:", formattedResults);
+
           return NextResponse.json({ quizzes: formattedResults }, { status: 200 });
         } catch (err) {
+          console.error("❌ Error formatting results", err);
           return NextResponse.json({ message: 'Error formatting results', error: err }, { status: 500 });
         }
 
-        return NextResponse.json({quizzes: formattedResults}, { status: 200 });
 
       default:
         return NextResponse.json({ message: 'Invalid GET type' }, { status: 400 });

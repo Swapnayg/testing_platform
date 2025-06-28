@@ -51,12 +51,19 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
   
   const onBackToStart = () => {
     setTimeout(() => {
       router.back(); // or router.push('/your-target-page')
     }, 1000); // Delay optional
   };
+
+  const handleClick = () => {
+    setLoading(true);
+    router.push(`/list/students/${quizId}/quiz?studentName=${username}`);
+  };
+
 
   const fetchAttempt = async (attemptId: string) => {
   try {
@@ -90,6 +97,8 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
     };
 
     loadAttempts();
+
+
   }, [quizId]);
 
   const formatTime = (seconds: number): string => {
@@ -373,17 +382,14 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
               </div>
               {/* Right: Modify Button for Admins */}
               {userRole === 'admin' && (
-                <Link href={`/list/students/${quizId}/quiz?studentName=${username}`}
-                  passHref
+                <Button
+                  onClick={handleClick}
+                  variant="default"
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                  disabled={loading}
                 >
-                  <Button
-                    variant="default"
-                    className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-                  >
-                    ✏️ Modify Quiz
-                  </Button>
-                </Link>
-
+                  {loading ? "Loading..." : "✏️ Modify Quiz"}
+                </Button>
               )}
             </div>
           </div>

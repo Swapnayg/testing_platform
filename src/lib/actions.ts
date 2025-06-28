@@ -1300,15 +1300,16 @@ export const getacceptedCount = async ({ examId }: { examId: string }) => {
 };
 
 export const getFilteredStudentDetails = async ({ username }: { username: string }) => {
-  const studentByRoll = await prisma.student.findFirst({
+  const studentByRoll =  await prisma.student.findFirst({
     where: { rollNo: username.toUpperCase() },
   });
-  return await prisma.result.findMany({
+
+  const results = await prisma.result.findMany({
     where: {
       resultDeclared: true,
-      studentId: studentByRoll?.cnicNumber || '', // Use the student's CNIC number
+      studentId: studentByRoll?.cnicNumber || '',
       quizAttempt: {
-        isNot: null, // ✅ Exclude null quizAttempt
+        isNot: null,
       },
     },
     include: {
@@ -1317,7 +1318,7 @@ export const getFilteredStudentDetails = async ({ username }: { username: string
         include: {
           grades: true,
           subject: true,
-          category: true, // optional, for more detail
+          category: true,
         },
       },
       quizAttempt: {
@@ -1329,13 +1330,46 @@ export const getFilteredStudentDetails = async ({ username }: { username: string
                   options: true,
                 },
               },
-              QuestionOption: true, // the selected option (if any)
+              QuestionOption: true,
             },
           },
         },
       },
     },
   });
+
+  // Get distinct exam IDs from results
+  const examIds = [...new Set(results.map(r => r.examId))].filter((id): id is string => id !== null);
+
+  // Fetch total participants per examId
+  const participantCounts = await prisma.result.groupBy({
+    by: ['examId'],
+    where: {
+      examId: { in: examIds },
+      resultDeclared: true,
+      quizAttempt: {
+        isNot: null,
+      },
+    },
+    _count: {
+      examId: true,
+    },
+  });
+
+  // Convert to a map: { examId: count }
+  const participantsMap = Object.fromEntries(
+    participantCounts.map(pc => [pc.examId, pc._count.examId])
+  );
+
+  // Attach totalParticipants to each result
+  const enrichedResults = results.map(r => ({
+    ...r,
+    exam: {
+      ...r.exam,
+      totalParticipants: r.examId ? participantsMap[r.examId] || 0 : 0,
+    },
+  }));
+  return enrichedResults;
 };
 
 

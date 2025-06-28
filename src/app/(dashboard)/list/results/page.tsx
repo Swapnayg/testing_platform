@@ -35,27 +35,6 @@ const ResultListPage = () => {
   const [selectedExamDetails, setSelectedExamDetails] = useState<Exam | null>(null);
 
 
-  function assignRankByScore(results: { score: number; totalScore: number }[]) {
-  const withPercent = results.map((r) => ({
-    ...r,
-    percentage: (r.score / r.totalScore) * 100,
-  }));
-
-  withPercent.sort((a, b) => b.percentage - a.percentage);
-
-  let rank = 1;
-  let prevPercentage: number | null = null;
-
-  return withPercent.map((r, index) => {
-    if (r.percentage !== prevPercentage) {
-      rank = index + 1;
-    }
-    prevPercentage = r.percentage;
-    return { ...r, rank };
-  });
-}
-
-
 const loadFilteredResults = async (examId: string) => {
   setLoading(true);
 
@@ -70,10 +49,9 @@ const loadFilteredResults = async (examId: string) => {
     setTotalStudents(getcount);
     // Add percentage and rank
     const getExam = await getExamDetails({ examId });
-    const ranked = assignRankByScore(rawResults);
     // Store in state
-    setFilteredResults(ranked);
-    setResults(ranked.slice(0, PAGE_SIZE));
+    setFilteredResults(rawResults);
+    setResults(rawResults.slice(0, PAGE_SIZE));
     setCurrentPage(1);
     setSelectedExamDetails(getExam);
   } catch (error) {
@@ -107,7 +85,7 @@ const loadFilteredResults = async (examId: string) => {
     const data = filteredResults.map((r) => ({
       Student: r.student.name,
       CNIC: r.student.cnicNumber,
-      Grade: r.exam.grade.level,
+      Grade: r.exam.grades.map((g: { level: any; }) => g.level).join(", "),
       Subject: r.exam.subject.name,
       Score: r.score,
       SubmittedAt: new Date(r.gradedAt).toLocaleString(),
@@ -255,13 +233,13 @@ const loadFilteredResults = async (examId: string) => {
                   <tr key={r.id} className="border-t">
                     
                     <td className="p-2">{r.student.name}</td>
-                    <td className="p-2">{r.exam.grade.level}</td>
+                    <td className="p-2">{r.exam.grades.map((g: { level: any; }) => g.level).join(", ")}</td>
                     <td className="p-2">{r.exam.subject.name}</td>
                     <td className="p-2">{r.score}</td>
                     <td className="p-2">{r.correctAnswers}</td>
                     <td className="p-2">{r.exam.totalMCQ - r.correctAnswers}</td>
                     <td className="p-2">{new Date(r.gradedAt).toLocaleString()}</td>
-                    <td className="p-2">{r.rank}</td>
+                    <td className="p-2">{r.grade}</td>
                     <td className="p-2 text-center">
                      <Link href={`/list/students/${r.quizAttempt.quizId}/quizview?studentName=${r.student.cnicNumber}&userRole=admin`}>
                       <Button
