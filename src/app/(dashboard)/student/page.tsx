@@ -141,61 +141,54 @@ const absentExams = await prisma.exam.findMany({
   },
 });
 
+
+
 // STEP 1: Get all future exams
-const [notApplied, pendingApproval] = await Promise.all([
-  prisma.exam.findMany({
-    where: {
-      startTime: { gt: new Date() },
-      grades: {
+const allUpcomingExams = await prisma.exam.findMany({
+  where: {
+    startTime: { gt: new Date() },
+    grades: {
       some: {
-        id: student?.gradeId ?? undefined, // ✅ Match exam with student grade
-      },
-      },
-      registrations: {
-        none: {
-          registration: {
-            studentId: student?.cnicNumber,
-          },
-        },
+        id: student?.gradeId ?? undefined,
       },
     },
-    include: { 
-      grades: {
-        include: {
-          category: true,
-        },
-      },
-      subject: true,
-      quizzes: {
-        select: { id: true }, // 👈 get Quiz ID
-      },
-     },
-  }),
-  prisma.exam.findMany({
-    where: {
-      startTime: { gt: new Date() },
-      registrations: {
-        some: {
-          registration: {
-            studentId: student?.cnicNumber,
-            status: 'PENDING',
-          },
-        },
+  },
+  include: {
+    registrations: {
+      include: {
+        registration: true, // ✅ fetch all, filter manually
       },
     },
-    include: { 
-        grades: {
-          include: {
-            category: true,
-          },
-        },
-        subject: true,
-        quizzes: {
-          select: { id: true }, // 👈 get Quiz ID
-        },
-     },
-  }),
-]);
+    grades: { include: { category: true } },
+    subject: true,
+    quizzes: { select: { id: true } },
+  },
+});
+
+
+  const notApplied: typeof allUpcomingExams = [];
+  const pendingApproval: typeof allUpcomingExams = [];
+
+  for (const exam of allUpcomingExams) {
+    const studentRegs = exam.registrations.filter(
+      (r) => r.registration?.studentId === student?.cnicNumber
+    );
+
+    // ✅ If any registration is APPROVED, skip the exam
+    if (studentRegs.some((r) => r.registration?.status === 'APPROVED')) {
+      continue;
+    }
+
+    // ✅ If any is PENDING (and no approved), mark as pending
+    if (studentRegs.some((r) => r.registration?.status === 'PENDING')) {
+      pendingApproval.push(exam);
+      continue;
+    }
+
+    // ✅ If no registration or all are REJECTED (and no approved), mark as not applied
+    notApplied.push(exam);
+  }
+
 
 const formattedNotApplied = notApplied.map((exam) => ({ ...exam, status: 'not_applied' }));
 const formattedPending = pendingApproval.map((exam) => ({ ...exam, status: 'pending_approval' }));
@@ -239,6 +232,12 @@ const upcomingExams = await prisma.exam.findMany({
     quizzes: { select: { id: true } },
   },
 });
+
+console.log("Attempted exams", attemptedExams);
+console.log("UpcomingExams exams", upcomingExams);
+console.log("AbsentExams exams", absentExams);
+console.log("NotApplied exams", notApplied);
+console.log("PendingApproval exams", pendingApproval);
 
 const combinedExams = [
   // Attempted Exams

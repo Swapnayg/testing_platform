@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { clerkClient } from "@clerk/nextjs/server";
 import nodemailer from 'nodemailer';
+import { UserRole, NotificationType } from '@prisma/client';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -41,6 +42,14 @@ export async function POST(req) {
       username: "UIN" + rollNo.toString(),
       password: body.cnicNumber || '',
       publicMetadata: { role: "student" }
+    });
+
+    const newStudent = await prisma.user.create({
+      data: {
+        name: "UIN" + rollNo.toString(),
+        role: UserRole.student,
+        cnicNumber: body.cnicNumber, // must match Student
+      },
     });
     const student = await prisma.student.create({
       data: {

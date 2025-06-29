@@ -108,7 +108,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   const fetchGrades = async () => {
     const res = await fetch('/api/grades');
     const data = await res.json();
-    setGrades(data.grades);
+    setGrades(data);
   };
 
 const handleSubmit = async () => {

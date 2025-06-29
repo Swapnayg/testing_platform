@@ -1,5 +1,111 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from 'next/server';
+import { UserRole, NotificationType } from '@prisma/client';
+
+
+async function getUserIdByNameAndRole(name, role) {
+  const user = await prisma.user.findFirst({
+    where: {
+      name,
+      role: role,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return user?.id ?? null;
+}
+
+
+async function notifyStudentsForAnnouncement(announcementId) {
+  const adminUserId = await getUserIdByNameAndRole("admin", "admin");
+    if (adminUserId === null) {
+      throw new Error("Admin user not found. Cannot send notification.");
+  }
+  const announcement = await prisma.announcement.findUnique({
+    where: { id: announcementId },
+    include: {
+      grades: true,
+      exams: true,
+    },
+  });
+
+  if (!announcement) return;
+
+  let students = [];
+
+  if (announcement.announcementType === 'GENERAL') {
+    const gradeIds = announcement.grades.map((g) => g.id);
+
+    if (gradeIds.length === 0) return;
+
+    students = await prisma.student.findMany({
+      where: {
+        gradeId: { in: gradeIds },
+      },
+      select: {
+        id: true,
+        user: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+  }
+
+  if (announcement.announcementType === 'EXAM_RESULT') {
+    const examIds = announcement.exams.map((e) => e.id);
+
+    if (examIds.length === 0) return;
+
+    students = await prisma.student.findMany({
+      where: {
+        Registration: {
+          some: {
+            exams: {
+              some: {
+                examId: { in: examIds },
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        user: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+  }
+
+  if (!students.length) return;
+
+  const notifications = students.map((student) => ({
+    senderId: adminUserId,
+    senderRole: 'admin',
+    receiverId: student.user.id,
+    receiverRole: 'student',
+    type: announcement.announcementType === 'GENERAL'
+      ? NotificationType.GENERAL
+      : NotificationType.RESULT_ANNOUNCED,
+    title: `${announcement.title} (Updated)`, // Optional: show that it's updated
+    message:
+      announcement.announcementType === 'GENERAL'
+        ? `📢 The announcement titled "${announcement.title}" has been updated.`
+        : `📊 The result announcement for "${announcement.title}" has been updated.`,
+  }));
+
+  await prisma.notification.createMany({
+    data: notifications,
+    skipDuplicates: true,
+  });
+}
+
 
 export async function PUT(req, { params }) {
   const body = await req.json();
@@ -45,6 +151,8 @@ export async function PUT(req, { params }) {
       },
     });
   }
+
+  await notifyStudentsForAnnouncement(updatedAnnouncement.id);
 
   return NextResponse.json(updatedAnnouncement);
 }

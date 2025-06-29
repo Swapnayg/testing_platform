@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from 'next/server';
-
+import { UserRole, NotificationType } from '@prisma/client';
 
 const generateApplicationId = () => {
       const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -10,6 +10,20 @@ const generateApplicationId = () => {
       }
       return result;
   };
+
+async function getUserIdByNameAndRole(name, role) {
+  const user = await prisma.user.findFirst({
+    where: {
+      name,
+      role: role,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return user?.id ?? null;
+}
 
 export async function POST(req) {
   try {
@@ -21,8 +35,22 @@ export async function POST(req) {
     }
     const studentByRoll = await prisma.student.findFirst({
       where: { rollNo: studentId },
+      select: {
+        id: true,
+        rollNo: true,
+        cnicNumber: true,
+        user: {
+          select: {
+            id: true, // User.id
+          },
+        },
+      },
     });
 
+    const adminUserId = await getUserIdByNameAndRole("admin", "admin");
+      if (adminUserId === null) {
+        throw new Error("Admin user not found. Cannot send notification.");
+    }
     const applicationId = generateApplicationId();
     const newRegistration = await prisma.registration.create({
       data: {
@@ -49,6 +77,18 @@ export async function POST(req) {
         examId: data.examId,
         registrationId: newRegistration.id,
       }
+    });
+
+    await prisma.notification.create({
+      data: {
+        senderId: studentByRoll.user.id,
+        senderRole: UserRole.student,
+        receiverId: adminUserId,
+        receiverRole: UserRole.admin,
+        type: NotificationType.QUIZ_APPLIED,
+        title: "Quiz Applied",
+        message: `${studentId.toUpperCase()} has applied for the upcoming quiz.`,
+      },
     });
       
     return NextResponse.json({ success: true, error: false }, { status: 200 });

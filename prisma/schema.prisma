@@ -8,37 +8,34 @@ datasource db {
 }
 
 model Admin {
-  id                    String         @id
-  username              String         @unique
-  sentNotifications     Notification[] @relation("AdminSentNotifications")
-  receivedNotifications Notification[] @relation("AdminReceivedNotifications")
+  id       String @id
+  username String @unique
 }
 
 model Student {
-  id                    String
-  name                  String?
-  fatherName            String?
-  dateOfBirth           DateTime
-  religion              String?
-  gender                String?
-  cnicNumber            String         @unique
-  profilePicture        String?
-  email                 String?
-  mobileNumber          String?
-  city                  String?
-  stateProvince         String?
-  addressLine1          String?
-  instituteName         String?
-  others                String?
-  rollNo                String?
-  gradeId               Int?
-  Attendance            Attendance[]
-  sentNotifications     Notification[] @relation("StudentSentNotifications")
-  receivedNotifications Notification[] @relation("StudentReceivedNotifications")
-  Registration          Registration[]
-  Result                Result[]
-  grade                 Grade?         @relation(fields: [gradeId], references: [id])
-  attempts              QuizAttempt[]
+  id             String
+  name           String?
+  fatherName     String?
+  dateOfBirth    DateTime
+  religion       String?
+  gender         String?
+  cnicNumber     String         @unique
+  profilePicture String?
+  email          String?
+  mobileNumber   String?
+  city           String?
+  stateProvince  String?
+  addressLine1   String?
+  instituteName  String?
+  others         String?
+  rollNo         String?
+  gradeId        Int?
+  Attendance     Attendance[]
+  Registration   Registration[]
+  Result         Result[]
+  grade          Grade?         @relation(fields: [gradeId], references: [id])
+  attempts       QuizAttempt[]
+  user           User?          @relation("StudentToUser", fields: [cnicNumber], references: [cnicNumber])
 
   @@index([gradeId], map: "Student_gradeId_fkey")
 }
@@ -98,12 +95,11 @@ model Grade {
   categoryId    Int
   category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   students      Student[]
-  exams         Exam[]         // many-to-many with Exam
+  exams         Exam[] // many-to-many with Exam
   announcements Announcement[] @relation("AnnouncementGrades") // ✅ Add this
 
   @@index([categoryId], map: "Grade_categoryId_fkey")
 }
-
 
 model Registration {
   id                 Int                  @id @default(autoincrement())
@@ -145,25 +141,25 @@ model Subject {
 }
 
 model Exam {
-  id            String               @id @default(uuid())
-  title         String
-  startTime     DateTime
-  endTime       DateTime
-  status        ExamStatus           @default(NOT_STARTED)
-  createdAt     DateTime             @default(now())
-  resultDate    DateTime?
-  timeLimit     Int                  @default(30)
+  id         String     @id @default(uuid())
+  title      String
+  startTime  DateTime
+  endTime    DateTime
+  status     ExamStatus @default(NOT_STARTED)
+  createdAt  DateTime   @default(now())
+  resultDate DateTime?
+  timeLimit  Int        @default(30)
 
-  categoryId    Int
-  category      Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  subjectId     Int
-  subject       Subject              @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
-  totalMCQ      Int
-  totalMarks    Int
+  totalMCQ   Int
+  totalMarks Int
 
-  grades        Grade[]              // ✅ Many-to-many with Grade
+  grades Grade[] // ✅ Many-to-many with Grade
 
   attendance    Attendance[]
   registrations ExamOnRegistration[]
@@ -172,30 +168,29 @@ model Exam {
 
   announcements Announcement[] @relation("AnnouncementExams") // ✅ Add this
 
-
   @@index([categoryId], map: "Exam_categoryId_fkey")
   @@index([subjectId], map: "Exam_subjectId_fkey")
 }
 
 model Quiz {
-  id             String        @id @default(cuid())
+  id             String   @id @default(cuid())
   title          String
   category       String
   subject        String
-  totalQuestions Int           @map("total_questions")
-  totalMarks     Int           @map("total_marks")
-  startDateTime  DateTime      @map("start_date_time")
-  endDateTime    DateTime      @map("end_date_time")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  examId         String        @unique
-  timeLimit      Int           @default(30)
+  totalQuestions Int      @map("total_questions")
+  totalMarks     Int      @map("total_marks")
+  startDateTime  DateTime @map("start_date_time")
+  endDateTime    DateTime @map("end_date_time")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  examId         String   @unique
+  timeLimit      Int      @default(30)
 
-  questions      Question[]
-  QuizAttempt    QuizAttempt[]
-  exam           Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  QuizAttempt QuizAttempt[]
+  exam        Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
 
-  grades         String?
+  grades String?
 
   @@index([examId], map: "quizzes_examId_fkey")
   @@map("quizzes")
@@ -260,27 +255,6 @@ model Result {
   @@index([studentId], map: "Result_studentId_fkey")
 }
 
-model Notification {
-  id            String   @id @default(uuid())
-  title         String
-  message       String
-  fromAdminId   String?
-  toAdminId     String?
-  fromStudentId String?
-  toStudentId   String?
-  createdAt     DateTime @default(now())
-  isRead        Boolean  @default(false)
-  fromAdmin     Admin?   @relation("AdminSentNotifications", fields: [fromAdminId], references: [username])
-  fromStudent   Student? @relation("StudentSentNotifications", fields: [fromStudentId], references: [cnicNumber])
-  toAdmin       Admin?   @relation("AdminReceivedNotifications", fields: [toAdminId], references: [username])
-  toStudent     Student? @relation("StudentReceivedNotifications", fields: [toStudentId], references: [cnicNumber])
-
-  @@index([fromAdminId], map: "Notification_fromAdminId_fkey")
-  @@index([fromStudentId], map: "Notification_fromStudentId_fkey")
-  @@index([toAdminId], map: "Notification_toAdminId_fkey")
-  @@index([toStudentId], map: "Notification_toStudentId_fkey")
-}
-
 model Attendance {
   id        Int      @id @default(autoincrement())
   date      DateTime
@@ -303,17 +277,17 @@ model Event {
 }
 
 model Announcement {
-  id               Int          @id @default(autoincrement())
+  id               Int              @id @default(autoincrement())
   title            String
-  description      String       @db.Text
-  date             DateTime     @default(now())
-  createdAt        DateTime     @default(now())
+  description      String           @db.Text
+  date             DateTime         @default(now())
+  createdAt        DateTime         @default(now())
   resultDate       DateTime?
   announcementType AnnouncementType
-  isForAll         Boolean      @default(false)
+  isForAll         Boolean          @default(false)
 
-  grades      Grade[]   @relation("AnnouncementGrades") // ✅ Connected to Grade
-  exams       Exam[]    @relation("AnnouncementExams")  // ✅ Connected to Exam
+  grades Grade[] @relation("AnnouncementGrades") // ✅ Connected to Grade
+  exams  Exam[]  @relation("AnnouncementExams") // ✅ Connected to Exam
 }
 
 enum AnnouncementType {
@@ -346,4 +320,49 @@ enum ExamStatus {
   NOT_STARTED
   IN_PROGRESS
   COMPLETED
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  senderId     Int
+  senderRole   UserRole // 'ADMIN' or 'STUDENT'
+  receiverId   Int
+  receiverRole UserRole // 'ADMIN' or 'STUDENT'
+
+  sender   User @relation("SentNotifications", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedNotifications", fields: [receiverId], references: [id])
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  role       UserRole
+  cnicNumber String?  @unique // ✅ Add this line
+
+  sentNotifications     Notification[] @relation("SentNotifications")
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
+
+  student Student? @relation("StudentToUser")
+}
+
+enum NotificationType {
+  GENERAL
+  EXAM_CREATED
+  RESULT_ANNOUNCED
+  PAYMENT_APPROVED
+  PAYMENT_REJECTED
+  QUIZ_APPLIED
+  STUDENT_REGISTERED
+}
+
+enum UserRole {
+  admin
+  student
 }

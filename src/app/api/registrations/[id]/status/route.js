@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import nodemailer from 'nodemailer';
 import { generatePDFDocument } from '@/lib/actions';
-
+import { UserRole, NotificationType } from '@prisma/client';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -12,11 +12,30 @@ const transporter = nodemailer.createTransport({
     pass: process.env.GMAIL_PASS,
   },
 });
+
+async function getUserIdByNameAndRole(name, role) {
+  const user = await prisma.user.findFirst({
+    where: {
+      name,
+      role: role,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return user?.id ?? null;
+}
+
 // POST request handler
 export async function POST(req, context) {
   const { status,id } = await req.json();
 
-  console.log(status,id );
+  const adminUserId = await getUserIdByNameAndRole("admin", "admin");
+    if (adminUserId === null) {
+      throw new Error("Admin user not found. Cannot send notification.");
+  }
+
   // Example create logic
     if (!['APPROVED', 'REJECTED'].includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
@@ -28,9 +47,18 @@ export async function POST(req, context) {
       where: { studentId: id },
       orderBy: { registerdAt: 'desc' },
       include: {
-          student: true, // ✅ Include related student information
+        student: {
+          select: {
+            id: true,
+            rollNo: true,
+            cnicNumber: true,
+            email:true,
+            user: true, // ✅ include full user info
+          },
+        },
       },
     });
+
 
     if (!latestRegistration) {
       return NextResponse.json({ error: 'No registration found for student' }, { status: 404 });
@@ -45,7 +73,17 @@ export async function POST(req, context) {
     const studentCnic =  latestRegistration.student.rollNo || '';
     const studentPassword = latestRegistration.student.cnicNumber || '';
     if (status === 'APPROVED') {
-
+        await prisma.notification.create({
+          data: {
+            senderId: adminUserId,
+            senderRole: UserRole.admin,
+            receiverId: latestRegistration.student.user.id,
+            receiverRole: UserRole.student,
+            type: NotificationType.PAYMENT_APPROVED,
+            title:  "Payment Approved",
+            message: "Your payment has been approved.",
+          },
+        });
         const exams = await prisma.exam.findMany({
           where: {
             grades: {
@@ -231,6 +269,17 @@ export async function POST(req, context) {
 
     }
     else if (status === 'REJECTED') {
+        await prisma.notification.create({
+          data: {
+            senderId: adminUserId,
+            senderRole: UserRole.admin,
+            receiverId: latestRegistration.student.user.id,
+            receiverRole: UserRole.student,
+            type: NotificationType.PAYMENT_REJECTED,
+            title: "Payment Rejected",
+            message: "Unfortunately, your payment was rejected. Please try again.",
+          },
+        });
         const htmlTemplate = `<!DOCTYPE html>
             <html lang="en">
             <head>

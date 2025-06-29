@@ -12,6 +12,7 @@ import {
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import { v4 as uuidv4 } from 'uuid';
+import { UserRole, NotificationType } from '@prisma/client';
 
 type CurrentState = { success: boolean; error: boolean };
 
@@ -24,6 +25,21 @@ const transporter = nodemailer.createTransport({
     pass: process.env.GMAIL_PASS!,
   },
 });
+
+async function getUserIdByNameAndRole(name: string, role: string): Promise<number | null> {
+  const user = await prisma.user.findFirst({
+    where: {
+      name,
+      role: role as UserRole,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return user?.id ?? null;
+}
+
 
 type StudentExamMap = {
   [studentId: string]: {
@@ -119,15 +135,20 @@ export const createStudent = async (
   data: StudentSchema
 ) => {
   try {
-
-
     var rollNo = uuidTo6DigitNumber();
-
-    
     const user = await clerkClient.users.createUser({
       username: "UIN" + rollNo.toString(),
       password: data.cnicNumber || '',
       publicMetadata:{role:"student"}
+    });
+
+
+    const newStudent = await prisma.user.create({
+      data: {
+        name: "UIN" + rollNo.toString(),
+        role: UserRole.student,
+        cnicNumber: data.cnicNumber || '', // must match Student
+      },
     });
 
     await prisma.student.create({
@@ -151,6 +172,7 @@ export const createStudent = async (
         gradeId: data.gradeId !== undefined && data.gradeId !== null ? Number(data.gradeId) : undefined,
       },
     });
+
 
   const logoUrl = `${process.env.APP_URL}/favicon.ico`;
   const loginUrl = `${process.env.APP_URL}/`;
@@ -257,43 +279,51 @@ export const deleteStudent = async (
   currentState: CurrentState,
   data: FormData
 ) => {
-  const id = data.get("id") as string;
-  const user = await prisma.student.findFirst({
-      where: { id },
-  });
-  try {
-    if (user?.id) {
+    const id = data.get("id") as string;
+  
+    try {
+      // Find the student by internal Prisma `id` field
+      const student = await prisma.student.findFirst({
+        where: { id },
+      });
+
+      if (!student) {
+        throw new Error("Student not found.");
+      }
+
+      // Delete the user from Clerk
       await clerkClient.users.deleteUser(id);
-      // First, find the registration record by studentId (cnicNumber)
-      const registration = await prisma.registration.findMany({
+
+      // Delete related registrations
+      await prisma.registration.deleteMany({
         where: {
-          studentId: user.cnicNumber.toString(),
+          studentId: student.cnicNumber.toString(),
         },
       });
 
-      if (registration) {
-        for (var i =0; i < registration.length ; i++)
-        {
-          await prisma.registration.delete({
-            where: {
-              id: registration[i].id,
+      // Delete the student record
+      await prisma.student.delete({
+        where: {
+          cnicNumber: student.cnicNumber.toString().trim(),
+        },
+      });
+
+      // Delete from user table using rollNo
+      const rollNo = student.rollNo?.toString().trim();
+      if (rollNo) {
+        await prisma.user.deleteMany({
+          where: {
+            name: rollNo,
           },
         });
       }
-    }
-    await prisma.student.delete({
-      where: {
-        cnicNumber: user.cnicNumber.toString().trim(),
-      },
-    });
+
+      console.log("✅ Student and related records deleted successfully.");
+
+    } catch (error) {
+      console.error("❌ Error deleting student:", error);
     }
 
-    // revalidatePath("/list/students");
-    return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
-  }
 };
 
 export const createExam = async (
@@ -302,7 +332,7 @@ export const createExam = async (
 ) => {
 
   try {
-    await prisma.exam.create({
+    const createdExam = await prisma.exam.create({
       data: {
         title: data.title,
         categoryId: data.categoryId,
@@ -320,6 +350,49 @@ export const createExam = async (
       },
     });
 
+    // ✅ Step 1: Get all students with matching gradeIds
+    const students = await prisma.student.findMany({
+      where: {
+        gradeId: { in: data.grades },
+      },
+      select: {
+        id: true,
+        user: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    const adminUserId = await getUserIdByNameAndRole("admin", "admin");
+      if (adminUserId === null) {
+        throw new Error("Admin user not found. Cannot send notification.");
+    }
+
+    // ✅ Step 2: Prepare notifications// or fetch admin ID separately
+    const notifications = students.flatMap((student) =>
+      student.user
+        ? [{
+            senderId: adminUserId,
+            senderRole: UserRole.admin,
+            receiverId: student.user.id,
+            receiverRole: UserRole.student,
+            type: NotificationType.EXAM_CREATED,
+            title: "New Exam Created",
+            message: `A new exam "${createdExam.title}" has been scheduled.`,
+          }]
+        : []
+    );
+
+    // ✅ Step 3: Send notifications
+    if (notifications.length > 0) {
+      await prisma.notification.createMany({
+        data: notifications,
+        skipDuplicates: true,
+      });
+    }
+
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -333,8 +406,7 @@ export const updateExam = async (
 ) => {
 
   try {
-
-    await prisma.exam.update({
+    const updateExam = await prisma.exam.update({
       where: {
         id: data.id,
       },
@@ -365,6 +437,49 @@ export const updateExam = async (
         subject:true,
       },
     });
+
+    // ✅ Step 1: Get all students with matching gradeIds
+    const students = await prisma.student.findMany({
+      where: {
+        gradeId: { in: data.grades },
+      },
+      select: {
+        id: true,
+        user: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    const adminUserId = await getUserIdByNameAndRole("admin", "admin");
+      if (adminUserId === null) {
+        throw new Error("Admin user not found. Cannot send notification.");
+    }
+
+    // ✅ Step 2: Prepare notifications// or fetch admin ID separately
+    const notifications = students.flatMap((student) =>
+      student.user
+        ? [{
+            senderId: adminUserId,
+            senderRole: UserRole.admin,
+            receiverId: student.user.id,
+            receiverRole: UserRole.student,
+            type: NotificationType.EXAM_CREATED,
+            title: "Exam Updated",
+            message: `An exam "${updateExam.title}" has been updated.`,
+          }]
+        : []
+    );
+
+    // ✅ Step 3: Send notifications
+    if (notifications.length > 0) {
+      await prisma.notification.createMany({
+        data: notifications,
+        skipDuplicates: true,
+      });
+    }
     try{
         await prisma.quiz.update({
           where: {examId: data.id },
@@ -437,6 +552,15 @@ export async function createRegistration(data: { name: string; status: "PENDING"
 
   
   if (grade) {
+
+    const newStudent = await prisma.user.create({
+      data: {
+        name: data.rollNo,
+        role: UserRole.student,
+        cnicNumber: data.cnicNumber, // must match Student
+      },
+    });
+
     const student: any = await prisma.student.create({
     data: {
       id: user.id,// Ensure 'id' is provided in the data argument
@@ -495,6 +619,21 @@ export async function createRegistration(data: { name: string; status: "PENDING"
       },
     });
 
+    const adminUserId = await getUserIdByNameAndRole("admin", "admin");
+    if (adminUserId === null) {
+      throw new Error("Admin user not found. Cannot send notification.");
+    }
+    await prisma.notification.create({
+      data: {
+        senderId: newStudent.id,
+        senderRole: UserRole.student,
+        receiverId: adminUserId,
+        receiverRole: UserRole.admin,
+        type: NotificationType.STUDENT_REGISTERED,
+        title: "Registration Completed",
+        message: `Roll No: ${data.rollNo.toString()} - I have completed my registration.`,
+      },
+    });
 
     await prisma.examOnRegistration.createMany({
         data: examList.map((exam: { id: any; }) => ({
@@ -1445,7 +1584,7 @@ export async function assignStudentsToExams() {
       },
     });
 
-    const studentExamMap: Record<string, { email: string; cnicNumber: string; rollNo: string; registrations: any[] }> = {};
+    const studentExamMap: Record<string, { userId: string | null; email: string; cnicNumber: string; rollNo: string; registrations: any[] }> = {};
 
     for (const exam of exams) {
       for (const grade of exam.grades) {
@@ -1457,13 +1596,15 @@ export async function assignStudentsToExams() {
           },
           include: {
             student: {
-              select: {
-                email: true,
-                name: true,
-                cnicNumber: true,
-                rollNo: true,
-              },
+            select: {
+              id: true,
+              rollNo: true,
+              cnicNumber: true,
+              email:true,
+              name:true,
+              user: true, // ✅ include full user info
             },
+          },
           },
         });
         for (const reg of registrations) {
@@ -1521,6 +1662,7 @@ export async function assignStudentsToExams() {
             // ✅ Track for email, registration, and student details
             if (!studentExamMap[reg.studentId]) {
               studentExamMap[reg.studentId] = {
+                userId: reg.student.user?.id != null ? String(reg.student.user.id) : null, // ✅ Ensure userId is string or null
                 email: reg.student.email!,
                 cnicNumber: reg.student.cnicNumber,
                 rollNo: reg.student.rollNo ?? '',
@@ -1543,8 +1685,27 @@ export async function assignStudentsToExams() {
       }
     };
 
-    for (const [studentId, { email, rollNo, registrations }] of Object.entries(studentExamMap)) {
+    const adminUserId = await getUserIdByNameAndRole("admin", "admin");
+    if (adminUserId === null) {
+      throw new Error("Admin user not found. Cannot send notification.");
+    }
 
+   for (const [studentId, { userId, email, rollNo, registrations }] of Object.entries(studentExamMap)) {
+
+      if (userId !== null && userId !== undefined) {
+        await prisma.notification.create({
+          data: {
+            senderId: adminUserId,
+            senderRole: UserRole.admin,
+            receiverId:  Number(userId),
+            receiverRole: UserRole.student,
+            type: NotificationType.EXAM_CREATED,
+            title: "Exam Scheduled",
+            message: `${rollNo.toUpperCase() || "A student"}your exam has been scheduled.`,
+          },
+        });
+      }
+      
       const sortedRegistrations = [...registrations].sort((a, b) =>
         new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
       );

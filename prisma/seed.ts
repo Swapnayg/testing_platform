@@ -1,18 +1,22 @@
+import { User } from 'lucide-react';
 import {PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
+import { UserRole } from '@prisma/client';
 
 async function main() {
   // ADMIN
+
   await prisma.admin.create({
     data: {
-      id: "admin1",
-      username: "admin1",
+      id: "admin",
+      username: "admin",
     },
   });
-  await prisma.admin.create({
+
+  await prisma.user.create({
     data: {
-      id: "admin2",
-      username: "admin2",
+      name: "admin",
+      role: UserRole.admin, // ✅ Use enum reference
     },
   });
 
