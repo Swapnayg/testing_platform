@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from 'next/server';
 import { UserRole, NotificationType } from '@prisma/client';
-import { getIO } from "@/lib/socket";
+// import { getIO } from "@/lib/socket";
 
 
 const generateApplicationId = () => {
@@ -92,13 +92,13 @@ export async function POST(req) {
         message: `${studentId.toUpperCase()} has applied for the upcoming quiz.`,
       },
     });
-    const io = getIO();
-    io.to(`user_${adminUserId}`).emit("new-notification", {
-      id: notification.id,
-      title: notification.title,
-      message: notification.message,
-      createdAt: notification.createdAt,
-    });
+    // const io = getIO();
+    // io.to(`user_${adminUserId}`).emit("new-notification", {
+    //   id: notification.id,
+    //   title: notification.title,
+    //   message: notification.message,
+    //   createdAt: notification.createdAt,
+    // });
       
     return NextResponse.json({ success: true, error: false }, { status: 200 });
   } catch (error) {

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { QuizData, Question } from '@/components/quiz/types';
 import nodemailer from 'nodemailer';
 import jsPDF from 'jspdf';
-import { getIO } from "@/lib/socket";
+// import { getIO } from "@/lib/socket";
 import {
   ExamSchema,
   StudentSchema,
@@ -15,7 +15,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { v4 as uuidv4 } from 'uuid';
 import { UserRole, NotificationType } from '@prisma/client';
 
-const io = getIO();
+// const io = getIO();
 type CurrentState = { success: boolean; error: boolean };
 const today = new Date();
 
@@ -633,12 +633,12 @@ export async function createRegistration(data: { name: string; status: "PENDING"
       },
     });
 
-    io.to(`user_${Number(adminUserId)}`).emit("new-notification", {
-      id: notification.id,
-      title: notification.title,
-      message: notification.message,
-      createdAt: notification.createdAt,
-    });
+    // io.to(`user_${Number(adminUserId)}`).emit("new-notification", {
+    //   id: notification.id,
+    //   title: notification.title,
+    //   message: notification.message,
+    //   createdAt: notification.createdAt,
+    // });
 
     await prisma.examOnRegistration.createMany({
         data: examList.map((exam: { id: any; }) => ({
@@ -1710,12 +1710,12 @@ export async function assignStudentsToExams() {
           },
         });
 
-        io.to(`user_${Number(userId)}`).emit("new-notification", {
-          id: notification.id,
-          title: notification.title,
-          message: notification.message,
-          createdAt: notification.createdAt,
-        });
+        // io.to(`user_${Number(userId)}`).emit("new-notification", {
+        //   id: notification.id,
+        //   title: notification.title,
+        //   message: notification.message,
+        //   createdAt: notification.createdAt,
+        // });
       }
       
       const sortedRegistrations = [...registrations].sort((a, b) =>

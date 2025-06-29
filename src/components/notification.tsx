@@ -1,14 +1,12 @@
 "use client"
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { useNotificationSocket } from "@/hooks/useNotificationSocket";
+// import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 interface NotificationBellProps {
   username: string;
   role: string;
   userId: number;
 }
-
-
 interface Notification {
   id: string | number;
   title: string;
@@ -34,12 +32,11 @@ export function NotificationBell({ username, role, userId }: NotificationBellPro
     );
     };
 
-  // Socket listener
-  useNotificationSocket(userId, (newNotif) => {
-    setNotifications((prev) => [newNotif, ...prev]);
-    setUnreadCount((prev) => prev + 1);
-  });
-
+  // // Socket listener
+  // useNotificationSocket(userId, (newNotif) => {
+  //   setNotifications((prev) => [newNotif, ...prev]);
+  //   setUnreadCount((prev) => prev + 1);
+  // });
 
   useEffect(() => {
     async function fetchNotifications() {

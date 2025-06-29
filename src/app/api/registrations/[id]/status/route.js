@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import nodemailer from 'nodemailer';
 import { generatePDFDocument } from '@/lib/actions';
 import { UserRole, NotificationType } from '@prisma/client';
-import { getIO } from "@/lib/socket";
+// import { getIO } from "@/lib/socket";
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const io = getIO();
+// const io = getIO();
 
 async function getUserIdByNameAndRole(name, role) {
   const user = await prisma.user.findFirst({
@@ -87,12 +87,12 @@ export async function POST(req, context) {
             message: "Your payment has been approved.",
           },
         });
-        io.to(`user_${latestRegistration.student.user.id}`).emit("new-notification", {
-          id: notification.id,
-          title: notification.title,
-          message: notification.message,
-          createdAt: notification.createdAt,
-        });
+        // io.to(`user_${latestRegistration.student.user.id}`).emit("new-notification", {
+        //   id: notification.id,
+        //   title: notification.title,
+        //   message: notification.message,
+        //   createdAt: notification.createdAt,
+        // });
         const exams = await prisma.exam.findMany({
           where: {
             grades: {
@@ -290,12 +290,12 @@ export async function POST(req, context) {
           },
         });
 
-        io.to(`user_${latestRegistration.student.user.id}`).emit("new-notification", {
-          id: notification.id,
-          title: notification.title,
-          message: notification.message,
-          createdAt: notification.createdAt,
-        });
+        // io.to(`user_${latestRegistration.student.user.id}`).emit("new-notification", {
+        //   id: notification.id,
+        //   title: notification.title,
+        //   message: notification.message,
+        //   createdAt: notification.createdAt,
+        // });
         const htmlTemplate = `<!DOCTYPE html>
             <html lang="en">
             <head>

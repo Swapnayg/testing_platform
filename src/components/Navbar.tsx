@@ -1,37 +1,37 @@
-import { UserButton, ClerkProvider } from "@clerk/nextjs";
-import { NotificationBell } from '@/components/notification';
+// components/Navbar.tsx
 import { currentUser } from "@clerk/nextjs/server";
-import Image from "next/image";
 import prisma from "@/lib/prisma";
+import { UserButton } from "@clerk/nextjs";
+import Image from "next/image";
+import { NotificationBell } from "@/components/notification";
+import { UserRole } from "@prisma/client";
 
 const Navbar = async () => {
   const user = await currentUser();
-  const username = (user?.username as string) || (user?.publicMetadata.cnicNumber as string) || "";
-  const role = user?.publicMetadata?.role || "";
 
-  async function getUserIdByNameAndRole() {
-    const user = await prisma.user.findFirst({
-      where: {
-        name: username,
-        role: role,
-      },
-      select: {
-        id: true,
-      },
-    });
-  
-    return user?.id ?? null;
-  }
+  const username =
+    (user?.username as string) ||
+    (user?.publicMetadata?.cnicNumber as string) ||
+    "";
 
-  const userId = await getUserIdByNameAndRole();
+  const role = user?.publicMetadata?.role as string;
 
-  if (!userId) {
-    return new Response("User not found", { status: 404 });
-  }
+  const capitalizedUsername =
+    role === "student" ? username.toUpperCase() : username.toLowerCase();
 
-  
+  // Get userId from internal user table
+  const dbUser = await prisma.user.findFirst({
+    where: {
+      name: capitalizedUsername,
+      role: role as UserRole, // ensure enum cast
+    },
+    select: { id: true },
+  });
+
+  const userId = dbUser?.id ?? 0; // Provide a default value if undefined
+
   return (
-    <div className="flex items-center justify-between p-4">
+    <div className="flex items-center justify-between p-4 shadow bg-white">
       {/* SEARCH BAR */}
       <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 px-2">
         <Image src="/search.png" alt="" width={14} height={14} />
@@ -41,24 +41,34 @@ const Navbar = async () => {
           className="w-[200px] p-2 bg-transparent outline-none"
         />
       </div>
+
       {/* ICONS AND USER */}
       <div className="flex items-center gap-6 justify-end w-full">
         <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer">
           <Image src="/message.png" alt="" width={20} height={20} />
         </div>
+
+        {/* Notification Bell */}
         <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer relative">
-          <NotificationBell username={String(username || "")} role={String(role || "")} userId={userId} />
+          <NotificationBell
+            username={username}
+            role={role}
+            userId={userId}
+          />
         </div>
+
+        {/* User Info */}
         <div className="flex flex-col">
-          <span className="text-xs leading-3 font-medium">{username.toString().toUpperCase()}</span>
+          <span className="text-xs leading-3 font-medium">
+            {capitalizedUsername.toUpperCase()}
+          </span>
           <span className="text-[10px] text-gray-500 text-right">
-            {user?.publicMetadata?.role as string}
+            {role}
           </span>
         </div>
-        {/* <Image src="/avatar.png" alt="" width={36} height={36} className="rounded-full"/> */}
-        {/* <ClerkProvider> */}
-          <UserButton />
-        {/* </ClerkProvider> */}
+
+        {/* Clerk User Button */}
+        <UserButton />
       </div>
     </div>
   );
