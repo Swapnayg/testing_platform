@@ -1,10 +1,11 @@
 "use client"
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-
+import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 interface NotificationBellProps {
   username: string;
   role: string;
+  userId: number;
 }
 
 
@@ -15,11 +16,10 @@ interface Notification {
   isRead: boolean;
 }
 
-export function NotificationBell({ username, role }: NotificationBellProps) {
+export function NotificationBell({ username, role, userId }: NotificationBellProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
-
 
   const markAsRead = async (id: number) => {
     await fetch("/api/notifications/read", {
@@ -33,6 +33,13 @@ export function NotificationBell({ username, role }: NotificationBellProps) {
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
     };
+
+  // Socket listener
+  useNotificationSocket(userId, (newNotif) => {
+    setNotifications((prev) => [newNotif, ...prev]);
+    setUnreadCount((prev) => prev + 1);
+  });
+
 
   useEffect(() => {
     async function fetchNotifications() {

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { QuizData, Question } from '@/components/quiz/types';
 import nodemailer from 'nodemailer';
 import jsPDF from 'jspdf';
+import { getIO } from "@/lib/socket";
 import {
   ExamSchema,
   StudentSchema,
@@ -14,8 +15,8 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { v4 as uuidv4 } from 'uuid';
 import { UserRole, NotificationType } from '@prisma/client';
 
+const io = getIO();
 type CurrentState = { success: boolean; error: boolean };
-
 const today = new Date();
 
 const transporter = nodemailer.createTransport({
@@ -119,9 +120,6 @@ export const deleteSubject = async (
     return { success: false, error: true };
   }
 };
-
-
-
 
 function uuidTo6DigitNumber() {
   const uuid = uuidv4(); // Generate UUID
@@ -623,7 +621,7 @@ export async function createRegistration(data: { name: string; status: "PENDING"
     if (adminUserId === null) {
       throw new Error("Admin user not found. Cannot send notification.");
     }
-    await prisma.notification.create({
+    const notification = await prisma.notification.create({
       data: {
         senderId: newStudent.id,
         senderRole: UserRole.student,
@@ -633,6 +631,13 @@ export async function createRegistration(data: { name: string; status: "PENDING"
         title: "Registration Completed",
         message: `Roll No: ${data.rollNo.toString()} - I have completed my registration.`,
       },
+    });
+
+    io.to(`user_${Number(adminUserId)}`).emit("new-notification", {
+      id: notification.id,
+      title: notification.title,
+      message: notification.message,
+      createdAt: notification.createdAt,
     });
 
     await prisma.examOnRegistration.createMany({
@@ -1693,7 +1698,7 @@ export async function assignStudentsToExams() {
    for (const [studentId, { userId, email, rollNo, registrations }] of Object.entries(studentExamMap)) {
 
       if (userId !== null && userId !== undefined) {
-        await prisma.notification.create({
+        const notification = await prisma.notification.create({
           data: {
             senderId: adminUserId,
             senderRole: UserRole.admin,
@@ -1703,6 +1708,13 @@ export async function assignStudentsToExams() {
             title: "Exam Scheduled",
             message: `${rollNo.toUpperCase() || "A student"}your exam has been scheduled.`,
           },
+        });
+
+        io.to(`user_${Number(userId)}`).emit("new-notification", {
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          createdAt: notification.createdAt,
         });
       }
       

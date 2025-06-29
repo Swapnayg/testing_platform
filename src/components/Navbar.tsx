@@ -2,11 +2,33 @@ import { UserButton, ClerkProvider } from "@clerk/nextjs";
 import { NotificationBell } from '@/components/notification';
 import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
+import prisma from "@/lib/prisma";
 
 const Navbar = async () => {
   const user = await currentUser();
   const username = (user?.username as string) || (user?.publicMetadata.cnicNumber as string) || "";
   const role = user?.publicMetadata?.role || "";
+
+  async function getUserIdByNameAndRole() {
+    const user = await prisma.user.findFirst({
+      where: {
+        name: username,
+        role: role,
+      },
+      select: {
+        id: true,
+      },
+    });
+  
+    return user?.id ?? null;
+  }
+
+  const userId = await getUserIdByNameAndRole();
+
+  if (!userId) {
+    return new Response("User not found", { status: 404 });
+  }
+
   
   return (
     <div className="flex items-center justify-between p-4">
@@ -25,7 +47,7 @@ const Navbar = async () => {
           <Image src="/message.png" alt="" width={20} height={20} />
         </div>
         <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer relative">
-          <NotificationBell username={String(username || "")} role={String(role || "")} />
+          <NotificationBell username={String(username || "")} role={String(role || "")} userId={userId} />
         </div>
         <div className="flex flex-col">
           <span className="text-xs leading-3 font-medium">{username.toString().toUpperCase()}</span>
