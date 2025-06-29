@@ -88,12 +88,13 @@ const FormModal = ({
   const Form = () => {
     const deleteAction = deleteActionMap.hasOwnProperty(table) ? deleteActionMap[table as keyof typeof deleteActionMap] : undefined;
     const [state, formAction] = useActionState(
-      deleteAction ? deleteAction : async () => ({ success: false, error: true }),
-      {
-        success: false,
-        error: false,
-      }
+      async (prevState: { success: boolean; error: boolean }, formData: FormData) => {
+        if (!deleteAction) return { success: false, error: true };
+        return await deleteAction(prevState ?? { success: false, error: false }, formData) ?? { success: false, error: true };
+      },
+      { success: false, error: false }
     );
+
 
     const router = useRouter();
 
