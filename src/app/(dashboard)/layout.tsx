@@ -1,3 +1,4 @@
+
 import Menu from "@/components/Menu";
 import Navbar from "@/components/Navbar";
 import Image from "next/image";
@@ -8,6 +9,7 @@ export default function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
   return (
     <div className="h-screen flex">
       {/* LEFT */}
