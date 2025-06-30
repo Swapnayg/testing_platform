@@ -350,6 +350,18 @@ model User {
   receivedNotifications Notification[] @relation("ReceivedNotifications")
 
   student Student? @relation("StudentToUser")
+
+  // ✅ Add this back-relation to ChatParticipant
+  chatParticipants ChatParticipant[]
+
+  // 👇 Messages where this user is sender
+  sentMessages Message[] @relation("MessageSender")
+
+  // 👇 Messages where this user is receiver (for direct chats)
+  receivedMessages Message[] @relation("MessageReceiver")
+
+  // 👇 Add this for the relation to GroupChat.createdBy
+  createdGroups GroupChat[] @relation("CreatedGroups")
 }
 
 enum NotificationType {
@@ -365,4 +377,68 @@ enum NotificationType {
 enum UserRole {
   admin
   student
+}
+
+model Chat {
+  id        Int      @id @default(autoincrement())
+  name      String? // Optional, for group chats
+  isGroup   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ChatParticipant[]
+  messages     Message[] // ✅ Relation defined via `chatId` in Message
+}
+
+model ChatParticipant {
+  id     Int  @id @default(autoincrement())
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  chat   Chat @relation(fields: [chatId], references: [id])
+  chatId Int
+
+  joinedAt DateTime @default(now())
+
+  // 👇 Reverse side of GroupParticipants
+  group    GroupChat? @relation("GroupParticipants", fields: [groupId], references: [id])
+  groupId  Int?
+
+  @@unique([userId, chatId]) // Prevent duplicate entries
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  sender    User     @relation("MessageSender", fields: [senderId], references: [id])
+  senderId  Int
+
+  receiver   User? @relation("MessageReceiver", fields: [receiverId], references: [id])
+  receiverId Int?
+
+  // Add this relation to fix the error
+  chat   Chat @relation(fields: [chatId], references: [id])
+  chatId Int
+
+  // Optional for group messages
+  group   GroupChat? @relation("GroupMessages", fields: [groupId], references: [id]) // 👈 matching relation name
+  groupId Int?
+
+  chatType ChatType
+}
+
+enum ChatType {
+  STUDENT
+  GROUP
+}
+
+model GroupChat {
+  id           Int               @id @default(autoincrement())
+  name         String
+  createdById  Int
+  createdBy    User              @relation("CreatedGroups", fields: [createdById], references: [id])
+    // Relation to participants
+  participants ChatParticipant[] @relation("GroupParticipants")
+  messages     Message[]         @relation("GroupMessages") // 👈 add a relation name
 }
