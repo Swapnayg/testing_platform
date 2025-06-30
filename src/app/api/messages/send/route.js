@@ -14,6 +14,7 @@ export async function POST(req) {
       chatId,
       groupId,
       chatType,
+      isRead: false, // Set isRead explicitly
     },
     include: { sender: true },
   });

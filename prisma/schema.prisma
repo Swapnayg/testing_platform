@@ -427,6 +427,7 @@ model Message {
   groupId Int?
 
   chatType ChatType
+  isRead     Boolean    @default(false) // ✅ Add this
 }
 
 enum ChatType {

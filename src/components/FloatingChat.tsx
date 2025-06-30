@@ -14,6 +14,13 @@ type Student = {
   role: string;
   id: number;
   name: string;
+  _count?: {
+    sentMessages: number;
+  };
+  unreadByChat?: {
+    chatId: number | string;
+    count: number;
+  }[];
 };
 
 export default function FloatingChat({ username, role, userId }: FloatingChatProps) {
@@ -27,6 +34,11 @@ export default function FloatingChat({ username, role, userId }: FloatingChatPro
   const [activeTab, setActiveTab] = useState<"groups" | "students">("students");
   const [groups, setGroups] = useState<any[]>([]); // You can type it later
   const [activeChat, setActiveChat] = useState<null | { type: "student" | "group"; id: number; name: string; chatId: number | string }>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredStudents = students.filter((s) => s.id !== userId).filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase())); // Apply search
+
+  const capitalizeName = (name: string) => name .split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 
   type Message = {
     id: number;
@@ -137,7 +149,7 @@ useEffect(() => {
     useEffect(() => {
       const fetchMessages = async () => {
         if (!activeChat) return;
-        const res = await fetch(`/api/chat/messages?chatId=${activeChat.chatId}`);
+        const res = await fetch(`/api/chat/messages?chatId=${activeChat.chatId}&currentUserId=${userId}`);
         const data = await res.json();
         setMessages(data);
       };
@@ -226,6 +238,7 @@ useEffect(() => {
       try {
         const res = await fetch("/api/chat/students");
         const data = await res.json();
+        console.log(data);
         setStudents(data);
       } catch (error) {
         console.error("Failed to load students:", error);
@@ -312,31 +325,64 @@ useEffect(() => {
 
                         {/* Content */}
                         <div className="pt-2 max-h-[18rem] overflow-y-auto space-y-2">
-                            {activeTab === "students" && (
+                          {activeTab === "students" && (
                             <div className="space-y-2">
-                                {students.length === 0 ? (
-                                <p className="text-xs text-gray-500">No students found.</p>
+                              {/* Search Input */}
+                              <input
+                                type="text"
+                                placeholder="Search students..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full p-2 text-sm border rounded mb-2"
+                              />
+
+                              {/* No Results Message */}
+                              {filteredStudents.length === 0 ? (
+                                  <p className="text-xs text-gray-500">No students found.</p>
                                 ) : (
-                                students.filter((s) => role !== "admin" || s.role === "student").map((student) => (
+                                  filteredStudents.map((student) => (
                                     <div
-                                        key={student.id}
-                                        onClick={async () => {const chatId = await initiateChat({ type: "student", id: student.id, senderId: userId });
-                                        if (chatId) { setActiveChat({ type: "student", id: student.id, name: student.name, chatId });}}}
-
-                                        className="flex justify-between items-center px-3 py-2 bg-gray-100 rounded shadow-sm"
+                                      key={student.id}
+                                      onClick={async () => {
+                                        const chatId = await initiateChat({
+                                          type: "student",
+                                          id: student.id,
+                                          senderId: userId,
+                                        });
+                                        if (chatId) {
+                                          setActiveChat({
+                                            type: "student",
+                                            id: student.id,
+                                            name: student.name,
+                                            chatId,
+                                          });
+                                        }
+                                      }}
+                                      className="flex justify-between items-center px-3 py-2 bg-gray-100 rounded shadow-sm cursor-pointer hover:bg-gray-200"
                                     >
-                                        <span className="text-sm">{student.name.charAt(0).toUpperCase() + student.name.slice(1)}</span>
-                                        {student.role === "admin" && (
-                                        <span className="text-xs px-2 py-0.5 bg-indigo-200 text-indigo-800 rounded-full">
-                                            Admin
-                                        </span>
-                                        )}
-                                    </div>
-                                    ))
-                                )}
-                            </div>
-                            )}
+                                      <span className="text-sm">
+                                        {student.name.charAt(0).toUpperCase() + student.name.slice(1)}
+                                      </span>
 
+                                      {student.unreadByChat && student.unreadByChat.length > 0 && (
+                                        <div className="flex flex-col ml-4 gap-1">
+                                          {student.unreadByChat.map((chat) => (
+                                            <span
+                                              key={chat.chatId}
+                                              className="text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 px-2 py-0.5 rounded-full shadow-md inline-block w-fit"
+                                            >
+                                              {chat.count}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))
+                                )}
+
+                            </div>
+                          )}
+                          
                             {activeTab === "groups" && (
                             <div className="space-y-2">
                                 {groups.length === 0 ? (
