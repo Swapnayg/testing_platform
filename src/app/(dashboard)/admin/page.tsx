@@ -5,7 +5,6 @@ import FinanceChart from "@/components/FinanceChart";
 import UserCard from "@/components/UserCard";
 import type { Metadata } from 'next';
 import AttendanceChart from "@/components/AttendanceChart";
-import { getIO } from "@/lib/socket";
 
 export async function generateMetadata({
   searchParams,
@@ -30,11 +29,6 @@ export default async function AdminPage ({
 }) {
   const params = await searchParams;
 
-  const io = getIO();
-  io.to(`user_${'2'}`).emit("new-notification", {
-    title: "You have a new message!",
-    message: "Check your dashboard for details.",
-  });
 
   return (
     <div className="p-4 flex gap-4 flex-col md:flex-row">
