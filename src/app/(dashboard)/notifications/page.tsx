@@ -13,8 +13,8 @@ type Notification = {
 
 export default function NotificationsPage() {
   const searchParams = useSearchParams();
-  const username = searchParams.get("username") || "";
-  const role = searchParams.get("role") || "";
+  const username = searchParams?.get("username") || "";
+  const role = searchParams?.get("role") || "";
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
