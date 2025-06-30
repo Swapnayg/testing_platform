@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Key } from "react";
 import { MessageCircle, X, Minus, Plus, Send  } from "lucide-react";
+import { pusherClient } from "@/lib/pusher-client";
 
 type FloatingChatProps = {
   username: string;
   role: string;
+  userId:number;
 };
 
 type Student = {
@@ -14,7 +16,7 @@ type Student = {
   name: string;
 };
 
-export default function FloatingChat({ username, role }: FloatingChatProps) {
+export default function FloatingChat({ username, role, userId }: FloatingChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showGroupForm, setShowGroupForm] = useState(false);
@@ -24,18 +26,150 @@ export default function FloatingChat({ username, role }: FloatingChatProps) {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"groups" | "students">("students");
   const [groups, setGroups] = useState<any[]>([]); // You can type it later
-  const [activeChat, setActiveChat] = useState<null | { type: "student" | "group"; id: number; name: string }>(null);
+  const [activeChat, setActiveChat] = useState<null | { type: "student" | "group"; id: number; name: string; chatId: number | string }>(null);
 
-  const openChat = () => {
-    setIsOpen(true);
-    setIsCollapsed(false);
+  type Message = {
+    id: number;
+    content: string;
+    createdAt: string | Date;
+    senderId: number;
+    receiverId: number | null;
+    chatId: number;
+    groupId: number | null;
+    chatType: "STUDENT" | "GROUP";
+    sender: {
+      id: number;
+      name: string;
+    };
+    receiver: {
+      id: number;
+      name: string;
+    } | null;
   };
+
+    const [message, setMessage] = useState("");
+    const [messages, setMessages] = useState<Message[]>([]); // store messages locally
+
+    // Send message
+
+    const sendMessage = async () => {
+      if (!message.trim() || !activeChat) return;
+
+      const payload = {
+        content: message.trim(),
+        chatId: activeChat.chatId,
+        senderId: userId,
+        receiverId: activeChat.type === "student" ? activeChat.id : null,
+        groupId: activeChat.type === "group" ? activeChat.id : null,
+        chatType: activeChat.type.toUpperCase(), // "STUDENT" | "GROUP"
+      };
+
+      setMessage("");
+
+      // Optimistic update
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(), // temporary unique id as number
+          content: message.trim(),
+          senderId: userId,
+          receiverId: activeChat.type === "student" ? activeChat.id : null,
+          chatId: Number(activeChat.chatId),
+          groupId: activeChat.type === "group" ? activeChat.id : null,
+          chatType: activeChat.type.toUpperCase() as "STUDENT" | "GROUP",
+          createdAt: new Date().toISOString(),
+          sender: {
+            id: userId,
+            name: username,
+          },
+          receiver: activeChat.type === "student"
+            ? { id: activeChat.id, name: activeChat.name }
+            : null,
+        }
+      ]);
+
+      try {
+        await fetch("/api/messages/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } catch (err) {
+        console.error("Failed to deliver message:", err);
+      }
+    };
+
+    const openChat = () => {
+        setIsOpen(true);
+        setIsCollapsed(false);
+    };
+useEffect(() => {
+  if (!activeChat) return;
+
+  const channel = pusherClient.subscribe(`chat-${activeChat.chatId}`);
+
+  channel.bind("new-message", (data: Message) => {
+    // Prevent duplicate message from showing (already added via optimistic update)
+    if (data.senderId === userId) return;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: typeof data.id === "number" ? data.id : Date.now(),
+        content: data.content,
+        senderId: data.senderId as number,
+        receiverId: data.receiverId ?? null,
+        chatId: Number(data.chatId),
+        groupId: data.groupId ?? null,
+        chatType: data.chatType ?? "STUDENT",
+        createdAt: data.createdAt,
+        sender: data.sender ?? { id: 0, name: "Unknown" },
+        receiver: typeof data.receiver !== "undefined" ? data.receiver : null,
+      },
+    ]);
+  });
+
+  return () => {
+    pusherClient.unsubscribe(`chat-${activeChat.chatId}`);
+  };
+}, [activeChat?.chatId, userId]);
+
+    useEffect(() => {
+      const fetchMessages = async () => {
+        if (!activeChat) return;
+        const res = await fetch(`/api/chat/messages?chatId=${activeChat.chatId}`);
+        const data = await res.json();
+        setMessages(data);
+      };
+
+      fetchMessages();
+    }, [activeChat]);
+
 
 
   const collapseChat = () => {
     setIsOpen(false);
     setIsCollapsed(true);
   };
+
+  // Create this util function to handle chat initialization
+    async function initiateChat({ type, id, senderId }: { type: string; id: number; senderId: number }) {
+        try {
+            const res = await fetch(
+            `/api/chat/get-or-create-chat?type=${type}&id=${id}&senderId=${senderId}`
+            );
+            const data = await res.json();
+
+            if (!res.ok) {
+            throw new Error(data.error || "Failed to initiate chat");
+            }
+            return data.chatId;
+        } catch (err) {
+            console.error("Chat initiation failed:", err);
+            return null;
+        }
+    }
+
 
   const closeChat = () => {
     setIsOpen(false);
@@ -64,6 +198,7 @@ export default function FloatingChat({ username, role }: FloatingChatProps) {
       setGroupName("");
       setSelectedIds([]);
       setShowGroupForm(false);
+      fetchGroups();
     } else {
       alert("Failed to create group");
     }
@@ -74,6 +209,16 @@ export default function FloatingChat({ username, role }: FloatingChatProps) {
         setLoading(false);
     }
   };
+
+    const fetchGroups = async () => {
+        try {
+            const res = await fetch("/api/chat/groups");
+            const data = await res.json();
+            setGroups(data);
+        } catch (err) {
+            console.error("Failed to fetch groups:", err);
+        }
+    };
 
     // 🧠 Fetch students on mount
   useEffect(() => {
@@ -87,15 +232,6 @@ export default function FloatingChat({ username, role }: FloatingChatProps) {
       }
     };
 
-    const fetchGroups = async () => {
-    try {
-        const res = await fetch("/api/chat/groups");
-        const data = await res.json();
-        setGroups(data);
-    } catch (err) {
-        console.error("Failed to fetch groups:", err);
-    }
-    };
     fetchStudents();
     fetchGroups()
   }, [role]);
@@ -184,7 +320,9 @@ export default function FloatingChat({ username, role }: FloatingChatProps) {
                                 students.filter((s) => role !== "admin" || s.role === "student").map((student) => (
                                     <div
                                         key={student.id}
-                                        onClick={() => setActiveChat({ type: "student", id: student.id, name: student.name })}
+                                        onClick={async () => {const chatId = await initiateChat({ type: "student", id: student.id, senderId: userId });
+                                        if (chatId) { setActiveChat({ type: "student", id: student.id, name: student.name, chatId });}}}
+
                                         className="flex justify-between items-center px-3 py-2 bg-gray-100 rounded shadow-sm"
                                     >
                                         <span className="text-sm">{student.name.charAt(0).toUpperCase() + student.name.slice(1)}</span>
@@ -207,7 +345,7 @@ export default function FloatingChat({ username, role }: FloatingChatProps) {
                                 groups.map((group) => (
                                     <div
                                     key={group.id}
-                                    onClick={() => setActiveChat({ type: "group", id: group.id, name: group.name })}
+                                    onClick={async () => { const chatId = await initiateChat({ type: "group", id: group.id, senderId: userId }); if (chatId) { setActiveChat({ type: "group", id: group.id, name: group.name, chatId });}}}
                                     className="px-3 py-2 bg-indigo-100 text-indigo-800 rounded shadow-sm text-sm"
                                     >
                                     {group.name.charAt(0).toUpperCase() + group.name.slice(1)}
@@ -223,36 +361,67 @@ export default function FloatingChat({ username, role }: FloatingChatProps) {
                 <>
                 {activeChat && (
                     <div className="mt-3 pt-2 flex flex-col h-[22rem] max-h-[80vh]">
-  {/* Header */}
-  <div className="flex justify-between items-center mb-2">
-    <h4 className="text-sm font-semibold text-gray-800">
-      Chat with {activeChat.name.charAt(0).toUpperCase() + activeChat.name.slice(1)}
-    </h4>
-    <button
-      onClick={() => setActiveChat(null)}
-      className="text-gray-500 hover:text-red-500"
-    >
-      <X className="h-4 w-4" />
-    </button>
-  </div>
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-2">
+                            <h4 className="text-sm font-semibold text-gray-800">
+                            Chat with {activeChat.name.charAt(0).toUpperCase() + activeChat.name.slice(1)}
+                            </h4>
+                            <button
+                            onClick={() => setActiveChat(null)}
+                            className="text-gray-500 hover:text-red-500"
+                            >
+                            <X className="h-4 w-4" />
+                            </button>
+                        </div>
 
-  {/* Message Area */}
-  <div className="flex-1 bg-gray-50 border rounded p-2 text-sm text-gray-600 overflow-y-auto">
-    <p className="text-xs italic text-gray-400">No messages yet</p>
-  </div>
+                      {/* Message Area */}
+                      <div className="flex-1 bg-gray-50 border rounded p-2 text-sm text-gray-600 overflow-y-auto space-y-2">
+                        {messages.length === 0 ? (
+                          <p className="text-xs italic text-gray-400">No messages yet</p>
+                        ) : (
+                          messages.map((msg) => {
+                            const isOwnMessage = msg.senderId === userId;
+                            return (
+                              <div
+                                key={msg.id}
+                                className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+                              >
+                                <div
+                                  className={`px-3 py-1 rounded-lg max-w-xs ${
+                                    isOwnMessage
+                                      ? "bg-indigo-500 text-white"
+                                      : "bg-gray-200 text-gray-800"
+                                  }`}
+                                >
+                                  {/* Sender Name */}
+                                  {!isOwnMessage && (
+                                    <div className="text-xs font-semibold text-indigo-600 mb-0.5">
+                                      {msg.sender?.name || "Unknown"}
+                                    </div>
+                                  )}
 
-  {/* Input + Send Button */}
-  <div className="mt-2 flex gap-2">
-    <input
-      type="text"
-      placeholder="Type a message..."
-      className="flex-1 border px-2 py-1 rounded text-sm"
-    />
-    <button className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
-      <Send className="h-4 w-4" />
-    </button>
-  </div>
-</div>
+                                  {/* Message Content */}
+                                  <div className="text-sm">{msg.content}</div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                        {/* Input + Send Button */}
+                        <div className="mt-2 flex gap-2">
+                            <input
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                type="text"
+                                placeholder="Type a message..."
+                                className="flex-1 border px-2 py-1 rounded text-sm"
+                                />
+                            <button onClick={sendMessage} className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
+                                <Send className="h-4 w-4" />
+                            </button>
+                        </div>
+                        </div>
 
                 )}
                 </>
@@ -318,7 +487,7 @@ export default function FloatingChat({ username, role }: FloatingChatProps) {
                         }
                     }}
                     />
-                    {student.name}
+                   {student.name.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
                 </label>
                 ))}
             </div>

@@ -4,6 +4,9 @@ const nextConfig = {
     domains: ['res.cloudinary.com'],
     remotePatterns: [{ hostname: "images.pexels.com" }],
   },
+  api: {
+    bodyParser: false,
+  },
 };
 
 export default nextConfig;

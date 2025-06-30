@@ -233,12 +233,6 @@ const upcomingExams = await prisma.exam.findMany({
   },
 });
 
-console.log("Attempted exams", attemptedExams);
-console.log("UpcomingExams exams", upcomingExams);
-console.log("AbsentExams exams", absentExams);
-console.log("NotApplied exams", notApplied);
-console.log("PendingApproval exams", pendingApproval);
-
 const combinedExams = [
   // Attempted Exams
   ...attemptedExams.map(exam => ({

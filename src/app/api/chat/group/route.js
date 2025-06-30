@@ -50,6 +50,15 @@ export async function POST(req) {
       },
     });
 
+    // Step 2: Create GroupChat entry linked to the above Chat
+    const groupChat = await prisma.groupChat.create({
+      data: {
+        name: groupName,
+        createdById: adminUserId,
+        chatId: chat.id, // 🔗 Link the Chat
+      },
+    });
+
     return NextResponse.json(chat, { status: 201 });
   } catch (error) {
     console.error("Error creating group chat:", error);

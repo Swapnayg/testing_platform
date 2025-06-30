@@ -4,12 +4,15 @@ import prisma from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const groups = await prisma.chat.findMany({
-      where: { isGroup: true },
+    const groups =  await prisma.groupChat.findMany({
       include: {
-        participants: {
+        chat: {
           include: {
-            user: true,
+            participants: {
+              include: {
+                user: true,
+              },
+            },
           },
         },
       },

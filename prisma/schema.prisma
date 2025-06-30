@@ -388,6 +388,7 @@ model Chat {
 
   participants ChatParticipant[]
   messages     Message[] // ✅ Relation defined via `chatId` in Message
+  group        GroupChat?       
 }
 
 model ChatParticipant {
@@ -438,6 +439,10 @@ model GroupChat {
   name         String
   createdById  Int
   createdBy    User              @relation("CreatedGroups", fields: [createdById], references: [id])
+
+  chat         Chat              @relation(fields: [chatId], references: [id])
+  chatId       Int               @unique
+
     // Relation to participants
   participants ChatParticipant[] @relation("GroupParticipants")
   messages     Message[]         @relation("GroupMessages") // 👈 add a relation name
