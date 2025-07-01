@@ -2,10 +2,60 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";// adjust path to your prisma instance
 
-export async function GET() {
+
+
+function getUnreadSummaryForUser(userId, messages, users) {
+  const senderMap = new Map();
+
+  // Initialize senderMap with all users EXCEPT the logged-in user
+  for (const user of users.filter((u) => u.id !== userId)) {
+    senderMap.set(user.id, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      unreadByChat: [],
+    });
+  }
+
+  // Group unread messages RECEIVED by logged-in user
+  for (const msg of messages) {
+    if (
+      msg.receiver?.id !== userId || // Must be received by current user
+      msg.sender?.id === undefined ||
+      !senderMap.has(msg.sender.id)
+    ) {
+      continue;
+    }
+
+    const senderData = senderMap.get(msg.sender.id);
+    if (!senderData) continue;
+    const chatId = msg.chatId;
+
+    const existing = senderData.unreadByChat.find((c) => c.chatId === chatId);
+    if (existing) {
+      if (!msg.isRead) existing.count += 1;
+    } else {
+      senderData.unreadByChat.push({
+        chatId,
+        count: msg.isRead ? 0 : 1,
+      });
+    }
+  }
+
+  return Array.from(senderMap.values());
+}
+
+
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const userId = parseInt(searchParams.get("userId") || "", 10);
+
+  if (isNaN(userId)) {
+    return new Response(JSON.stringify({ error: "Invalid userId" }), { status: 400 });
+  }
+
   try {
-    // Step 1: Get all students
-    const students = await prisma.user.findMany({
+    const users = await prisma.user.findMany({
       select: {
         id: true,
         name: true,
@@ -13,33 +63,25 @@ export async function GET() {
       },
     });
 
-    // Step 2: Group unread messages by senderId and chatId
-    const unreadGrouped = await prisma.message.groupBy({
-      by: ['chatId', 'senderId'],
+    const messages = await prisma.message.findMany({
       where: {
-        isRead: false,
+        chatType: 'STUDENT',
       },
-      _count: {
-        _all: true,
+      select: {
+        chatId: true,
+        isRead: true,
+        sender: {
+          select: { id: true, name: true },
+        },
+        receiver: {
+          select: { id: true, name: true },
+        },
       },
     });
+    
 
-    // Step 3: Merge counts with student list
-    const studentsWithUnread = students.map(student => {
-      const studentChats = unreadGrouped.filter(g => g.senderId === student.id);
-      return {
-        ...student,
-        unreadByChat: studentChats.map(chat => ({
-          chatId: chat.chatId,
-          count: chat._count._all,
-        })),
-        totalUnread: studentChats.reduce((sum, c) => sum + c._count._all, 0),
-      };
-    });
-
-    console.log(studentsWithUnread);
-
-    return NextResponse.json(studentsWithUnread);
+    const result = getUnreadSummaryForUser(userId, messages, users);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching students:", error);
     return NextResponse.json({ error: "Failed to fetch students" }, { status: 500 });

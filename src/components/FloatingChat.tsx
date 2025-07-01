@@ -11,17 +11,12 @@ type FloatingChatProps = {
 };
 
 type Student = {
-  role: string;
   id: number;
   name: string;
-  _count?: {
-    sentMessages: number;
-  };
-  unreadByChat?: {
-    chatId: number | string;
-    count: number;
-  }[];
+  role: string;
+  unreadByChat?: { chatId: number; count: number }[];
 };
+
 
 export default function FloatingChat({ username, role, userId }: FloatingChatProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,9 +31,13 @@ export default function FloatingChat({ username, role, userId }: FloatingChatPro
   const [activeChat, setActiveChat] = useState<null | { type: "student" | "group"; id: number; name: string; chatId: number | string }>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredStudents = students.filter((s) => s.id !== userId).filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase())); // Apply search
+    const filteredStudents = students.filter((s) => s.id !== userId).filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const capitalizeName = (name: string) => name .split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+    const totalUnread = filteredStudents.reduce((total, student) => {
+      const unreadCount = student.unreadByChat?.reduce((sum, chat) => sum + chat.count, 0) || 0;
+      return total + unreadCount;
+    }, 0);
+
 
   type Message = {
     id: number;
@@ -236,9 +235,8 @@ useEffect(() => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const res = await fetch("/api/chat/students");
+        const res = await fetch(`/api/chat/students?userId=${userId}`);
         const data = await res.json();
-        console.log(data);
         setStudents(data);
       } catch (error) {
         console.error("Failed to load students:", error);
@@ -259,6 +257,12 @@ useEffect(() => {
           className="fixed bottom-10 right-10 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg hover:bg-indigo-600 transition-colors"
         >
           <MessageCircle className="h-6 w-6" />
+          
+          {totalUnread > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white shadow">
+              {totalUnread > 9 ? '9+' : totalUnread}
+            </span>
+          )}
         </button>
       )}
 
@@ -337,49 +341,48 @@ useEffect(() => {
                               />
 
                               {/* No Results Message */}
-                              {filteredStudents.length === 0 ? (
-                                  <p className="text-xs text-gray-500">No students found.</p>
-                                ) : (
-                                  filteredStudents.map((student) => (
-                                    <div
-                                      key={student.id}
-                                      onClick={async () => {
-                                        const chatId = await initiateChat({
+                             {filteredStudents.length === 0 ? (
+                                <p className="text-xs text-gray-500">No students found.</p>
+                              ) : (
+                                filteredStudents.map((student) => (
+                                  <div
+                                    key={student.id}
+                                    onClick={async () => {
+                                      const chatId = await initiateChat({
+                                        type: "student",
+                                        id: student.id,
+                                        senderId: userId,
+                                      });
+                                      if (chatId) {
+                                        setActiveChat({
                                           type: "student",
                                           id: student.id,
-                                          senderId: userId,
+                                          name: student.name,
+                                          chatId,
                                         });
-                                        if (chatId) {
-                                          setActiveChat({
-                                            type: "student",
-                                            id: student.id,
-                                            name: student.name,
-                                            chatId,
-                                          });
-                                        }
-                                      }}
-                                      className="flex justify-between items-center px-3 py-2 bg-gray-100 rounded shadow-sm cursor-pointer hover:bg-gray-200"
-                                    >
-                                      <span className="text-sm">
-                                        {student.name.charAt(0).toUpperCase() + student.name.slice(1)}
-                                      </span>
+                                      }
+                                    }}
+                                    className="flex justify-between items-center px-3 py-2 bg-gray-100 rounded shadow-sm cursor-pointer hover:bg-gray-200"
+                                  >
+                                    <span className="text-sm">
+                                      {student.name.charAt(0).toUpperCase() + student.name.slice(1)}
+                                    </span>
 
-                                      {student.unreadByChat && student.unreadByChat.length > 0 && (
-                                        <div className="flex flex-col ml-4 gap-1">
-                                          {student.unreadByChat.map((chat) => (
-                                            <span
-                                              key={chat.chatId}
-                                              className="text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 px-2 py-0.5 rounded-full shadow-md inline-block w-fit"
-                                            >
-                                              {chat.count}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))
-                                )}
-
+                                    {student.unreadByChat && student.unreadByChat.length > 0 && (
+                                      <div className="flex flex-col ml-4 gap-1">
+                                        {student.unreadByChat.map((chat) => (
+                                          <span
+                                            key={chat.chatId}
+                                            className="text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 px-2 py-0.5 rounded-full shadow-md inline-block w-fit"
+                                          >
+                                            {chat.count > 9 ? "9+" : chat.count}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))
+                              )}
                             </div>
                           )}
                           
