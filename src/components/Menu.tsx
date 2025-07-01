@@ -66,12 +66,12 @@ const Menu = async () => {
         //   href: "/list/events",
         //   visible: ["admin", "teacher", "student", "parent"],
         // },
-        {
-          icon: "/message.png",
-          label: "Messages",
-          href: "/list/messages",
-          visible: ["admin", "teacher", "student", "parent"],
-        },
+        // {
+        //   icon: "/message.png",
+        //   label: "Messages",
+        //   href: "/list/messages",
+        //   visible: ["admin", "teacher", "student", "parent"],
+        // },
         {
           icon: "/announcement.png",
           label: "Announcements",

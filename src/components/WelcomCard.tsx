@@ -160,10 +160,6 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ username }) => {
           <div className="text-right bg-white/10 rounded-2xl p-6 backdrop-blur-sm">
             <div className="text-4xl font-bold text-white mb-1">89%</div>
             <div className="text-emerald-100 text-sm font-medium mb-2">Overall Score</div>
-            <div className="flex items-center gap-1">
-              <ArrowUp className="w-4 h-4 text-green-300" />
-              <span className="text-green-300 text-xs font-medium">+5% this week</span>
-            </div>
           </div>
         </div>
 
@@ -178,21 +174,6 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ username }) => {
                 <div className="flex-1">
                   <p className="text-emerald-100 text-sm font-medium">{stat.title}</p>
                   <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    {stat.changeType === "positive" ? (
-                      <ArrowUp className="w-3 h-3 text-green-300" />
-                    ) : (
-                      <ArrowDown className="w-3 h-3 text-red-300" />
-                    )}
-                    <span
-                      className={`text-xs font-medium ${
-                        stat.changeType === "positive" ? "text-green-300" : "text-red-300"
-                      }`}
-                    >
-                      {stat.change}
-                    </span>
-                    <span className="text-emerald-200 text-xs">{stat.description}</span>
-                  </div>
                 </div>
                 <div className="bg-white/20 p-2 rounded-lg ml-3">
                   <stat.icon className="w-5 h-5 text-white" />
