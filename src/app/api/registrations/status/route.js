@@ -31,8 +31,11 @@ async function getUserIdByNameAndRole(name, role) {
 }
 
 // POST request handler
-export async function POST(req, context) {
-  const { status,id } = await req.json();
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const studentId = searchParams.get('studentId');
+  const status = searchParams.get('status');
+
 
   const adminUserId = await getUserIdByNameAndRole("admin", "admin");
     if (adminUserId === null) {
@@ -46,8 +49,9 @@ export async function POST(req, context) {
 
   try {
     // Find latest registration of student
+
     const latestRegistration = await prisma.registration.findFirst({
-      where: { studentId: id },
+      where: { studentId: studentId },
       orderBy: { registerdAt: 'desc' },
       include: {
         student: {
@@ -61,7 +65,6 @@ export async function POST(req, context) {
         },
       },
     });
-
 
     if (!latestRegistration) {
       return NextResponse.json({ error: 'No registration found for student' }, { status: 404 });
@@ -272,7 +275,7 @@ export async function POST(req, context) {
             ],
         });
         
-        console.log('Email sent:', info.messageId);  
+        console.log('Email sent:', info.messageId);
       } catch (error) {
       }
 

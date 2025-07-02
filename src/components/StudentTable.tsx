@@ -61,13 +61,7 @@ const StudentTable = () => {
     setLoadingStatus(status); // Start loading
 
     try {
-      const res = await fetch(`/api/registrations/${selectedStudentId}/status`, {
-        method: "POST",
-        body: JSON.stringify({ status:status, selectedStudentId:selectedStudentId }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const res =  await fetch(`/api/registrations/status?studentId=${selectedStudentId}&status=${status}`);
 
       if (res.ok) {
         closeModal();
@@ -120,7 +114,6 @@ const handleDelete = async (studentId: string) => {
   };
 
   const getTypeBadge = (type: string) => {
-    console
     const typeConfig = {
       'Returning': { className: 'bg-blue-100 text-blue-800' },
       'First Time': { className: 'bg-green-100 text-green-800' }
@@ -152,7 +145,6 @@ useEffect(() => {
       item.regNumber.toLowerCase().includes(lowerSearch) ||
       item.rollNumber.toLowerCase().includes(lowerSearch)
     );
-    console.log(filtered);
     setFilteredStudents(filtered);
   }, [search, students]);
 

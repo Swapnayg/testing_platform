@@ -1,10 +1,6 @@
-import { getAnnouncementsForStudent } from "@/lib/actions";
+import { getAnnouncements } from "@/lib/actions";
 import { Megaphone, CalendarCheck } from "lucide-react";
 import Link from "next/link";
-interface AnnouncementsProps {
-  username: string;
-  studentId:string;
-}
 
 const getTypeStyles = (type: string) => {
   if (type === "EXAM_RESULT") {
@@ -21,8 +17,8 @@ const getTypeStyles = (type: string) => {
   };
 };
 
-const Announcements: React.FC<AnnouncementsProps> = async ({ username, studentId }) => {
-  const annoucements = await getAnnouncementsForStudent(studentId);
+const AdminAnnounView = async () => {
+  const annoucements = await getAnnouncements();
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md">
@@ -72,4 +68,4 @@ const Announcements: React.FC<AnnouncementsProps> = async ({ username, studentId
   );
 };
 
-export default Announcements;
+export default AdminAnnounView;

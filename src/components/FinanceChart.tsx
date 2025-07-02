@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import Image from "next/image";
+import { useEffect, useState } from 'react';
 import {
   LineChart,
   Line,
@@ -8,75 +8,110 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-} from "recharts";
+  Legend,
+} from 'recharts';
+import { format } from 'date-fns';
 
-const data = [
-  { name: "Jan", income: 4000, expense: 2400 },
-  { name: "Feb", income: 3000, expense: 1398 },
-  { name: "Mar", income: 2000, expense: 9800 },
-  { name: "Apr", income: 2780, expense: 3908 },
-  { name: "May", income: 1890, expense: 4800 },
-  { name: "Jun", income: 2390, expense: 3800 },
-  { name: "Jul", income: 3490, expense: 4300 },
-  { name: "Aug", income: 3490, expense: 4300 },
-  { name: "Sep", income: 3490, expense: 4300 },
-  { name: "Oct", income: 3490, expense: 4300 },
-  { name: "Nov", income: 3490, expense: 4300 },
-  { name: "Dec", income: 3490, expense: 4300 },
-];
+export default function MonthlyGradeRegistrationChart() {
+  const today = new Date();
+  const [month, setMonth] = useState<number>(today.getMonth() + 1);
+  const [year, setYear] = useState<number>(today.getFullYear());
+  const [gradeId, setGradeId] = useState<string>('all');
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [grades, setGrades] = useState<{ id: number; level: string }[]>([]);
+  const now = new Date(); // 1-based
 
-const FinanceChart = () => {
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const params: { month: string; year: string; gradeId?: string } = {
+        month: month.toString(),
+        year: year.toString(),
+      };
+      if (gradeId !== 'all') {
+        params.gradeId = gradeId;
+      }
+      const query = new URLSearchParams(params).toString();
+      const res = await fetch(`/api/registration-chart?${query}`);
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      const data = await res.json();
+      setData(data);
+    } catch (err) {
+      console.error('Failed to fetch registration summary');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetch("/api/grades").then(res => res.json()).then(setGrades);
+    fetchData();
+  }, [month, year, gradeId]);
+
   return (
-    <div className="bg-white rounded-xl w-full min-h-[350px] p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-lg font-semibold">Finance</h1>
-        <Image src="/moreDark.png" alt="more options" width={20} height={20} />
-      </div>
-      <div className="w-full h-[300px]"> {/* Set concrete height */}
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={data}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+    <div className="bg-white p-6 rounded-xl shadow space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <h2 className="text-lg font-bold text-gray-800">📈 Registrations</h2>
+        <div className="flex gap-3">
+          <select
+            className="border rounded px-2 py-1 text-sm"
+            value={month}
+            onChange={(e) => setMonth(parseInt(e.target.value))}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tick={{ fill: "#d1d5db" }}
-              tickLine={false}
-              tickMargin={10}
-            />
-            <YAxis
-              axisLine={false}
-              tick={{ fill: "#d1d5db" }}
-              tickLine={false}
-              tickMargin={20}
-            />
+            {Array.from({ length: 12 }).map((_, idx) => (
+              <option key={idx + 1} value={idx + 1}>
+                {format(new Date(2000, idx), 'MMMM')}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="border rounded px-2 py-1 text-sm"
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+          >
+            {Array.from({ length: 5 }).map((_, i) => (
+              <option key={i} value={today.getFullYear() - i}>
+                {today.getFullYear() - i}
+              </option>
+            ))}
+          </select>
+          <select
+            className="border rounded px-2 py-1 text-sm"
+            value={gradeId}
+            onChange={(e) => setGradeId(e.target.value)}
+          >
+            <option value="all">All Grades</option>
+            {grades.map((grade) => (
+              <option key={grade.id} value={grade.id.toString()}>
+                {grade.level}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-gray-500">Loading chart...</p>
+      ) : (
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={data} margin={{ top: 20, right: 30, bottom: 5, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis allowDecimals={false} />
             <Tooltip />
-            <Legend
-              align="center"
-              verticalAlign="top"
-              wrapperStyle={{ paddingTop: "10px", paddingBottom: "30px" }}
-            />
-            <Line
-              type="monotone"
-              dataKey="income"
-              stroke="#34D399"
-              strokeWidth={5}
-            />
-            <Line
-              type="monotone"
-              dataKey="expense"
-              stroke="#F87171"
-              strokeWidth={5}
-            />
+            <Legend />
+            <Line type="monotone" dataKey="APPROVED" stroke="#38BDF8" strokeWidth={2} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="REJECTED" stroke="#FACC15" strokeWidth={2} activeDot={{ r: 6 }} />
           </LineChart>
         </ResponsiveContainer>
-      </div>
+      )}
     </div>
   );
-};
-
-export default FinanceChart;
+}

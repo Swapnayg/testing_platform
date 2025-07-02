@@ -4,6 +4,8 @@ import UpcomingQuizzes from "@/components/UpcomingQuizzes";
 import prisma from "@/lib/prisma";
 import { auth,getAuth, clerkClient } from "@clerk/nextjs/server";
 import TodayResultPopup from "@/components/TodayResultPopup";
+import ExamCalendar from '@/components/ExamCalendar';
+import { getUpcomingExams } from "@/lib/actions";
 
 function getTimeRemaining(startTime: Date) {
   const diff = new Date(startTime).getTime() - Date.now();
@@ -27,6 +29,7 @@ if (userId) {
   username = user.username?.toString() ?? "";
 }
 
+const exams = await getUpcomingExams(); // Should be an array of exams
 const student = await prisma.student.findFirst({
   where: {
     rollNo: username,  // Replace with actual roll number
@@ -337,7 +340,7 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
 
       <TodayResultPopup  username={student?.cnicNumber ?? ""}/>
       {/* Welcome Card at the top */}
-      <WelcomeCard username={username} />
+      <WelcomeCard username={student?.name ?? ""}  studentId= {student?.cnicNumber ?? ""}/>
 
       {/* Main content: Left and Right sections side by side */}
       <div className="flex flex-col xl:flex-row gap-4">
@@ -355,7 +358,11 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
 
         {/* RIGHT */}
         <div className="w-full xl:w-1/3 flex flex-col gap-8">
-          <Announcements />
+        <ExamCalendar
+            exams={exams}
+        />
+
+          <Announcements username={student?.name ?? ""}  studentId= {student?.cnicNumber ?? ""}/>
         </div>
       </div>
     </div>

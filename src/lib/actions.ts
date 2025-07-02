@@ -1525,7 +1525,6 @@ export const getExamDetails = async ({ examId }: { examId: string }) => {
 });
 };
 
-
 export const getFilteredExamResults = async ({
   examId,
   grade,
@@ -1822,3 +1821,184 @@ export async function assignStudentsToExams() {
   }
 }
 
+export async function getStudentQuizStats(studentId: string) {
+  const completedAttempts = await prisma.quizAttempt.count({
+    where: {
+      studentId,
+      isSubmitted: true,
+    },
+  });
+
+  const upcomingQuizzes = await prisma.examOnRegistration.findMany({
+    where: {
+      registration: {
+        studentId,
+      },
+      exam: {
+        quizzes: {
+          startDateTime: {
+            gt: new Date(),
+          },
+        },
+      },
+    },
+    select: {
+      exam: {
+        select: {
+          id: true,
+          quizzes: {
+            select: {
+              title: true,
+              startDateTime: true,
+              subject: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const results = await prisma.result.findMany({
+    where: {
+      studentId,
+      score: { not: undefined },
+      totalScore: { not: undefined },
+    },
+    include: {
+      quizAttempt: {
+        include: {
+          quiz: true,
+        },
+      },
+    },
+  });
+
+  // Average Quiz Score and Best Subject
+  let totalScore = 0;
+  let totalMax = 0;
+  const subjectScores = new Map<string, { total: number; count: number }>();
+
+  for (const result of results) {
+    const score = result.score;
+    const max = result.totalScore;
+    const subject = result.quizAttempt?.quiz?.subject || "Unknown";
+
+    if (score != null && max != null) {
+      totalScore += score;
+      totalMax += max;
+
+      if (!subjectScores.has(subject)) {
+        subjectScores.set(subject, { total: score, count: 1 });
+      } else {
+        const prev = subjectScores.get(subject)!;
+        subjectScores.set(subject, {
+          total: prev.total + score,
+          count: prev.count + 1,
+        });
+      }
+    }
+  }
+
+  const averageScore =
+    results.length > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+
+  const overallScore = averageScore;
+
+  let bestSubject = "N/A";
+  let bestSubjectScore = 0;
+
+  for (const [subject, { total, count }] of subjectScores.entries()) {
+    const avg = total / count;
+    if (avg > bestSubjectScore) {
+      bestSubjectScore = avg;
+      bestSubject = subject;
+    }
+  }
+
+  return {
+    quizCompleted: completedAttempts,
+    upcomingQuizzes,
+    averageScore,
+    overallScore,
+    bestSubject,
+  };
+}
+
+export async function getAnnouncementsForStudent(studentId: string) {
+  const student = await prisma.student.findUnique({
+    where: { cnicNumber: studentId },
+    select: { gradeId: true },
+  });
+
+  const registrations = await prisma.registration.findMany({
+    where: { studentId },
+    include: {
+      exams: {
+        select: { examId: true },
+      },
+    },
+  });
+
+  const examIds = registrations.flatMap((reg) =>
+    reg.exams.map((exam) => exam.examId)
+  );
+
+  return await prisma.announcement.findMany({
+    where: {
+      OR: [
+        { isForAll: true },
+        { grades: { some: { id: student?.gradeId ?? -1 } } },
+        { exams: { some: { id: { in: examIds } } } },
+      ],
+    },
+    orderBy: {
+      date: "desc",
+    },
+  });
+}
+
+
+export async function getAnnouncements() {
+  return await prisma.announcement.findMany({
+    orderBy: {
+      date: "desc",
+    },
+  });
+}
+
+
+export async function getUpcomingExams() {
+  const now = new Date();
+
+  const exams = await prisma.exam.findMany({
+    where: {
+      startTime: {
+        gt: now,
+      },
+    },
+    include: {
+      subject: {
+        select: {
+          name: true,
+        },
+      },
+      category: {
+        select: {
+          id: true,
+          catName: true,
+        },
+      },
+      grades: {
+        select: {
+          id: true,
+          level: true,
+        },
+      },
+    },
+    orderBy: {
+      startTime: "asc",
+    },
+  });
+
+  return exams;
+}

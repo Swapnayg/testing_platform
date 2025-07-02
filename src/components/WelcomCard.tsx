@@ -1,91 +1,19 @@
-// import React from "react";
-// import { Card, CardContent } from "@/components/ui/card";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import { ArrowUp } from "lucide-react";
 
-// interface WelcomeCardProps {
-//   name: string;
-//   score: number;
-//   improvement: number;
-//   date?: Date;
-// }
-
-// const WelcomeCard: React.FC<WelcomeCardProps> = ({
-//   // name,
-//   // score,
-//   // improvement,
-//   // date = new Date(),
-// }) => {
-//   // const firstName = name.split(" ")[0];
-//   // const initials = name
-//   //   .split(" ")
-//   //   .map((n) => n[0])
-//   //   .join("")
-//   //   .toUpperCase();
-
-//   return (
-//     <Card className="bg-gradient-to-r from-emerald-600 to-emerald-700 border-0 shadow-xl">
-//       <CardContent className="p-8">
-//         <div className="flex items-center gap-6">
-//           <Avatar className="w-20 h-20 border-4 border-white/20 shadow-lg">
-//             <AvatarImage src="/placeholder.svg?height=80&width=80" />
-//             <AvatarFallback className="bg-white text-emerald-700 text-2xl font-bold">
-//               {/* {initials} */}
-//             </AvatarFallback>
-//           </Avatar>
-//           <div className="flex-1">
-//             <h1 className="text-3xl font-bold text-white mb-2">
-//             Welcome back Nawais Jan
-//               {/* Welcome back, {name} */}
-//             </h1>
-//             <p className="text-emerald-100 mb-3 text-lg">
-//               Ready to excel in your studies today?
-//             </p>
-//             <p className="text-emerald-200 text-sm font-medium">
-//               {/* {date.toLocaleDateString("en-US", {
-//                 weekday: "long",
-//                 year: "numeric",
-//                 month: "long",
-//                 day: "numeric",
-//               })} */}
-
-//               Monday, 23rd October 2025
-//             </p>
-//           </div>
-//           <div className="text-right bg-white/10 rounded-2xl p-6 backdrop-blur-sm">
-//             <div className="text-4xl font-bold text-white mb-1">
-//               90%
-//               {/* {score}% */}
-//             </div>
-//             <div className="text-emerald-100 text-sm font-medium mb-2">
-//               Overall Score
-//             </div>
-//             <div className="flex items-center gap-1">
-//               <ArrowUp className="w-4 h-4 text-green-300" />
-//               <span className="text-green-300 text-xs font-medium">
-//                 {/* +{improvement} */}
-//                 + 5% this week
-//               </span>
-//             </div>
-//           </div>
-//         </div>
-//       </CardContent>
-//     </Card>
-//   );
-// };
-
-// export default WelcomeCard;
-// components/WelcomeCard.tsx
-
-// components/WelcomeCard.tsx
-
-"use client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowUp, ArrowDown, BookOpen, CalendarCheck, Clock, Star } from "lucide-react";
 import React from "react";
+import { getStudentQuizStats } from "@/lib/actions";
 
-type StatCard = {
+interface WelcomeCardProps {
+  username: string;
+  studentId:string;
+}
+const WelcomeCard: React.FC<WelcomeCardProps> = async ({ username, studentId }) => {
+  const currentDate = new Date();
+  const stats = await getStudentQuizStats(studentId);
+
+  type StatCard = {
   title: string;
   value: string | number;
   change: string;
@@ -93,11 +21,10 @@ type StatCard = {
   description: string;
   icon: React.ElementType;
 };
-
-const statsCards: StatCard[] = [
+  const statsCards: StatCard[] = [
   {
     title: "Quiz Completed",
-    value: 12,
+    value: stats.quizCompleted,
     change: "+1",
     changeType: "positive",
     description: "since last month",
@@ -105,35 +32,29 @@ const statsCards: StatCard[] = [
   },
   {
     title: "Upcoming Quiz",
-    value: 4,
+    value: stats.upcomingQuizzes.length ?? 0,
     change: "-1",
     changeType: "negative",
     description: "this week",
     icon: CalendarCheck,
   },
   {
-    title: "Study Hours",
-    value: 34,
+    title: "Average Quiz Score",
+    value: stats.averageScore,
     change: "+5",
     changeType: "positive",
     description: "this month",
     icon: Clock,
   },
   {
-    title: "Achievements",
-    value: 8,
+    title: "Best Performing Subject",
+    value: stats.bestSubject,
     change: "+2",
     changeType: "positive",
     description: "earned",
     icon: Star,
   },
 ];
-
-interface WelcomeCardProps {
-  username: string;
-}
-const WelcomeCard: React.FC<WelcomeCardProps> = ({ username }) => {
-  const currentDate = new Date();
 
   return (
     <Card className="bg-gradient-to-r from-emerald-600 to-emerald-700 border-0 shadow-xl">
@@ -158,7 +79,7 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ username }) => {
             </p>
           </div>
           <div className="text-right bg-white/10 rounded-2xl p-6 backdrop-blur-sm">
-            <div className="text-4xl font-bold text-white mb-1">89%</div>
+            <div className="text-4xl font-bold text-white mb-1">{stats.overallScore}%</div>
             <div className="text-emerald-100 text-sm font-medium mb-2">Overall Score</div>
           </div>
         </div>
