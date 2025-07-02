@@ -8,8 +8,6 @@ export async function GET(req) {
     const gradeId = searchParams.get('gradeId');
     const subjectId = searchParams.get('subjectId');
 
-    console.log(subjectId);
-
     const exams = await prisma.exam.findMany({
       where: {
         status: 'COMPLETED',

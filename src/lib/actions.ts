@@ -1954,6 +1954,7 @@ export async function getAnnouncementsForStudent(studentId: string) {
     orderBy: {
       date: "desc",
     },
+    take: 10, // 👈 Fetch only top 10
   });
 }
 
@@ -1963,6 +1964,7 @@ export async function getAnnouncements() {
     orderBy: {
       date: "desc",
     },
+    take: 10, // 👈 Fetch only top 10
   });
 }
 
@@ -1993,6 +1995,47 @@ export async function getUpcomingExams() {
           id: true,
           level: true,
         },
+      },
+    },
+    orderBy: {
+      startTime: "asc",
+    },
+  });
+
+  return exams;
+}
+
+
+export async function getUpcomingExamsByStudentId(studentId: string) {
+  const now = new Date();
+
+  // 1. Get the student's gradeId
+  const student = await prisma.student.findUnique({
+    where: { cnicNumber: studentId },
+    select: { gradeId: true },
+  });
+
+  if (!student) throw new Error("Student not found");
+
+  // 2. Get all upcoming exams that are assigned to this grade
+  const exams = await prisma.exam.findMany({
+    where: {
+      startTime: { gt: now },
+      grades: {
+        some: {
+          id: student.gradeId ?? undefined,
+        },
+      },
+    },
+    include: {
+      subject: {
+        select: { name: true },
+      },
+      category: {
+        select: { id: true, catName: true },
+      },
+      grades: {
+        select: { id: true, level: true },
       },
     },
     orderBy: {

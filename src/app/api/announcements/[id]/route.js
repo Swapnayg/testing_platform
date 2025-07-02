@@ -143,7 +143,6 @@ export async function PUT(req, { params }) {
     await prisma.exam.updateMany({
       where: {
         id: { in: examIds },
-        resultDate: null,
         status: "COMPLETED",
       },
       data: {

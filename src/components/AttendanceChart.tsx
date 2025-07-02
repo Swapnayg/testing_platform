@@ -58,7 +58,7 @@ export default function ExamAttendanceChart() {
   return (
     <div className="bg-white p-6 rounded-xl shadow-md space-y-4">
       <div className="flex justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-semibold text-gray-800">📊 Exam Attendance Summary</h2>
+        <h2 className="text-xl font-semibold text-gray-800">📊 Exam Details</h2>
         <div className="w-full flex justify-end mb-4">
           <div className="flex gap-2 flex-wrap justify-end">
             <select

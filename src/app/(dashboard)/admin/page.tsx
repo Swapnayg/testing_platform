@@ -37,8 +37,8 @@ export default async function AdminPage ({
       <div className="w-full lg:w-2/3 flex flex-col gap-8">
         {/* USER CARDS */}
         <div className="flex gap-4 justify-between flex-wrap">
-          <UserCard type="admin" />
-          <UserCard type="student" />
+          <UserCard type="admin" bgClass="bg-gradient-to-r from-purple-100 to-purple-200" />
+          <UserCard type="student" bgClass="bg-gradient-to-r from-yellow-100 to-yellow-200" />
         </div>
         {/* MIDDLE CHARTS */}
         <div className="flex gap-4 flex-col lg:flex-row">
