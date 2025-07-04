@@ -28,312 +28,132 @@ if (userId) {
   user = await client.users.getUser(userId);
   username = user.username?.toString() ?? "";
 }
-
-const exams = await getUpcomingExams(); // Should be an array of exams
 const student = await prisma.student.findFirst({
+  where: { rollNo: username },
+  include: {
+    grade: true,
+  },
+});
+if (!student) throw new Error("Student not found");
+
+const allExams = await prisma.exam.findMany({
   where: {
-    rollNo: username,  // Replace with actual roll number
+    grades: {
+      some: { id: student.gradeId ?? undefined },
+    },
   },
   include: {
-    grade: {
+    results: {
+      where: {
+        studentId: student.cnicNumber,
+      },
       select: {
         id: true,
-        level: true,
-      },
-    },
-    Result: true,
-    Attendance: true,
-    Registration: true,
-    attempts: {
-      include: {
-        quiz: {
+        quizAttemptId: true,
+        quizAttempt: {
           select: {
-            id: true,
-            title: true,
-            category: true,
-            grades: true,
-            startDateTime: true,
-            totalMarks: true,
-            timeLimit: true,
-            questions: {
-              select: { id: true },
-            },
+            answers: { select: { id: true }, take: 1 },
           },
         },
+      },
     },
+    registrations: {
+      where: {
+        registration: {
+          studentId: student.cnicNumber,
+        },
+      },
+      include: {
+        registration: true,
+      },
     },
+    grades: { include: { category: true } },
+    subject: true,
+    quizzes: { select: { id: true } },
   },
 });
 
 const now = new Date();
+const classified: {
+  attempted: typeof allExams;
+  upcoming: typeof allExams;
+  absent: typeof allExams;
+  pending_approval: typeof allExams;
+  not_applied: typeof allExams;
+} = {
+  attempted: [],
+  upcoming: [],
+  absent: [],
+  pending_approval: [],
+  not_applied: [],
+};
 
-  // STEP 1: Get all Registration IDs for this student
-  // STEP 1: Get approved registrations
-  const registrations = await prisma.registration.findMany({
-    where: { 
-      studentId: student?.cnicNumber,
-      status: 'APPROVED',
-    },
-    select: { id: true },
-  });
-  const registrationIds = registrations.map(r => r.id);
+for (const exam of allExams) {
+  const result = exam.results[0];
+  const isAttempted = !!(result?.quizAttemptId && result.quizAttempt?.answers?.length && result.quizAttempt?.answers?.length > 0);
 
-  // STEP 2: Get exam IDs from those registrations
-  const examRegistrations = await prisma.examOnRegistration.findMany({
-    where: {
-      registration: {
-        status: 'APPROVED',
-        studentId: student?.cnicNumber,
-      },
-    },
-    select: {
-      examId: true,
-    },
-  });
+  const reg = exam.registrations[0]?.registration;
+  const isRegistered = !!reg;
+  const regStatus = reg?.status;
 
-const registeredExamIds = examRegistrations.map(er => er.examId);
-
-// STEP 3: Get attempted exams
-const attemptedExams = await prisma.exam.findMany({
-  where: {
-    results: {
-      some: {
-        studentId: student?.cnicNumber,
-        quizAttemptId: { not: null },
-        quizAttempt: {
-          answers: { some: {} },
-        },
-      },
-    },
-  },
-  include: {
-    grades: {
-      include: {
-        category: true,
-      },
-    },
-    subject: true,
-    quizzes: {
-      select: { id: true }, // 👈 get Quiz ID
-    },
-  },
-});
-const attemptedExamIds = attemptedExams.map(e => e.id);
-
-
-
-// STEP 5: Get absent exams (registered, not attempted, already ended)
-const absentExams = await prisma.exam.findMany({
-  where: {
-    id: {
-      in: registeredExamIds,
-      notIn: attemptedExamIds,
-    },
-    endTime: { lt: now }, // 🕒 already ended
-  },
-  include: {
-    grades: {
-      include: {
-        category: true,
-      },
-    },
-    subject: true,
-    quizzes: {
-      select: { id: true }, // 👈 get Quiz ID
-    },
-  },
-});
-
-
-
-// STEP 1: Get all future exams
-const allUpcomingExams = await prisma.exam.findMany({
-  where: {
-    startTime: { gt: new Date() },
-    grades: {
-      some: {
-        id: student?.gradeId ?? undefined,
-      },
-    },
-  },
-  include: {
-    registrations: {
-      include: {
-        registration: true, // ✅ fetch all, filter manually
-      },
-    },
-    grades: { include: { category: true } },
-    subject: true,
-    quizzes: { select: { id: true } },
-  },
-});
-
-
-  const notApplied: typeof allUpcomingExams = [];
-  const pendingApproval: typeof allUpcomingExams = [];
-
-  for (const exam of allUpcomingExams) {
-    const studentRegs = exam.registrations.filter(
-      (r) => r.registration?.studentId === student?.cnicNumber
-    );
-
-    // ✅ If any registration is APPROVED, skip the exam
-    if (studentRegs.some((r) => r.registration?.status === 'APPROVED')) {
-      continue;
+  if (isAttempted) {
+    classified.attempted.push(exam);
+  } else if (regStatus === "APPROVED") {
+    if (exam.endTime < now) {
+      classified.absent.push(exam); // Missed it
+    } else {
+      classified.upcoming.push(exam); // Coming up
     }
-
-    // ✅ If any is PENDING (and no approved), mark as pending
-    if (studentRegs.some((r) => r.registration?.status === 'PENDING')) {
-      pendingApproval.push(exam);
-      continue;
-    }
-
-    // ✅ If no registration or all are REJECTED (and no approved), mark as not applied
-    notApplied.push(exam);
+  } else if (regStatus === "PENDING") {
+    classified.pending_approval.push(exam);
+  } else {
+    classified.not_applied.push(exam);
   }
+}
 
+type ExamType = typeof allExams[number];
 
-const formattedNotApplied = notApplied.map((exam) => ({ ...exam, status: 'not_applied' }));
-const formattedPending = pendingApproval.map((exam) => ({ ...exam, status: 'pending_approval' }));
-
-const pendingIds = formattedPending.map(e => e.id);
-
-// STEP 4: Get upcoming exams (registered, not attempted, future)
-const upcomingExams = await prisma.exam.findMany({
-  where: {
-    id: { notIn: pendingIds }, // 🚫 Exclude pending manually
-    results: {
-      none: {
-        studentId: student?.cnicNumber,
-        quizAttemptId: { not: null },
-        quizAttempt: {
-          answers: { some: {} },
-        },
-      },
-    },
-    registrations: {
-      some: {
-        registration: {
-          studentId: student?.cnicNumber,
-          status: 'APPROVED',
-        },
-      },
-    },
-    grades: {
-      some: {
-        id: student?.gradeId ?? undefined,
-      },
-    },
-    OR: [
-      { startTime: { gt: now } },
-      { endTime: { gt: now } },
-    ],
-  },
-  include: {
-    grades: { include: { category: true } },
-    subject: true,
-    quizzes: { select: { id: true } },
-  },
+const makeExamObj = (
+  exam: ExamType,
+  status: "attempted" | "upcoming" | "absent" | "pending_approval" | "not_applied"
+) => ({
+  id: exam.id,
+  startTime: exam.startTime,
+  quizId: exam.quizzes?.id ?? null,
+  title: exam.title,
+  difficulty: "Beginner" as const,
+  subject: exam.subject?.name ?? "Unknown",
+  instructor: "TBD",
+  timeRemaining: getTimeRemaining(exam.startTime),
+  questions: exam.totalMCQ ?? 0,
+  duration: `${exam.timeLimit ?? 0} mins`,
+  totalMarks: exam.totalMarks,
+  progress: status === "attempted" ? 100 : 0,
+  status,
+  grade: student.grade?.level ?? "N/A",
+  category: exam.grades?.[0]?.category?.catName ?? "N/A",
 });
 
 const combinedExams = [
-  // Attempted Exams
-  ...attemptedExams.map(exam => ({
-    id: exam.id,
-    startTime: exam.startTime,
-    quizId:  exam.quizzes?.id || null,
-    title: exam.title,
-    difficulty: "Beginner" as const,
-    subject: exam.subject?.name || "Unknown",
-    instructor: "TBD",
-    timeRemaining: "N/A",
-    questions: exam.totalMCQ ?? 0,
-    duration: `${exam.timeLimit ?? 0} mins`,
-    totalMarks: exam.totalMarks,
-    progress: 100,
-    status: "attempted" as const,
-    grade: student?.grade?.level || "N/A",
-    category: exam.grades?.[0]?.category?.catName || "N/A",
-  })),
-
-  // Upcoming Exams
-  ...upcomingExams.map(exam => ({
-    id: exam.id,
-    startTime: exam.startTime,
-    quizId:   exam.quizzes?.id || null,
-    title: exam.title,
-    difficulty: "Beginner" as const,
-    subject: exam.subject?.name || "Unknown",
-    instructor: "TBD",
-    timeRemaining: getTimeRemaining(exam.startTime),
-    questions: exam.totalMCQ ?? 0,
-    duration: `${exam.timeLimit ?? 0} mins`,
-    totalMarks: exam.totalMarks,
-    progress: 0,
-    status: "upcoming" as const,
-    grade: student?.grade?.level || "N/A",
-    category: exam.grades?.[0]?.category?.catName || "N/A",
-  })),
-
-    // Absent Exams
-  ...absentExams.map(exam => ({
-    id: exam.id,
-    startTime: exam.startTime,
-    quizId:  exam.quizzes?.id || null,
-    title: exam.title,
-    difficulty: "Beginner" as const,
-    subject: exam.subject?.name || "Unknown",
-    instructor: "TBD",
-    timeRemaining: getTimeRemaining(exam.startTime),
-    questions: exam.totalMCQ ?? 0,
-    duration: `${exam.timeLimit ?? 0} mins`,
-    totalMarks: exam.totalMarks,
-    progress: 0,
-    status: "absent" as const,
-    grade: student?.grade?.level || "N/A",
-    category: exam.grades?.[0]?.category?.catName || "N/A",
-  })),
-
-  // Not Applied Exams
-  ...formattedNotApplied.map(exam => ({
-    id: exam.id,
-    startTime: exam.startTime,
-    quizId:  exam.quizzes?.id || null,
-    title: exam.title,
-    difficulty: "Beginner" as const,
-    subject: exam.subject?.name || "Unknown",
-    instructor: "TBD",
-    timeRemaining: getTimeRemaining(exam.startTime),
-    questions: exam.totalMCQ ?? 0,
-    duration: `${exam.timeLimit ?? 0} mins`,
-    totalMarks: exam.totalMarks,
-    progress: 0,
-    status: "not_applied" as const,
-    grade: student?.grade?.level || "N/A",
-    category: exam.grades?.[0]?.category?.catName || "N/A",
-  })),
-
-  // Pending Approval Exams
-  ...formattedPending.map(exam => ({
-    id: exam.id,
-    startTime: exam.startTime,
-    quizId:  exam.quizzes?.id || null,
-    title: exam.title,
-    difficulty: "Beginner" as const,
-    subject: exam.subject?.name || "Unknown",
-    instructor: "TBD",
-    timeRemaining: getTimeRemaining(exam.startTime),
-    questions: exam.totalMCQ ?? 0,
-    duration: `${exam.timeLimit ?? 0} mins`,
-    totalMarks: exam.totalMarks,
-    progress: 0,
-    status: "pending_approval" as const,
-    grade: student?.grade?.level || "N/A",
-    category: exam.grades?.[0]?.category?.catName || "N/A",
-  })),
+  ...classified.attempted.map(e => makeExamObj(e, "attempted")),
+  ...classified.upcoming.map(e => makeExamObj(e, "upcoming")),
+  ...classified.absent.map(e => makeExamObj(e, "absent")),
+  ...classified.pending_approval.map(e => makeExamObj(e, "pending_approval")),
+  ...classified.not_applied.map(e => makeExamObj(e, "not_applied")),
 ];
 
 const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_approval");
+
+const calendarData = combinedExams.map((exam) => ({
+  id: exam.id,
+  title: exam.title,
+  date: exam.startTime,
+  status: exam.status,
+  category: exam.category,
+  grade: exam.grade, // ✅ Included grade
+}));
+
+
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -358,9 +178,9 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
 
         {/* RIGHT */}
         <div className="w-full xl:w-1/3 flex flex-col gap-8">
-        <ExamCalendar
-            exams={exams}
-        />
+        {/* <ExamCalendar
+            exams={calendarData}
+        /> */}
 
           <Announcements username={student?.name ?? ""}  studentId= {student?.cnicNumber ?? ""}/>
         </div>
