@@ -1,7 +1,7 @@
 // columns.ts
 import { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Trash } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 
 export type Grade = { id: number; level: string };
 export type Exam = { id: string; title: string; resultDate: string };
