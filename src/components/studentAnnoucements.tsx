@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { createColumns } from "./columns";
 import { DataTable } from '@/components/ui/data-table';
-import { ArrowUp, ArrowDown,Megaphone  } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import StudentAnnouncementsTable from './StudentAnnouncementsTable';
 import type { Announcement } from './columns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
@@ -39,66 +39,25 @@ export default function StudentAnnouncementPage({ username }: { username: string
     ? announcements.filter((a) =>
         a.title.toLowerCase().includes(searchTerm.toLowerCase())
     ): [];
-  // return (
-  //   <div className="p-6 max-w-7xl mx-auto ">
-  //     <div className="flex justify-between items-center m-4 mt-8">
-  //           <Input
-  //               placeholder="Search announcements..."
-  //               className="w-full max-w-sm"
-  //               value={searchTerm}
-  //               onChange={(e) => setSearchTerm(e.target.value)}
-  //           />
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-4">
+            <Input
+                placeholder="Search announcements..."
+                className="w-full max-w-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
 
-  //     </div>
-
-  //     <div className="border rounded-md overflow-auto">
-  //       {/* ✅ Replace table with DataTable */}
-  //          <StudentAnnouncementsTable
-  //       data={filtered}
-  //     />
-
-  //     </div>
-  //   </div>
-  // );
-return (
-  <div className="min-h-screen bg-white ">
-    {/* Header Section */}
-    <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-md ">
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <Megaphone className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Announcements</h1>
-              <p className="text-emerald-100">Stay updated with latest news and notifications</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Content Section */}
-    <div className="max-w-10xl mx-auto px-6 py-8">
-      {/* Search Bar */}
-      <div className="mb-10">
-        <Input
-          placeholder="Search announcements..."
-          className="w-full max-w-md"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <StudentAnnouncementsTable data={filtered} />
       </div>
 
-      {/* Table Container */}
-      {/* <div className="rounded-lg overflow-hidden border border-slate-200 shadow-md bg-white">
-        <StudentAnnouncementsTable data={filtered} />
-      </div> */}
+      <div className="border rounded-md overflow-auto">
+        {/* ✅ Replace table with DataTable */}
+           <StudentAnnouncementsTable
+        data={filtered}
+      />
+
+      </div>
     </div>
-  </div>
-)
-
-
+  );
 }

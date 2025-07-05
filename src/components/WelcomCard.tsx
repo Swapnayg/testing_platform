@@ -63,7 +63,7 @@ const WelcomeCard: React.FC<WelcomeCardProps> = async ({ username, studentId }) 
         <div className="flex items-center gap-6 mb-8">
           <Avatar className="w-20 h-20 border-4 border-white/20 shadow-lg">
             <AvatarImage src="/placeholder.svg?height=80&width=80" />
-            <AvatarFallback className="bg-white text-emerald-700 text-2xl font-bold">{username?.split('').map(n => n[0].toUpperCase()).join('')}</AvatarFallback>
+            <AvatarFallback className="bg-white text-emerald-700 text-2xl font-bold">JD</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {username.toUpperCase()}!  

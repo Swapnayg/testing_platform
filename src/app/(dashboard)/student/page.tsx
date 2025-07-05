@@ -4,8 +4,9 @@ import UpcomingQuizzes from "@/components/UpcomingQuizzes";
 import prisma from "@/lib/prisma";
 import { auth,getAuth, clerkClient } from "@clerk/nextjs/server";
 import TodayResultPopup from "@/components/TodayResultPopup";
-import ExamCalendar from '@/components/ExamCalendar';
+import ExamCalendarStudent from '@/components/ExamCalendarStudent';
 import { getUpcomingExams } from "@/lib/actions";
+import { duration } from "moment";
 
 function getTimeRemaining(startTime: Date) {
   const diff = new Date(startTime).getTime() - Date.now();
@@ -68,7 +69,7 @@ const allExams = await prisma.exam.findMany({
       },
     },
     grades: { include: { category: true } },
-    subject: true,
+    subject: { select: { name: true } },
     quizzes: { select: { id: true } },
   },
 });
@@ -119,6 +120,7 @@ const makeExamObj = (
 ) => ({
   id: exam.id,
   startTime: exam.startTime,
+  endTime: exam.endTime, // <-- Add this line
   quizId: exam.quizzes?.id ?? null,
   title: exam.title,
   difficulty: "Beginner" as const,
@@ -126,11 +128,11 @@ const makeExamObj = (
   instructor: "TBD",
   timeRemaining: getTimeRemaining(exam.startTime),
   questions: exam.totalMCQ ?? 0,
-  duration: `${exam.timeLimit ?? 0} mins`,
+  duration: `${exam.timeLimit ?? 0} Mins`,
   totalMarks: exam.totalMarks,
   progress: status === "attempted" ? 100 : 0,
   status,
-  grade: student.grade?.level ?? "N/A",
+  grade:  exam.grades?.map((g) => g.level).join(", ") || "N/A", // ✅ Updated line
   category: exam.grades?.[0]?.category?.catName ?? "N/A",
 });
 
@@ -147,13 +149,15 @@ const hasPendingApproval = combinedExams.some(exam => exam.status === "pending_a
 const calendarData = combinedExams.map((exam) => ({
   id: exam.id,
   title: exam.title,
-  date: exam.startTime,
+  startTime: exam.startTime,
+  endTime: exam.endTime,
   status: exam.status,
   category: exam.category,
-  grade: exam.grade, // ✅ Included grade
+  grade: exam.grade,
+  subject: exam.subject || '', // ✅ Subject name
+  duration:exam.duration,
+  totalMarks:exam.totalMarks,
 }));
-
-
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -178,9 +182,9 @@ const calendarData = combinedExams.map((exam) => ({
 
         {/* RIGHT */}
         <div className="w-full xl:w-1/3 flex flex-col gap-8">
-        {/* <ExamCalendar
+        <ExamCalendarStudent
             exams={calendarData}
-        /> */}
+        />
 
           <Announcements username={student?.name ?? ""}  studentId= {student?.cnicNumber ?? ""}/>
         </div>
