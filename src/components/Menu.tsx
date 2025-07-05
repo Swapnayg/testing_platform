@@ -117,6 +117,7 @@ const Menu = async () => {
       ))}
     </div>
   );
+
 };
 
 export default Menu;

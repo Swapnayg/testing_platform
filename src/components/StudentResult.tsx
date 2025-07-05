@@ -16,7 +16,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { auth } from "@clerk/nextjs/server";
 import { Exam } from "@prisma/client";
-import { Eye, Download, Award, Trophy, Flower, Flower2} from "lucide-react"; 
+import { Eye, Download, Award, Trophy, Flower, Flower2,TrendingUp} from "lucide-react"; 
 import Link from 'next/link';
 import { toast } from '@/hooks/use-toast';
 
@@ -268,10 +268,25 @@ const loadFilteredResults = async (examId: string) => {
   const totalPages = Math.ceil(filteredResults.length / PAGE_SIZE);
 
   return (
-    <Card className="mt-8">
-      <CardHeader>
+    <Card className="m-4">
+      {/* <CardHeader>
         <CardTitle className="text-xl font-bold">Results Dashboard</CardTitle>
-      </CardHeader>
+      </CardHeader> */}
+      <CardHeader className="bg-gradient-to-r from-emerald-800 via-emerald-600 to-emerald-500 text-white rounded-t-md shadow-sm">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-white/20 rounded-lg">
+        <TrendingUp className="w-6 h-6 text-white" />
+      </div>
+      <div>
+        <CardTitle className="text-2xl font-bold">Results Dashboard</CardTitle>
+        <p className="text-emerald-100 text-sm">Comprehensive student performance overview</p>
+      </div>
+    </div>
+    {/* Optional: Add total results or action icon on the right */}
+    {/* <div className="text-sm text-emerald-100">10 Results</div> */}
+  </div>
+</CardHeader>
       <CardContent>
         {/* Filters */}
        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -280,14 +295,14 @@ const loadFilteredResults = async (examId: string) => {
 
         </div>
         {/* Right: Buttons */}
-        <div className="flex gap-3">
+        {/* <div className="flex gap-3">
           <Button onClick={handleExportAll} disabled={!filteredResults.length}>
             Export Excel
           </Button>
           <Button onClick={handlePrint} disabled={!filteredResults.length}>
             Print / PDF
           </Button>
-        </div>
+        </div> */}
       </div>
 
         {/* Results Table */}

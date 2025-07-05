@@ -16,7 +16,7 @@ const StudentAnnListPage = async () => {
   }
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white rounded-md flex-1 m-4 mt-4">
       <StudentAnnouncementPage username={username}></StudentAnnouncementPage>
     </div>
   );
