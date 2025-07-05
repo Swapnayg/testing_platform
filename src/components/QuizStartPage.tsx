@@ -111,108 +111,220 @@ const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: nu
     }
   }
 
-  return (
-    <div>
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="container mx-auto px-6 py-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Quiz Portal</h1>
-            <p className="text-slate-600">Choose a quiz to test your knowledge</p>
+//   return (
+//     <div>
+//     <div className="min-h-screen bg-slate-50">
+//       {/* Header */}
+//       <div className="bg-white border-b border-slate-200 shadow-sm">
+//         <div className="container mx-auto px-6 py-6">
+//           <div className="text-center">
+//             <h1 className="text-3xl font-bold text-slate-900 mb-2">Quiz Portal</h1>
+//             <p className="text-slate-600">Choose a quiz to test your knowledge</p>
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Quiz Grid */}
+// <div className="container mx-auto px-6 py-8">
+//   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+//    {quizzes.map((quiz) => {
+//       const isCompleted = quiz.quizType === "completed" && quiz.status === "completed";
+//       const isUpcoming = quiz.quizType === "upcoming";
+//       const isAbsent = quiz.status === "absent";
+//       const countdown = countdowns[quiz.id] ?? 0;
+
+//       const isStartable = isUpcoming && countdown === 0;
+
+//       const btnText = isCompleted
+//         ? "Completed"
+//         : isAbsent
+//         ? "Absent"
+//         : isStartable
+//         ? "Start Now"
+//         : `Starts in ${formatTime(countdown)}`;
+
+//       const isDisabled = isCompleted || isAbsent || (isUpcoming && countdown > 0);
+
+//       return (
+//         <Card
+//           key={quiz.id}
+//           className="group hover:shadow-lg transition-all duration-200 border-slate-200 bg-white"
+//         >
+//           <CardHeader className="pb-4">
+//             <div className="flex items-start justify-between mb-3">
+//               <div className="flex items-center space-x-2">
+//                 <span className="text-2xl">{getSubjectIcon(quiz.subject)}</span>
+//                 <Badge
+//                   variant="outline"
+//                   className="text-xs font-medium text-slate-600 border-slate-300"
+//                 >
+//                   {quiz.subject}
+//                 </Badge>
+//               </div>
+//             </div>
+//             <CardTitle className="text-xl font-semibold text-slate-900 group-hover:text-slate-700 transition-colors">
+//               {quiz.title.toUpperCase()}
+//             </CardTitle>
+//           </CardHeader>
+
+//           <CardContent className="space-y-4">
+//             <div className="grid grid-cols-2 gap-4 py-3 border-t border-slate-100">
+//               <div className="flex items-center space-x-2 text-sm">
+//                 <Clock className="w-4 h-4 text-slate-500" />
+//                 <span className="text-slate-700 font-medium">{quiz.duration}</span>
+//               </div>
+//               <div className="flex items-center space-x-2 text-sm">
+//                 <BookOpen className="w-4 h-4 text-slate-500" />
+//                 <span className="text-slate-700 font-medium">{quiz.questions} questions</span>
+//               </div>
+//               <div className="flex items-center space-x-2 text-sm">
+//                 <Award className="w-4 h-4 text-slate-500" />
+//                 <span className="text-slate-700 font-medium">{quiz.totalMarks} marks</span>
+//               </div>
+//             </div>
+
+//             <Button
+//               onClick={() => {
+//                 if (!isDisabled) {
+//                   handleStartQuizInPopup(quiz.quizId, username, quiz.totalMarks);
+//                 }
+//               }}
+//               disabled={isDisabled}
+//               className={`w-full text-white font-medium py-2.5 group transition-all duration-200 ${
+//                 isCompleted
+//                   ? "bg-gray-400 cursor-not-allowed"
+//                   : isAbsent
+//                   ? "bg-red-500 cursor-not-allowed"
+//                   : isStartable
+//                   ? "bg-emerald-600 hover:bg-emerald-700"
+//                   : "bg-orange-500 hover:bg-orange-600"
+//               }`}
+//             >
+//               {btnText}
+//               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+//             </Button>
+//           </CardContent>
+//         </Card>
+//       );
+//     })}
+
+//   </div>
+// </div>
+//     </div>
+//     </div>
+//   );
+return (
+  <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 m-4 ">
+    {/* Professional Header like Results Dashboard */}
+    <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-md">
+      <div className="container mx-auto px-6 py-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white/20 rounded-lg">
+              <BookOpen className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">My Quizes</h1>
+              <p className="text-emerald-100">Choose a quiz to test your knowledge</p>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center gap-2 text-emerald-100">
+            <Award className="w-5 h-5" />
+            <span className="font-medium">{quizzes.length} Quizzes</span>
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Quiz Grid */}
-<div className="container mx-auto px-6 py-8">
-  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-   {quizzes.map((quiz) => {
-      const isCompleted = quiz.quizType === "completed" && quiz.status === "completed";
-      const isUpcoming = quiz.quizType === "upcoming";
-      const isAbsent = quiz.status === "absent";
-      const countdown = countdowns[quiz.id] ?? 0;
+    {/* Quiz Grid */}
+    <div className="container mx-auto px-6 py-10">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {quizzes.map((quiz) => {
+          const isCompleted = quiz.quizType === "completed" && quiz.status === "completed";
+          const isUpcoming = quiz.quizType === "upcoming";
+          const isAbsent = quiz.status === "absent";
+          const countdown = countdowns[quiz.id] ?? 0;
 
-      const isStartable = isUpcoming && countdown === 0;
+          const isStartable = isUpcoming && countdown === 0;
 
-      const btnText = isCompleted
-        ? "Completed"
-        : isAbsent
-        ? "Absent"
-        : isStartable
-        ? "Start Now"
-        : `Starts in ${formatTime(countdown)}`;
+          const btnText = isCompleted
+            ? "Completed"
+            : isAbsent
+            ? "Absent"
+            : isStartable
+            ? "Start Now"
+            : `Starts in ${formatTime(countdown)}`;
 
-      const isDisabled = isCompleted || isAbsent || (isUpcoming && countdown > 0);
+          const isDisabled = isCompleted || isAbsent || (isUpcoming && countdown > 0);
 
-      return (
-        <Card
-          key={quiz.id}
-          className="group hover:shadow-lg transition-all duration-200 border-slate-200 bg-white"
-        >
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">{getSubjectIcon(quiz.subject)}</span>
-                <Badge
-                  variant="outline"
-                  className="text-xs font-medium text-slate-600 border-slate-300"
-                >
-                  {quiz.subject}
-                </Badge>
-              </div>
-            </div>
-            <CardTitle className="text-xl font-semibold text-slate-900 group-hover:text-slate-700 transition-colors">
-              {quiz.title.toUpperCase()}
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 py-3 border-t border-slate-100">
-              <div className="flex items-center space-x-2 text-sm">
-                <Clock className="w-4 h-4 text-slate-500" />
-                <span className="text-slate-700 font-medium">{quiz.duration}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm">
-                <BookOpen className="w-4 h-4 text-slate-500" />
-                <span className="text-slate-700 font-medium">{quiz.questions} questions</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm">
-                <Award className="w-4 h-4 text-slate-500" />
-                <span className="text-slate-700 font-medium">{quiz.totalMarks} marks</span>
-              </div>
-            </div>
-
-            <Button
-              onClick={() => {
-                if (!isDisabled) {
-                  handleStartQuizInPopup(quiz.quizId, username, quiz.totalMarks);
-                }
-              }}
-              disabled={isDisabled}
-              className={`w-full text-white font-medium py-2.5 group transition-all duration-200 ${
-                isCompleted
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : isAbsent
-                  ? "bg-red-500 cursor-not-allowed"
-                  : isStartable
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-orange-500 hover:bg-orange-600"
-              }`}
+          return (
+            <Card
+              key={quiz.id}
+              className="group transition-all duration-300 border-0 shadow-lg hover:shadow-xl bg-white"
             >
-              {btnText}
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </CardContent>
-        </Card>
-      );
-    })}
+              <CardHeader className="pb-4 border-b border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-100 rounded-full">
+                      <span className="text-xl text-emerald-600">{getSubjectIcon(quiz.subject)}</span>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-semibold text-emerald-700 border-emerald-200 bg-emerald-50"
+                    >
+                      {quiz.subject}
+                    </Badge>
+                  </div>
+                </div>
+                <CardTitle className="text-lg font-bold text-slate-800 tracking-wide group-hover:text-emerald-700 transition-colors">
+                  {quiz.title.toUpperCase()}
+                </CardTitle>
+              </CardHeader>
 
+              <CardContent className="space-y-5 py-5">
+                <div className="grid grid-cols-2 gap-4 text-sm text-slate-700">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-slate-500" />
+                    {quiz.duration}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-slate-500" />
+                    {quiz.questions} Questions
+                  </div>
+                  <div className="flex items-center gap-2 col-span-2">
+                    <Award className="w-4 h-4 text-slate-500" />
+                    {quiz.totalMarks} Marks
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => {
+                    if (!isDisabled) {
+                      handleStartQuizInPopup(quiz.quizId, username, quiz.totalMarks);
+                    }
+                  }}
+                  disabled={isDisabled}
+                  className={`w-full font-semibold flex items-center justify-center py-2.5 transition-all duration-200 text-white group ${
+                    isCompleted
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : isAbsent
+                      ? "bg-red-500 cursor-not-allowed"
+                      : isStartable
+                      ? "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+                      : "bg-orange-500 hover:bg-orange-600"
+                  }`}
+                >
+                  {btnText}
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
   </div>
-</div>
-    </div>
-    </div>
-  );
+);
 
 };
 
