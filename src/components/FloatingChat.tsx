@@ -254,7 +254,7 @@ useEffect(() => {
       {(!isOpen || isCollapsed) && (
         <button
           onClick={openChat}
-          className="fixed bottom-10 right-10 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg hover:bg-indigo-600 transition-colors"
+          className="fixed bottom-10 right-10 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-white shadow-lg hover:bg-green-600 transition-colors"
         >
           <MessageCircle className="h-6 w-6" />
           
@@ -269,8 +269,8 @@ useEffect(() => {
       {/* Chat Box */}
       {isOpen && (
         <div className="fixed bottom-10 right-10 z-50 w-80 max-w-sm rounded-xl bg-white shadow-xl border border-gray-200 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 bg-indigo-500 text-white">
-            <span className="font-semibold">Chat ({username.charAt(0).toUpperCase() + username.slice(1)})</span>
+          <div className="flex items-center justify-between px-4 py-2 bg-emerald-700 text-white">
+            <span className="font-semibold">Chat ({username.toUpperCase()})</span>
             <div className="flex gap-2">
               <button onClick={collapseChat}>
                 <Minus className="h-4 w-4" />
@@ -280,14 +280,18 @@ useEffect(() => {
               </button>
             </div>
           </div>
-        <div className="p-4 text-sm text-gray-700 h-[25rem] overflow-y-auto space-y-3">
+        <div className="flex flex-col h-[25rem] p-0">
             {!activeChat ? (
                 <>
                     <div className="text-sm text-gray-700 h-[25rem] overflow-y-auto space-y-3">
-                        <p>Welcome, {username.toUpperCase()}!</p>
+                      <div className="flex items-center justify-between  px-4 py-2 mb-3">
+                        <p className="text-green-700 text-sm font-semibold">
+                          👋 Welcome, {username.toUpperCase()}!
+                        </p>
+                      </div>
 
                         {/* Admin-only: Create Group Button */}
-                        {role === "admin" && (
+                        {/* {role === "admin" && (
                             <div className="mt-2">
                             <button
                                 onClick={() => setShowGroupForm(true)}
@@ -295,20 +299,20 @@ useEffect(() => {
                                 className={`w-full py-1 rounded flex justify-center items-center transition-colors ${
                                 showGroupForm
                                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                    : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                                    : "bg-green-100 text-green-700 hover:bg-green-200"
                                 }`}
                             >
                                 <Plus className="h-4 w-4 mr-1" />
                                 Create Group
                             </button>
                             </div>
-                        )}
+                        )} */}
                         {/* Tabs */}
-                        <div className="flex border-b">
+                        {/* <div className="flex border-b">
                             <button
                             className={`flex-1 px-4 py-2 text-sm font-medium ${
                                 activeTab === "students"
-                                ? "bg-indigo-100 text-indigo-700"
+                                ? "bg-green-100 text-green-700"
                                 : "bg-white text-gray-600"
                             }`}
                             onClick={() => setActiveTab("students")}
@@ -318,17 +322,17 @@ useEffect(() => {
                             <button
                             className={`flex-1 px-4 py-2 text-sm font-medium ${
                                 activeTab === "groups"
-                                ? "bg-indigo-100 text-indigo-700"
+                                ? "bg-green-100 text-green-700"
                                 : "bg-white text-gray-600"
                             }`}
                             onClick={() => setActiveTab("groups")}
                             >
                             Groups
                             </button>
-                        </div>
+                        </div> */}
 
                         {/* Content */}
-                        <div className="pt-2 max-h-[18rem] overflow-y-auto space-y-2">
+                        <div className="flex-1 overflow-y-auto px-4 pb-2 space-y-2">
                           {activeTab === "students" && (
                             <div className="space-y-2">
                               {/* Search Input */}
@@ -344,7 +348,7 @@ useEffect(() => {
                              {filteredStudents.length === 0 ? (
                                 <p className="text-xs text-gray-500">No students found.</p>
                               ) : (
-                                filteredStudents.map((student) => (
+                                filteredStudents.filter((student) => student.role === "admin").map((student) => (
                                   <div
                                     key={student.id}
                                     onClick={async () => {
@@ -386,7 +390,7 @@ useEffect(() => {
                             </div>
                           )}
                           
-                            {activeTab === "groups" && (
+                            {/* {activeTab === "groups" && (
                             <div className="space-y-2">
                                 {groups.length === 0 ? (
                                 <p className="text-xs text-gray-500">No groups created yet.</p>
@@ -395,14 +399,14 @@ useEffect(() => {
                                     <div
                                     key={group.id}
                                     onClick={async () => { const chatId = await initiateChat({ type: "group", id: group.id, senderId: userId }); if (chatId) { setActiveChat({ type: "group", id: group.id, name: group.name, chatId });}}}
-                                    className="px-3 py-2 bg-indigo-100 text-indigo-800 rounded shadow-sm text-sm"
+                                    className="px-3 py-2 bg-green-100 text-green-800 rounded shadow-sm text-sm"
                                     >
                                     {group.name.charAt(0).toUpperCase() + group.name.slice(1)}
                                     </div>
                                 ))
                                 )}
                             </div>
-                            )}
+                            )} */}
                         </div>
                         </div>
                 </>
@@ -438,13 +442,13 @@ useEffect(() => {
                                 <div
                                   className={`px-3 py-1 rounded-lg max-w-xs ${
                                     isOwnMessage
-                                      ? "bg-indigo-500 text-white"
+                                      ? "bg-green-500 text-white"
                                       : "bg-gray-200 text-gray-800"
                                   }`}
                                 >
                                   {/* Sender Name */}
                                   {!isOwnMessage && (
-                                    <div className="text-xs font-semibold text-indigo-600 mb-0.5">
+                                    <div className="text-xs font-semibold text-green-600 mb-0.5">
                                       {msg.sender?.name || "Unknown"}
                                     </div>
                                   )}
@@ -466,7 +470,7 @@ useEffect(() => {
                                 placeholder="Type a message..."
                                 className="flex-1 border px-2 py-1 rounded text-sm"
                                 />
-                            <button onClick={sendMessage} className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded">
+                            <button onClick={sendMessage} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">
                                 <Send className="h-4 w-4" />
                             </button>
                         </div>
@@ -508,7 +512,7 @@ useEffect(() => {
                 <button
                     type="button"
                     onClick={() => setSelectedIds(students.map((s) => s.id))}
-                    className="text-xs text-indigo-600 hover:underline"
+                    className="text-xs text-green-600 hover:underline"
                 >
                     Select All
                 </button>
@@ -548,7 +552,7 @@ useEffect(() => {
             className={`w-full py-1 rounded transition-colors flex justify-center items-center ${
                 groupName.trim() === "" || selectedIds.length < 1 || loading
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-indigo-500 text-white hover:bg-indigo-600"
+                : "bg-green-500 text-white hover:bg-green-600"
             }`}
             >
             {loading ? (
