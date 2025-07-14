@@ -89,28 +89,30 @@ const classified: {
   not_applied: [],
 };
 
-for (const exam of allExams) {
-  const result = exam.results[0];
-  const isAttempted = !!(result?.quizAttemptId && result.quizAttempt?.answers?.length && result.quizAttempt?.answers?.length > 0);
+  for (const exam of allExams) {
+    const result = exam.results[0];
+    const isAttempted = !!(result?.quizAttemptId && result.quizAttempt?.answers?.length && result.quizAttempt?.answers?.length > 0);
 
-  const reg = exam.registrations[0]?.registration;
-  const isRegistered = !!reg;
-  const regStatus = reg?.status;
+    const reg = exam.registrations[0]?.registration;
+    const isRegistered = !!reg;
+    const regStatus = reg?.status;
+    const isExpired = exam.endTime < now;
 
-  if (isAttempted) {
-    classified.attempted.push(exam);
-  } else if (regStatus === "APPROVED") {
-    if (exam.endTime < now) {
-      classified.absent.push(exam); // Missed it
-    } else {
-      classified.upcoming.push(exam); // Coming up
+    if (isAttempted) {
+      classified.attempted.push(exam);
+    } else if (regStatus === "APPROVED") {
+      if (isExpired) {
+        classified.absent.push(exam); // Missed it
+      } else {
+        classified.upcoming.push(exam); // Coming up
+      }
+    } else if (regStatus === "PENDING") {
+      classified.pending_approval.push(exam);
+    } else if (!isRegistered && !isExpired) {
+      classified.not_applied.push(exam);
     }
-  } else if (regStatus === "PENDING") {
-    classified.pending_approval.push(exam);
-  } else {
-    classified.not_applied.push(exam);
   }
-}
+
 
 type ExamType = typeof allExams[number];
 
