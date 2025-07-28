@@ -162,7 +162,7 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
-          handleSubmitQuiz(true); // Auto-submit when time runs out
+          handleSubmitQuiz(undefined, true);// Auto-submit when time runs out
           return 0;
         }
         return prev - 1;
@@ -206,7 +206,11 @@ const QuizInterface: React.FC<QuizInterfaceProps> = ({ quizId,username,totalMark
   };
 
   // Handle quiz submission
-const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
+const handleSubmitQuiz = async (
+  e?: React.MouseEvent<HTMLButtonElement>,
+  autoSubmit: boolean = false
+) => {
+
   const unansweredQuestions = getAllUnansweredQuestions();
   const unansweredCount = unansweredQuestions.length;
   const totalQuestions = quizData?.questions.length || 0;
@@ -413,156 +417,170 @@ const handleSubmitQuiz = async (autoSubmit: boolean = false) => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-slate-900">{capitalizeSentences(quizData.title)}</h1>
-              <Badge variant="outline" className="text-slate-600 border-slate-300">
-                Question {currentQuestionIndex + 1} of {quizData.questions.length}
-              </Badge>
-              <Badge variant="outline" className="text-slate-500 border-slate-200">
-                {quizData.subject} • {quizData.grade}
-              </Badge>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Badge variant={timeRemaining < 300 ? "destructive" : "secondary"} className="text-sm bg-slate-100 text-slate-800 border-slate-300">
-                <Clock className="w-4 h-4 mr-1" />
-                {formatTime(timeRemaining)}
-              </Badge>
-              {unansweredCount > 0 && (
-                <Badge variant="outline" className="text-sm text-amber-600 border-amber-300 bg-amber-50">
-                  <AlertTriangle className="w-4 h-4 mr-1" />
-                  {unansweredCount} unanswered
-                </Badge>
-              )}
-            </div>
-          </div>
+  {/* Header */}
+  <div className="bg-white border-b border-slate-200 shadow-sm">
+    <div className="container mx-auto px-4 sm:px-6 py-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-start md:items-center gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 break-words">
+            {capitalizeSentences(quizData.title)}
+          </h1>
+          <Badge variant="outline" className="text-slate-600 border-slate-300">
+            Question {currentQuestionIndex + 1} of {quizData.questions.length}
+          </Badge>
+          <Badge variant="outline" className="text-slate-500 border-slate-200">
+            {quizData.subject} • {quizData.grade}
+          </Badge>
         </div>
-      </div>
 
-      <div className="container mx-auto p-6">
-        <div className="flex gap-6">
-          {/* Main Content - Left Side */}
-          <div className="flex-1">
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader className="bg-slate-50/50 border-b border-slate-200">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl text-slate-900">
-                    Question {currentQuestion.questionNumber}
-                  </CardTitle>
-                  <div className="flex items-center space-x-3">
-                    <Badge variant="outline" className="text-slate-600 border-slate-300">
-                      {currentQuestion.questionType.replace('_', ' ').toLowerCase()}
-                    </Badge>
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                      <Award className="w-3 h-3 mr-1" />
-                      {currentQuestion.points} marks
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6 p-8">
-                <p className="text-lg leading-relaxed text-slate-800">{capitalizeSentences(currentQuestion.questionText)}</p>
-                
-                <div className="space-y-4">
-                  {renderQuestion(currentQuestion)}
-                </div>
-
-                {/* Navigation buttons */}
-                <div className="flex items-center justify-between pt-8 border-t border-slate-200">
-                  <Button
-                    variant="outline"
-                    onClick={() => navigateToQuestion(currentQuestionIndex - 1)}
-                    disabled={currentQuestionIndex === 0}
-                    className="border-slate-300 text-slate-700 hover:bg-slate-50"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-2" />
-                    Previous
-                  </Button>
-
-                  <div className="flex gap-2">
-                    {!isLastQuestion ? (
-                      <Button
-                        onClick={() => navigateToQuestion(currentQuestionIndex + 1)}
-                        className="bg-slate-900 hover:bg-slate-800 text-white"
-                      >
-                        Next
-                        <ChevronRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => handleSubmitQuiz()}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        disabled={!attemptId || isSubmitting}
-                      >
-                       {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar - Right Side */}
-          <div className="w-80 shrink-0">
-            <Card className="sticky top-6 border-slate-200 shadow-sm">
-              <CardHeader className="bg-slate-50/50 border-b border-slate-200">
-                <CardTitle className="text-lg text-slate-900">Question Navigator</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-5 gap-3">
-                  {quizData.questions.map((question, index) => {
-                    const status = getQuestionStatus(index);
-                    return (
-                      <div key={index} className="flex flex-col items-center space-y-1">
-                        <Button
-                          variant={status === 'current' ? 'default' : status === 'answered' ? 'secondary' : 'outline'}
-                          size="sm"
-                          className={`h-10 w-10 text-sm font-medium transition-all ${
-                            status === 'current' 
-                              ? 'bg-slate-900 hover:bg-slate-800 text-white' 
-                              : status === 'answered' 
-                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200' 
-                                : 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100'
-                          }`}
-                          onClick={() => navigateToQuestion(index)}
-                        >
-                          {index + 1}
-                          {status === 'answered' && <Check className="w-3 h-3 ml-1" />}
-                        </Button>
-                        <span className="text-xs text-slate-500 font-medium">{question.points}m</span>
-                      </div>
-                    );
-                  })}
-                </div> 
-                
-                <div className="mt-6 pt-6 border-t border-slate-200 space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Total Questions:</span>
-                    <span className="font-medium text-slate-900">{quizData.questions.length}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Answered:</span>
-                    <span className="font-medium text-emerald-600">{answers.size}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Remaining:</span>
-                    <span className="font-medium text-amber-600">{unansweredCount}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Total Marks:</span>
-                    <span className="font-medium text-slate-900">{quizData.totalMarks}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge
+            variant={timeRemaining < 300 ? "destructive" : "secondary"}
+            className="text-sm bg-slate-100 text-slate-800 border-slate-300"
+          >
+            <Clock className="w-4 h-4 mr-1" />
+            {formatTime(timeRemaining)}
+          </Badge>
+          {unansweredCount > 0 && (
+            <Badge variant="outline" className="text-sm text-amber-600 border-amber-300 bg-amber-50">
+              <AlertTriangle className="w-4 h-4 mr-1" />
+              {unansweredCount} unanswered
+            </Badge>
+          )}
         </div>
       </div>
     </div>
+  </div>
+
+  {/* Body */}
+  <div className="container mx-auto px-4 sm:px-6 py-6">
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Main Content */}
+      <div className="w-full lg:flex-1">
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="bg-slate-50/50 border-b border-slate-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <CardTitle className="text-lg sm:text-xl text-slate-900">
+                Question {currentQuestion.questionNumber}
+              </CardTitle>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="text-slate-600 border-slate-300">
+                  {currentQuestion.questionType.replace('_', ' ').toLowerCase()}
+                </Badge>
+                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                  <Award className="w-3 h-3 mr-1" />
+                  {currentQuestion.points} marks
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-6 p-4 sm:p-6 md:p-8">
+            <p className="text-base sm:text-lg leading-relaxed text-slate-800 break-words">
+              {capitalizeSentences(currentQuestion.questionText)}
+            </p>
+
+            <div className="space-y-4">{renderQuestion(currentQuestion)}</div>
+
+            {/* Navigation Buttons */}
+            <div className="flex flex-col sm:flex-row justify-between gap-4 pt-8 border-t border-slate-200">
+              <Button
+                variant="outline"
+                onClick={() => navigateToQuestion(currentQuestionIndex - 1)}
+                disabled={currentQuestionIndex === 0}
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 w-full sm:w-auto"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Previous
+              </Button>
+
+              {!isLastQuestion ? (
+                <Button
+                  onClick={() => navigateToQuestion(currentQuestionIndex + 1)}
+                  className="bg-slate-900 hover:bg-slate-800 text-white w-full sm:w-auto"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmitQuiz}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
+                  disabled={!attemptId || isSubmitting}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Sidebar */}
+      <div className="w-full lg:w-80">
+        <Card className="border-slate-200 shadow-sm sticky top-4">
+          <CardHeader className="bg-slate-50/50 border-b border-slate-200">
+            <CardTitle className="text-lg text-slate-900">Question Navigator</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid grid-cols-5 gap-3">
+              {quizData.questions.map((question, index) => {
+                const status = getQuestionStatus(index);
+                return (
+                  <div key={index} className="flex flex-col items-center space-y-1">
+                    <Button
+                      variant={
+                        status === 'current'
+                          ? 'default'
+                          : status === 'answered'
+                          ? 'secondary'
+                          : 'outline'
+                      }
+                      size="sm"
+                      className={`h-10 w-10 text-sm font-medium transition-all ${
+                        status === 'current'
+                          ? 'bg-slate-900 hover:bg-slate-800 text-white'
+                          : status === 'answered'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200'
+                          : 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100'
+                      }`}
+                      onClick={() => navigateToQuestion(index)}
+                    >
+                      {index + 1}
+                      {status === 'answered' && <Check className="w-3 h-3 ml-1" />}
+                    </Button>
+                    <span className="text-xs text-slate-500 font-medium">{question.points}m</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Quiz Stats */}
+            <div className="mt-6 pt-6 border-t border-slate-200 space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Total Questions:</span>
+                <span className="font-medium text-slate-900">{quizData.questions.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Answered:</span>
+                <span className="font-medium text-emerald-600">{answers.size}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Remaining:</span>
+                <span className="font-medium text-amber-600">{unansweredCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Total Marks:</span>
+                <span className="font-medium text-slate-900">{quizData.totalMarks}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </div>
+</div>
+
   );
 };
 

@@ -112,190 +112,182 @@ const loadFilteredResults = async (examId: string) => {
   const totalPages = Math.ceil(filteredResults.length / PAGE_SIZE);
 
   return (
-    <Card className="mt-8">
-      <CardHeader>
-        <CardTitle className="text-xl font-bold">Results Dashboard</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Filters */}
-       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        {/* Left: Filters */}
-        <div className="flex flex-wrap gap-4">
-          <select
-            value={selectedExam}
-            onChange={(e) => {
-              const id = e.target.value;
-              setSelectedExam(id);
-            }}
-            className="px-3 py-2 border rounded-md w-60"
-          >
-            <option value="">Select Exam</option>
-            {exams.map((e) => (
-              <option key={e.id} value={e.id}>{e.title}</option>
-            ))}
-          </select>
+<Card className="mt-8">
+  
+  <CardHeader>
+    
+    <CardTitle className="text-xl font-bold">Results Dashboard</CardTitle>
+  </CardHeader>
+  <CardContent className="overflow-x-auto">
 
-          {/* Uncomment if needed later
-          <select
-            value={grade}
-            onChange={(e) => setGrade(e.target.value)}
-            className="px-3 py-2 border rounded-md"
-          >
-            <option value="">All Grades</option>
-            <option value="Grade 10">Grade 10</option>
-            <option value="Grade 11">Grade 11</option>
-            <option value="Grade 12">Grade 12</option>
-          </select>
-
-          <select
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="px-3 py-2 border rounded-md"
-          >
-            <option value="">All Subjects</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Science">Science</option>
-            <option value="English">English</option>
-          </select>
-          */}
-        </div>
-
-        {/* Right: Buttons */}
-        <div className="flex gap-3">
-          <Button onClick={handleExportAll} disabled={!filteredResults.length}>
-            Export Excel
-          </Button>
-          <Button onClick={handlePrint} disabled={!filteredResults.length}>
-            Print / PDF
-          </Button>
-        </div>
+    {/* Filters */}
+    <div className="flex flex-col sm:flex-row flex-wrap sm:items-center sm:justify-between gap-4 mb-6">
+      {/* Left: Filters */}
+      <div className="flex flex-wrap gap-4">
+        <select
+          value={selectedExam}
+          onChange={(e) => {
+            const id = e.target.value;
+            setSelectedExam(id);
+          }}
+          className="px-3 py-2 border rounded-md w-full sm:w-60"
+        >
+          <option value="">Select Exam</option>
+          {exams.map((e) => (
+            <option key={e.id} value={e.id}>{e.title}</option>
+          ))}
+        </select>
       </div>
 
-      {selectedExamDetails && (
-        <div className="bg-slate-50 px-4 py-2 rounded-md mb-4 shadow-sm border">
-          <h2 className="text-lg font-semibold mb-3">{selectedExamDetails.title}</h2>
-          <div className="flex flex-wrap items-center gap-x-10 gap-y-3 text-sm text-slate-700">
-            <div>
-              <span className="font-medium">Total Marks:</span> {selectedExamDetails.totalMarks}
-            </div>
-            <div>
-              <span className="font-medium">Total MCQs:</span> {selectedExamDetails.totalMCQ}
-            </div>
-            <div>
-              <span className="font-medium">Time Limit:</span> {selectedExamDetails.timeLimit} min
-            </div>
-            <div>
-              <span className="font-medium">Registered:</span> {totalStudents}
-            </div>
-            <div>
-              <span className="font-medium">Attempted:</span> {filteredResults.length}
-            </div>
-            <div>
-              <span className="font-medium">Not Attempted:</span> {totalStudents - filteredResults.length}
-            </div>
-            <div>
-              <span className="font-medium">Result Announced:</span>{" "}
-              {selectedExamDetails.resultDate ? (
-                <span className="text-slate-700">
-                  {new Date(selectedExamDetails.resultDate).toLocaleDateString()}
-                </span>
-              ) : (
-                <span className="text-red-600 font-semibold ml-1">Not Declared</span>
-              )}
-            </div>
+      {/* Right: Buttons */}
+      <div className="flex flex-wrap gap-3">
+        <Button onClick={handleExportAll} disabled={!filteredResults.length}>
+          Export Excel
+        </Button>
+        <Button onClick={handlePrint} disabled={!filteredResults.length}>
+          Print / PDF
+        </Button>
+      </div>
+    </div>
+
+    {selectedExamDetails && (
+      <div className="bg-slate-50 px-4 py-2 rounded-md mb-4 shadow-sm border">
+        <h2 className="text-lg font-semibold mb-3">{selectedExamDetails.title}</h2>
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-slate-700">
+          <div>
+            <span className="font-medium">Total Marks:</span> {selectedExamDetails.totalMarks}
+          </div>
+          <div>
+            <span className="font-medium">Total MCQs:</span> {selectedExamDetails.totalMCQ}
+          </div>
+          <div>
+            <span className="font-medium">Time Limit:</span> {selectedExamDetails.timeLimit} min
+          </div>
+          <div>
+            <span className="font-medium">Registered:</span> {totalStudents}
+          </div>
+          <div>
+            <span className="font-medium">Attempted:</span> {filteredResults.length}
+          </div>
+          <div>
+            <span className="font-medium">Not Attempted:</span> {totalStudents - filteredResults.length}
+          </div>
+          <div>
+            <span className="font-medium">Result Announced:</span>{" "}
+            {selectedExamDetails.resultDate ? (
+              <span className="text-slate-700">
+                {new Date(selectedExamDetails.resultDate).toLocaleDateString()}
+              </span>
+            ) : (
+              <span className="text-red-600 font-semibold ml-1">Not Declared</span>
+            )}
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-        {/* Results Table */}
-        <div id="results-table">
-          {loading ? (
-            <p>Loading...</p>
-          ) : results.length === 0 ? (
-            <p>No results found.</p>
-          ) : (
-            <table className="w-full border text-sm">
-              <thead>
-                <tr className="bg-slate-100">
-                  <th className="p-2 text-left">Student</th>
-                  <th className="p-2 text-left">Grade</th>
-                  <th className="p-2 text-left">Subject</th>
-                  <th className="p-2 text-left">Score</th>
-                  <th className="p-2 text-left">Correct</th>
-                  <th className="p-2 text-left">Incorrect</th>
-                  <th className="p-2 text-left">Submitted</th>
-                  <th className="p-2 text-left">Rank</th>
-                  <th className="p-2 text-center">Actions</th>    
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((r, i) => (
-                  <tr key={r.id} className="border-t">
-                    
-                    <td className="p-2">{r.student.name}</td>
-                    <td className="p-2">{r.exam.grades.map((g: { level: any; }) => g.level).join(", ")}</td>
-                    <td className="p-2">{r.exam.subject.name}</td>
-                    <td className="p-2">{r.score}</td>
-                    <td className="p-2">{r.correctAnswers}</td>
-                    <td className="p-2">{r.exam.totalMCQ - r.correctAnswers}</td>
-                    <td className="p-2">{new Date(r.gradedAt).toLocaleString()}</td>
-                    <td className="p-2">{r.grade}</td>
-                    <td className="p-2 text-center">
-                     <Link href={`/list/students/${r.quizAttempt.quizId}/quizview?studentName=${r.student.cnicNumber}&userRole=admin`}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="inline-flex items-center gap-1 text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400 transition"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View
-                      </Button>
-                    </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+    {/* Results Table */}
+<div id="results-table" className="w-full">
 
-        {/* Pagination */}
-        <div className="flex justify-between items-center mt-4">
-          <Button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
-            Previous
-          </Button>
-          <span className="text-sm text-slate-700">
-            Page {currentPage} of {totalPages || 1}
-          </span>
-          <Button disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
-            Next
-          </Button>
-        </div>
+  {loading ? (
+    <p>Loading...</p>
+  ) : results.length === 0 ? (
+    <p>No results found.</p>
+  ) : (
+    // This wrapper allows horizontal scrolling
+      <div id="results-table" className="w-full overflow-auto">
+  <div className="min-w-full inline-block align-middle">
+    <div className="overflow-x-auto">
+      <table className="min-w-[1000px] border text-sm">
+        <thead className="bg-slate-100">
+          <tr>
+            <th className="p-2 text-left">Student</th>
+            <th className="p-2 text-left">Grade</th>
+            <th className="p-2 text-left">Subject</th>
+            <th className="p-2 text-left">Score</th>
+            <th className="p-2 text-left">Correct</th>
+            <th className="p-2 text-left">Incorrect</th>
+            <th className="p-2 text-left">Submitted</th>
+            <th className="p-2 text-left">Rank</th>
+            <th className="p-2 text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {results.map((r) => (
+            <tr key={r.id} className="border-t">
+              <td className="p-2 whitespace-nowrap">{r.student.name}</td>
+              <td className="p-2 whitespace-nowrap">
+                {r.exam.grades.map((g: { level: any; }) => g.level).join(", ")}
+              </td>
+              <td className="p-2 whitespace-nowrap">{r.exam.subject.name}</td>
+              <td className="p-2 whitespace-nowrap">{r.score}</td>
+              <td className="p-2 whitespace-nowrap">{r.correctAnswers}</td>
+              <td className="p-2 whitespace-nowrap">
+                {r.exam.totalMCQ - r.correctAnswers}
+              </td>
+              <td className="p-2 whitespace-nowrap">
+                {new Date(r.gradedAt).toLocaleString()}
+              </td>
+              <td className="p-2 whitespace-nowrap">{r.grade}</td>
+              <td className="p-2 text-center whitespace-nowrap">
+                <Link
+                  href={`/list/students/${r.quizAttempt.quizId}/quizview?studentName=${r.student.cnicNumber}&userRole=admin`}
+                >
+                  <Button size="sm" variant="outline" className="gap-1">
+                    <Eye className="w-4 h-4" /> View
+                  </Button>
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-        {/* Answer View Modal */}
-        {selectedAttempt && (
-          <Dialog open={true} onOpenChange={() => setSelectedAttempt(null)}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Answers - {selectedAttempt.student.name}</DialogTitle>
-              </DialogHeader>
-              <div className="max-h-[400px] overflow-y-auto space-y-3 mt-2">
-                {selectedAttempt.answers.map((a: any) => (
-                  <div key={a.id} className="bg-slate-50 p-3 border rounded">
-                    <p className="font-semibold mb-1">{a.question.text}</p>
-                    <p>Answer: {a.answerText}</p>
-                    {a.question.type === "MULTIPLE_CHOICE" && (
-                      <p>Option: {a.QuestionOption?.text}</p>
-                    )}
-                    <p className="text-sm text-slate-500">Points: {a.pointsEarned}</p>
-                  </div>
-                ))}
+  )}
+</div>
+
+
+    {/* Pagination */}
+    <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-3">
+      <Button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
+        Previous
+      </Button>
+      <span className="text-sm text-slate-700">
+        Page {currentPage} of {totalPages || 1}
+      </span>
+      <Button disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
+        Next
+      </Button>
+    </div>
+
+    {/* Answer View Modal */}
+    {selectedAttempt && (
+      <Dialog open={true} onOpenChange={() => setSelectedAttempt(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Answers - {selectedAttempt.student.name}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-3 mt-2">
+            {selectedAttempt.answers.map((a: any) => (
+              <div key={a.id} className="bg-slate-50 p-3 border rounded">
+                <p className="font-semibold mb-1">{a.question.text}</p>
+                <p>Answer: {a.answerText}</p>
+                {a.question.type === "MULTIPLE_CHOICE" && (
+                  <p>Option: {a.QuestionOption?.text}</p>
+                )}
+                <p className="text-sm text-slate-500">Points: {a.pointsEarned}</p>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </CardContent>
-    </Card>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
+  </CardContent>
+</Card>
+
   );
 };
 

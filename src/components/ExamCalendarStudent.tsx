@@ -3,10 +3,8 @@
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useMemo, useState } from 'react';
-import { parseISO, format, isValid } from 'date-fns';
-import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { parseISO } from 'date-fns';
 
 const localizer = momentLocalizer(moment);
 
@@ -23,25 +21,49 @@ const CustomToolbar = ({ label, onNavigate }: any) => (
 
 export default function ExamCalendarStudent({ exams }: { exams: any[] }) {
   const [selectedExam, setSelectedExam] = useState<any>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
+  const calendarRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (selectedExam) {
+      const timeout = setTimeout(() => {
+        setSelectedExam(null);
+        setTooltipPosition(null);
+      }, 5000);
+      return () => clearTimeout(timeout);
+    }
+  }, [selectedExam]);
 
   const events = useMemo(
-  () =>
-    exams.map((exam) => ({
-      id: exam.id,
-      title: exam.title,
-      start: typeof exam.startTime === 'string' ? parseISO(exam.startTime) : exam.startTime,
-      end: typeof exam.endTime === 'string' ? parseISO(exam.endTime) : exam.endTime,
-      subject: exam.subject,
-      grade: exam.grade,
-      category: exam.category,
-      duration:exam.duration,
-      totalMarks:exam.totalMarks,
-    })),
-  [exams]
-);
+    () =>
+      exams.map((exam) => ({
+        id: exam.id,
+        title: exam.title,
+        start: typeof exam.startTime === 'string' ? parseISO(exam.startTime) : exam.startTime,
+        end: typeof exam.endTime === 'string' ? parseISO(exam.endTime) : exam.endTime,
+        subject: exam.subject,
+        grade: exam.grade,
+        category: exam.category,
+        duration: exam.duration,
+        totalMarks: exam.totalMarks,
+      })),
+    [exams]
+  );
+
+  const handleSelectEvent = (event: any, e: any) => {
+    const rect = e.target.getBoundingClientRect();
+    if (calendarRef.current) {
+      const containerRect = calendarRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        top: rect.bottom - containerRect.top + 10,
+        left: rect.left - containerRect.left + rect.width / 2,
+      });
+    }
+    setSelectedExam(event);
+  };
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow space-y-4">
+    <div ref={calendarRef} className="relative p-6 bg-white rounded-xl shadow space-y-4">
       <h2 className="text-xl font-semibold text-gray-800">📆 Upcoming Exams</h2>
 
       <Calendar
@@ -53,40 +75,21 @@ export default function ExamCalendarStudent({ exams }: { exams: any[] }) {
         views={['month']}
         defaultView="month"
         toolbar={true}
-        onSelectEvent={(event) => setSelectedExam(event)}
+        onSelectEvent={handleSelectEvent}
         eventPropGetter={(event) => {
-          const subjectColors: Record<string, string> = {
-            Math: '#22c55e',
-            Science: '#0ea5e9',
-            English: '#f59e0b',
-            General: '#6366f1',
+          const categoryStyles: Record<string, { bg: string; text: string }> = {
+            'Category-I': { bg: '#EDE9FE', text: '#6B21A8' },
+            'Category-II': { bg: '#FEF3C7', text: '#92400E' },
+            'Category-III': { bg: '#D1FAE5', text: '#065F46' },
+            'Category-IV': { bg: '#DBEAFE', text: '#1D4ED8' },
           };
-        let bgColor = '#4f46e5'; // default indigo
-        let textColor = 'white';
 
-        // Apply announcement-style color logic
-        switch (event.category) {
-            case 'Category-I':
-            bgColor = '#EDE9FE'; // Violet
-            textColor = '#6B21A8';
-            break;
-            case 'Category-II':
-            bgColor = '#FEF3C7'; // Amber
-            textColor = '#92400E';
-            break;
-            case 'Category-III':
-            bgColor = '#D1FAE5'; // Mint
-            textColor = '#34D399';
-            break;
-            case 'Category-IV':
-            bgColor = '#DBEAFE'; // Blue
-            textColor = '#1D4ED8';
-            break;
-        }
+          const { bg, text } = categoryStyles[event.category] || { bg: '#E0E7FF', text: '#1E3A8A' };
+
           return {
             style: {
-              backgroundColor: bgColor,
-              color: textColor,
+              backgroundColor: bg,
+              color: text,
               borderRadius: '8px',
               padding: '6px',
               boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
@@ -107,66 +110,33 @@ export default function ExamCalendarStudent({ exams }: { exams: any[] }) {
         }}
       />
 
-      {/* Modal for Exam Details */}
-      <Transition appear show={!!selectedExam} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={() => setSelectedExam(null)}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black bg-opacity-30" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="bg-white max-w-md w-full rounded-xl p-6 shadow-xl space-y-4">
-                  <Dialog.Title className="text-lg font-bold text-gray-800">
-                    {selectedExam?.title}
-                  </Dialog.Title>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p><strong>Subject:</strong> {selectedExam?.subject}</p>
-                    <p><strong>Category:</strong> {selectedExam?.category}</p>
-                    <p><strong>Grades:</strong> {selectedExam?.grade}</p>
-                    <p>
-                      <strong>Start:</strong>{' '}
-                      {isValid(new Date(selectedExam?.startTime)) ? format(new Date(selectedExam.startTime), 'PPpp') : 'N/A'}
-                    </p>
-                    <p>
-                      <strong>End:</strong>{' '}
-                      {isValid(new Date(selectedExam?.endTime)) ? format(new Date(selectedExam.endTime), 'PPpp') : 'N/A'}
-                    </p>
-                    <p><strong>Time Limit:</strong> {selectedExam?.duration ?? 'N/A'}</p>
-                    <p><strong>Total Marks:</strong> {selectedExam?.totalMarks ?? 'N/A'}</p>
-
-                  </div>
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setSelectedExam(null)}
-                      className="text-sm px-4 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
+      {selectedExam && tooltipPosition && (
+        <div
+          className="absolute z-50 w-72 p-4 bg-white text-gray-700 rounded-xl shadow-lg border border-gray-200 transition-opacity duration-300"
+          style={{
+            top: tooltipPosition.top,
+            left: tooltipPosition.left,
+            transform: 'translate(-50%, 0)',
+          }}
+        >
+          <div className="text-base font-bold text-indigo-800 mb-2 flex items-center gap-2">
+            📌 {selectedExam.title}
           </div>
-        </Dialog>
-      </Transition>
+
+          <div className="text-sm space-y-1">
+            <p><strong>📘 Subject:</strong> {selectedExam.subject}</p>
+            <p><strong>🏷 Category:</strong> {selectedExam.category}</p>
+            <p><strong>🎓 Grade:</strong> {selectedExam.grade}</p>
+            <p><strong>⏰ Start:</strong> {moment(selectedExam.start).format('LLL')}</p>
+            <p><strong>🛑 End:</strong> {moment(selectedExam.end).format('LLL')}</p>
+            <p><strong>🕒 Duration:</strong> {selectedExam.duration ?? 'N/A'}</p>
+            <p><strong>📝 Total Marks:</strong> {selectedExam.totalMarks ?? 'N/A'}</p>
+          </div>
+
+          {/* Speech bubble tail */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white"></div>
+        </div>
+      )}
     </div>
   );
 }

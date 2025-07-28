@@ -61,43 +61,45 @@ export default function StudentAnnouncementPage({ username }: { username: string
   //   </div>
   // );
 return (
-  <div className="min-h-screen bg-white ">
-    {/* Header Section */}
-    <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-md ">
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <Megaphone className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Announcements</h1>
-              <p className="text-emerald-100">Stay updated with latest news and notifications</p>
-            </div>
+<div className="min-h-screen bg-white">
+  {/* Header Section */}
+  <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-md">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-white/20 rounded-lg">
+            <Megaphone className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Announcements</h1>
+            <p className="text-emerald-100 text-sm sm:text-base">
+              Stay updated with latest news and notifications
+            </p>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    {/* Content Section */}
-    <div className="max-w-10xl mx-auto px-6 py-8">
-      {/* Search Bar */}
-      <div className="mb-10">
-        <Input
-          placeholder="Search announcements..."
-          className="w-full max-w-md"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <StudentAnnouncementsTable data={filtered} />
-      </div>
+  {/* Content Section */}
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    {/* Search Bar */}
+    <div className="mb-8">
+      <Input
+        placeholder="Search announcements..."
+        className="w-full max-w-md"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+    </div>
 
-      {/* Table Container */}
-      {/* <div className="rounded-lg overflow-hidden border border-slate-200 shadow-md bg-white">
-        <StudentAnnouncementsTable data={filtered} />
-      </div> */}
+    {/* Table */}
+    <div className="w-full overflow-x-auto rounded-lg border border-slate-200 shadow-md bg-white">
+      <StudentAnnouncementsTable data={filtered} />
     </div>
   </div>
+</div>
+
 )
 
 

@@ -271,17 +271,18 @@ export default function StudentEditForm({ studentId }: { studentId: string }) {
 return (
   <div className="m-4">
     {/* 🟢 Header */}
-    <div className="rounded-t-lg bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 px-6 py-5 shadow-md text-white ">
-      <div className="flex items-center gap-3">
-        <div className="bg-white/20 p-2 rounded-full">
-          <Users className="w-6 h-6" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold">Edit Student</h2>
-          <p className="text-sm text-emerald-100">Update the student profile and academic details</p>
-        </div>
+     <div className="rounded-t-lg bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 px-4 sm:px-6 py-5 shadow-md text-white">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <div className="bg-white/20 p-2 rounded-full">
+        <Users className="w-6 h-6" />
+      </div>
+      <div>
+        <h2 className="text-2xl font-bold">Edit Student</h2>
+        <p className="text-sm text-emerald-100">Update the student profile and academic details</p>
       </div>
     </div>
+  </div>
+
 
     {/* Form */}
     <form

@@ -216,25 +216,32 @@ const handleStartQuizInPopup = (quizId: string, username: string, totalMarks: nu
 return (
   <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 m-4 ">
     {/* Professional Header like Results Dashboard */}
-    <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-md">
-      <div className="container mx-auto px-6 py-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <BookOpen className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">My Quizes</h1>
-              <p className="text-emerald-100">Choose a quiz to test your knowledge</p>
-            </div>
-          </div>
-          <div className="hidden md:flex items-center gap-2 text-emerald-100">
-            <Award className="w-5 h-5" />
-            <span className="font-medium">{quizzes.length} Quizzes</span>
-          </div>
+   <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-md">
+  <div className="container mx-auto px-4 sm:px-6 py-8">
+    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-y-6">
+      
+      {/* Left Section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="p-3 bg-white/20 rounded-lg">
+          <BookOpen className="w-6 h-6 text-white" />
+        </div>
+        <div className="text-left">
+          <h1 className="text-2xl font-bold">My Quizzes</h1>
+          <p className="text-emerald-100 text-sm sm:text-base">
+            Choose a quiz to test your knowledge
+          </p>
         </div>
       </div>
+
+      {/* Right Section */}
+      <div className="flex items-center gap-2 text-emerald-100 text-sm sm:text-base">
+        <Award className="w-5 h-5" />
+        <span className="font-medium">{quizzes.length} Quizzes</span>
+      </div>
     </div>
+  </div>
+</div>
+
 
     {/* Quiz Grid */}
     <div className="container mx-auto px-6 py-10">

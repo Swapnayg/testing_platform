@@ -268,149 +268,161 @@ const loadFilteredResults = async (examId: string) => {
   const totalPages = Math.ceil(filteredResults.length / PAGE_SIZE);
 
   return (
-    <Card className="m-4">
-      {/* <CardHeader>
-        <CardTitle className="text-xl font-bold">Results Dashboard</CardTitle>
-      </CardHeader> */}
-      <CardHeader className="bg-gradient-to-r from-emerald-800 via-emerald-600 to-emerald-500 text-white rounded-t-md shadow-sm">
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-white/20 rounded-lg">
-        <TrendingUp className="w-6 h-6 text-white" />
+   <Card className="m-4">
+  <CardHeader className="bg-gradient-to-r from-emerald-800 via-emerald-600 to-emerald-500 text-white rounded-t-md shadow-sm">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-white/20 rounded-lg">
+          <TrendingUp className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <CardTitle className="text-2xl font-bold">Results Dashboard</CardTitle>
+          <p className="text-emerald-100 text-sm">Comprehensive student performance overview</p>
+        </div>
       </div>
-      <div>
-        <CardTitle className="text-2xl font-bold">Results Dashboard</CardTitle>
-        <p className="text-emerald-100 text-sm">Comprehensive student performance overview</p>
-      </div>
+      {/* Optional: Add actions */}
+      {/* <div className="text-sm text-emerald-100">10 Results</div> */}
     </div>
-    {/* Optional: Add total results or action icon on the right */}
-    {/* <div className="text-sm text-emerald-100">10 Results</div> */}
-  </div>
-</CardHeader>
-      <CardContent>
-        {/* Filters */}
-       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        {/* Left: Filters */}
-        <div className="flex flex-wrap gap-4">
+  </CardHeader>
 
-        </div>
-        {/* Right: Buttons */}
-        {/* <div className="flex gap-3">
-          <Button onClick={handleExportAll} disabled={!filteredResults.length}>
-            Export Excel
-          </Button>
-          <Button onClick={handlePrint} disabled={!filteredResults.length}>
-            Print / PDF
-          </Button>
-        </div> */}
+  <CardContent>
+    {/* Filters */}
+    <div className="flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-wrap gap-4">
+        {/* Filters go here */}
       </div>
 
-        {/* Results Table */}
-        <div id="results-table">
-          {loading ? (
-            <p>Loading...</p>
-          ) : results.length === 0 ? (
-            <p>No results found.</p>
-          ) : (
-            <table className="w-full border text-sm">
-              <thead>
-                <tr className="bg-slate-100">
-                  <th className="p-2 text-left">Student</th>
-                  <th className="p-2 text-left">Grade</th>
-                  <th className="p-2 text-left">Subject</th>
-                  <th className="p-2 text-left">Score</th>
-                  <th className="p-2 text-left">Correct</th>
-                  <th className="p-2 text-left">Incorrect</th>
-                  <th className="p-2 text-left">Submitted</th>
-                  <th className="p-2 text-left">Rank</th>
-                  <th className="p-2 text-center">Actions</th>    
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((r, i) => (
-                  <tr key={r.id} className="border-t">
-                    
-                    <td className="p-2">{r.student.name}</td>
-                    <td className="p-2">{r.exam.grades.map((g: { level: any; }) => g.level).join(", ")}</td>
-                    <td className="p-2">{r.exam.subject.name}</td>
-                    <td className="p-2">{r.score}</td>
-                    <td className="p-2">{r.correctAnswers}</td>
-                    <td className="p-2">{r.exam.totalMCQ - r.correctAnswers}</td>
-                    <td className="p-2">{new Date(r.gradedAt).toLocaleString()}</td>
-                    <td className="p-2">{r.grade}</td>
-                   <td className="p-2 text-center">
-                    <div className="inline-flex items-center gap-2">
-                      {/* View Button */}
-                      <Link
-                        href={`/list/students/${r.quizAttempt.quizId}/quizview?studentName=${r.student.cnicNumber}&userRole=student`}
+      {/* Export Buttons */}
+      {/* 
+      <div className="flex gap-3">
+        <Button onClick={handleExportAll} disabled={!filteredResults.length}>Export Excel</Button>
+        <Button onClick={handlePrint} disabled={!filteredResults.length}>Print / PDF</Button>
+      </div> 
+      */}
+    </div>
+
+    {/* Table with horizontal scroll on small screens */}
+    <div id="results-table" className="w-full overflow-x-auto">
+      {loading ? (
+        <p>Loading...</p>
+      ) : results.length === 0 ? (
+        <p>No results found.</p>
+      ) : (
+        <table className="min-w-[800px] w-full border text-sm">
+          <thead>
+            <tr className="bg-slate-100 text-left">
+              <th className="p-2">Student</th>
+              <th className="p-2">Grade</th>
+              <th className="p-2">Subject</th>
+              <th className="p-2">Score</th>
+              <th className="p-2">Correct</th>
+              <th className="p-2">Incorrect</th>
+              <th className="p-2">Submitted</th>
+              <th className="p-2">Rank</th>
+              <th className="p-2 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((r, i) => (
+              <tr key={r.id} className="border-t">
+                <td className="p-2">{r.student.name}</td>
+                <td className="p-2">{r.exam.grades.map((g: { level: any }) => g.level).join(", ")}</td>
+                <td className="p-2">{r.exam.subject.name}</td>
+                <td className="p-2">{r.score}</td>
+                <td className="p-2">{r.correctAnswers}</td>
+                <td className="p-2">{r.exam.totalMCQ - r.correctAnswers}</td>
+                <td className="p-2">{new Date(r.gradedAt).toLocaleString()}</td>
+                <td className="p-2">{r.grade}</td>
+                <td className="p-2 text-center">
+                  <div className="inline-flex flex-wrap gap-2 justify-center">
+                    <Link
+                      href={`/list/students/${r.quizAttempt.quizId}/quizview?studentName=${r.student.cnicNumber}&userRole=student`}
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="inline-flex items-center gap-1 text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400 transition"
                       >
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="inline-flex items-center gap-1 text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400 transition"
-                        >
-                          <Eye className="w-4 h-4" />
-                          <span className="text-sm">View</span>
-                        </Button>
-                      </Link>
+                        <Eye className="w-4 h-4" />
+                        <span className="text-sm">View</span>
+                      </Button>
+                    </Link>
 
-                      {/* Download Certificate Button */}
-                     
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDownload(r.student.cnicNumber,r.exam.title,r.grade,r.exam.totalParticipants,r.declaredOn)}
-                          className="inline-flex items-center gap-1 text-green-700 border-green-300 hover:bg-green-100 hover:border-green-400 transition"
-                        >
-                          <Download className="w-4 h-4" />
-                          <span className="text-sm">Certificate</span>
-                        </Button>
-                    </div>
-                  </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex justify-between items-center mt-4">
-          <Button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
-            Previous
-          </Button>
-          <span className="text-sm text-slate-700">
-            Page {currentPage} of {totalPages || 1}
-          </span>
-          <Button disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
-            Next
-          </Button>
-        </div>
-
-        {/* Answer View Modal */}
-        {selectedAttempt && (
-          <Dialog open={true} onOpenChange={() => setSelectedAttempt(null)}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Answers - {selectedAttempt.student.name}</DialogTitle>
-              </DialogHeader>
-              <div className="max-h-[400px] overflow-y-auto space-y-3 mt-2">
-                {selectedAttempt.answers.map((a: any) => (
-                  <div key={a.id} className="bg-slate-50 p-3 border rounded">
-                    <p className="font-semibold mb-1">{a.question.text}</p>
-                    <p>Answer: {a.answerText}</p>
-                    {a.question.type === "MULTIPLE_CHOICE" && (
-                      <p>Option: {a.QuestionOption?.text}</p>
-                    )}
-                    <p className="text-sm text-slate-500">Points: {a.pointsEarned}</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleDownload(
+                          r.student.cnicNumber,
+                          r.exam.title,
+                          r.grade,
+                          r.exam.totalParticipants,
+                          r.declaredOn
+                        )
+                      }
+                      className="inline-flex items-center gap-1 text-green-700 border-green-300 hover:bg-green-100 hover:border-green-400 transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="text-sm">Certificate</span>
+                    </Button>
                   </div>
-                ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+
+    {/* Pagination */}
+    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-2">
+  <Button
+    onClick={() => handlePageChange(currentPage - 1)}
+    disabled={currentPage === 1}
+    className="bg-slate-400 text-white hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    Previous
+  </Button>
+
+  <span className="text-sm text-slate-700">
+    Page {currentPage} of {totalPages || 1}
+  </span>
+
+  <Button
+    onClick={() => handlePageChange(currentPage + 1)}
+    disabled={currentPage === totalPages}
+    className="bg-slate-400 text-white hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    Next
+  </Button>
+</div>
+
+
+    {/* Answer View Modal */}
+    {selectedAttempt && (
+      <Dialog open={true} onOpenChange={() => setSelectedAttempt(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Answers - {selectedAttempt.student.name}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-3 mt-2">
+            {selectedAttempt.answers.map((a: any) => (
+              <div key={a.id} className="bg-slate-50 p-3 border rounded">
+                <p className="font-semibold mb-1">{a.question.text}</p>
+                <p>Answer: {a.answerText}</p>
+                {a.question.type === "MULTIPLE_CHOICE" && (
+                  <p>Option: {a.QuestionOption?.text}</p>
+                )}
+                <p className="text-sm text-slate-500">Points: {a.pointsEarned}</p>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </CardContent>
-    </Card>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
+  </CardContent>
+</Card>
+
   );
 };
 

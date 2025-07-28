@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation'; 
 import Link from 'next/link';
+
 interface QuizAttempt {
   id: string;
   studentName: string;
@@ -41,22 +42,22 @@ interface AttemptQuestion {
 
 interface QuizResultsViewerProps {
   quizId: string;
-  username:string;
-  userRole:string;
+  username: string;
+  userRole: string;
 }
 
-const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,userRole }) => {
+const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId, username, userRole }) => {
   const { toast } = useToast();
   const [selectedAttempt, setSelectedAttempt] = useState<QuizAttempt | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
+
   const onBackToStart = () => {
     setTimeout(() => {
-      router.back(); // or router.push('/your-target-page')
-    }, 1000); // Delay optional
+      router.back();
+    }, 1000);
   };
 
   const handleClick = () => {
@@ -64,41 +65,33 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
     router.push(`/list/students/${quizId}/quiz?studentName=${username}`);
   };
 
-
   const fetchAttempt = async (attemptId: string) => {
-  try {
-    const response = await fetch('/api/getQuizView', {
-      method: 'POST',
-      headers: {
-            'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({quizid:quizId}), // data you want to send
-    });
-    if (!response.ok) throw new Error("Attempt not found");
-    const data = await response.json();
-    setSelectedAttempt(data.quizData);
-  } catch (error) {
-    console.error("Failed to fetch attempt:", error);
-  }
-  finally {
+    try {
+      const response = await fetch('/api/getQuizView', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ quizid: quizId }),
+      });
+      if (!response.ok) throw new Error("Attempt not found");
+      const data = await response.json();
+      setSelectedAttempt(data.quizData);
+    } catch (error) {
+      console.error("Failed to fetch attempt:", error);
+    } finally {
       setIsLoading(false);
-  }
-};
+    }
+  };
 
-
-  // Mock data - In real app, this would come from an API
   useEffect(() => {
     const loadAttempts = async () => {
       setIsLoading(true);
-      if (quizId)
-      {
+      if (quizId) {
         fetchAttempt(quizId);
-      } 
+      }
     };
-
     loadAttempts();
-
-
   }, [quizId]);
 
   const formatTime = (seconds: number): string => {
@@ -125,7 +118,7 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
             {currentQuestionIndex + 1} of {totalQuestions}
           </div>
         </div>
-        
+
         <div className="space-y-2">
           {Array.from({ length: rows }, (_, rowIndex) => (
             <div key={rowIndex} className="flex flex-wrap gap-1">
@@ -136,7 +129,7 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
                   const isCurrent = questionIndex === currentQuestionIndex;
                   const isCorrect = question.isCorrect;
                   const isAnswered = question.studentAnswer.length > 0;
-                  
+
                   return (
                     <button
                       key={question.id}
@@ -144,8 +137,8 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
                       className={`
                         w-8 h-8 text-xs font-medium rounded-md border transition-all duration-200
                         flex items-center justify-center relative
-                        ${isCurrent 
-                          ? "bg-slate-900 text-white border-slate-900 shadow-md" 
+                        ${isCurrent
+                          ? "bg-slate-900 text-white border-slate-900 shadow-md"
                           : isCorrect
                             ? "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200"
                             : isAnswered
@@ -186,8 +179,8 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
         <div className="pt-4 border-t border-slate-200">
           <div className="text-xs text-slate-500 mb-2">Progress</div>
           <div className="w-full bg-slate-200 rounded-full h-2">
-            <div 
-              className="bg-slate-900 h-2 rounded-full transition-all duration-300" 
+            <div
+              className="bg-slate-900 h-2 rounded-full transition-all duration-300"
               style={{ width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }}
             />
           </div>
@@ -198,23 +191,23 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
 
   const renderQuestionDetail = () => {
     if (!selectedAttempt) return null;
-    
+
     const question = selectedAttempt.questions[currentQuestionIndex];
     if (!question) return null;
 
     return (
       <Card className="border-slate-200">
         <CardHeader className="bg-slate-50/50 border-b border-slate-200">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="text-lg text-slate-900">
               Question {question.questionNumber}
             </CardTitle>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center space-x-2">
               <Badge variant="outline" className="text-slate-600 border-slate-300">
                 {question.questionType.replace('_', ' ')}
               </Badge>
-              <Badge 
-                variant={question.isCorrect ? 'default' : 'destructive'} 
+              <Badge
+                variant={question.isCorrect ? 'default' : 'destructive'}
                 className={question.isCorrect ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : ''}
               >
                 {question.isCorrect ? (
@@ -235,8 +228,8 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
             </div>
           </div>
         </CardHeader>
-        
-        <CardContent className="space-y-6 p-6">
+
+        <CardContent className="space-y-6 p-4 sm:p-6">
           <div>
             <h4 className="text-base font-medium text-slate-900 mb-3">Question</h4>
             <p className="text-slate-700 leading-relaxed">{question.questionText}</p>
@@ -262,10 +255,10 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
             <div>
               <h4 className="text-base font-medium text-slate-900 mb-2">Student Answer</h4>
               <div className={`p-3 rounded-md border ${
-                question.isCorrect 
-                  ? 'bg-emerald-50 border-emerald-200' 
-                  : question.studentAnswer 
-                    ? 'bg-red-50 border-red-200' 
+                question.isCorrect
+                  ? 'bg-emerald-50 border-emerald-200'
+                  : question.studentAnswer
+                    ? 'bg-red-50 border-red-200'
                     : 'bg-gray-50 border-gray-200'
               }`}>
                 <p className="text-slate-700">
@@ -273,7 +266,7 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
                 </p>
               </div>
             </div>
-            
+
             <div>
               <h4 className="text-base font-medium text-slate-900 mb-2">Correct Answer</h4>
               <div className="p-3 rounded-md border bg-emerald-50 border-emerald-200">
@@ -292,7 +285,7 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
               <ChevronLeft className="w-4 h-4 mr-2" />
               Previous
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={() => setCurrentQuestionIndex(Math.min(selectedAttempt.questions.length - 1, currentQuestionIndex + 1))}
@@ -334,24 +327,21 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
       </div>
     );
   }
+
   const percentage = Math.round((selectedAttempt.obtainedMarks / selectedAttempt.totalMarks) * 100);
-  
+
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Left Sidebar - Question Navigator */}
-
-
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Main Content */}
       <div className="flex-1">
-        {/* Header */}
         <div className="bg-white border-b border-slate-200 shadow-sm">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+          <div className="px-4 sm:px-6 py-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
                 <Button
                   variant="outline"
                   onClick={onBackToStart}
-                  className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                  className="border-slate-300 text-slate-700 hover:bg-slate-50 mb-2 sm:mb-0"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Quizzes
@@ -361,13 +351,13 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
                     <Eye className="w-6 h-6 mr-2" />
                     {selectedAttempt.quizTitle}
                   </h1>
-                  <div className="flex items-center space-x-3 mt-1">
+                  <div className="flex flex-wrap items-center space-x-3 mt-1">
                     <Badge variant="outline" className="text-slate-600 border-slate-300">
                       <User className="w-3 h-3 mr-1" />
                       {selectedAttempt.studentName}
                     </Badge>
-                    <Badge 
-                      variant={percentage >= 80 ? 'default' : percentage >= 60 ? 'secondary' : 'destructive'} 
+                    <Badge
+                      variant={percentage >= 80 ? 'default' : percentage >= 60 ? 'secondary' : 'destructive'}
                       className={percentage >= 80 ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : ''}
                     >
                       <Award className="w-3 h-3 mr-1" />
@@ -380,7 +370,6 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
                   </div>
                 </div>
               </div>
-              {/* Right: Modify Button for Admins */}
               {userRole === 'admin' && (
                 <Button
                   onClick={handleClick}
@@ -395,15 +384,12 @@ const QuizResultsViewer: React.FC<QuizResultsViewerProps> = ({ quizId,username,u
           </div>
         </div>
 
-        {/* Question Content */}
-        <div className="p-6">
-          {renderQuestionDetail()}
-        </div>
+        <div className="p-4 sm:p-6">{renderQuestionDetail()}</div>
       </div>
-      <div className="w-80 bg-white border-r border-slate-200 p-6">
-        <ScrollArea className="h-full">
-          {renderQuestionNavigator()}
-        </ScrollArea>
+
+      {/* Sidebar Navigator */}
+      <div className="w-full md:w-80 bg-white border-t md:border-t-0 md:border-r border-slate-200 p-4 md:p-6">
+        <ScrollArea className="h-64 md:h-full">{renderQuestionNavigator()}</ScrollArea>
       </div>
     </div>
   );
