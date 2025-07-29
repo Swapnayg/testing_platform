@@ -58,36 +58,43 @@ export function NotificationBell({ username, role, userId }: NotificationBellPro
       </div>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-xl z-50 p-3">
-            <div className="font-semibold text-gray-800 text-lg mb-2">🔔 Notifications</div>
-
-            <ul className="space-y-3 max-h-64 overflow-y-auto">
-                {notifications.map((n) => (
-                <li
-                    key={n.id}
-                    onClick={() => markAsRead(Number(n.id))}
-                    className={`relative text-sm p-3 rounded-lg cursor-pointer border 
-                    ${n.isRead ? "bg-gray-100 border-gray-300" : "bg-purple-100 border-purple-400"}
-                    hover:shadow-md transition`}
-                >
-                    {!n.isRead && (
-                    <span className="absolute top-2 right-2 inline-flex h-2 w-2 rounded-full bg-purple-600"></span>
-                    )}
-                    <div className={`font-semibold ${n.isRead ? "text-gray-700" : "text-purple-800"}`}>
-                    {n.title}
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">{n.message}</div>
-                </li>
-                ))}
-            </ul>
-
-           <div className="text-right mt-3">
-                <a href={`/notifications?username=${username}&role=${role}`} className="text-blue-600 text-sm font-medium hover:underline" >
-                    View All →
-                </a>
-            </div>
-            </div>
-      )}
+  <div className="absolute right-0 mt-2 w-80 max-w-xs sm:max-w-sm bg-white shadow-lg rounded-xl z-50 p-3 translate-x-[25%] sm:translate-x-0">
+    <div className="font-semibold text-gray-800 text-base sm:text-lg mb-2">
+      🔔 Notifications
     </div>
+
+    <ul className="space-y-3 max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
+      {notifications.map((n) => (
+        <li
+          key={n.id}
+          onClick={() => markAsRead(Number(n.id))}
+          className={`relative text-sm p-3 rounded-lg cursor-pointer border 
+          ${n.isRead ? "bg-gray-100 border-gray-300" : "bg-purple-100 border-purple-400"}
+          hover:shadow-md transition`}
+        >
+          {!n.isRead && (
+            <span className="absolute top-2 right-2 inline-flex h-2 w-2 rounded-full bg-purple-600"></span>
+          )}
+          <div className={`font-semibold ${n.isRead ? "text-gray-700" : "text-purple-800"}`}>
+            {n.title}
+          </div>
+          <div className="text-xs text-gray-600 mt-1">{n.message}</div>
+        </li>
+      ))}
+    </ul>
+
+    <div className="text-right mt-3">
+      <a
+        href={`/notifications?username=${username}&role=${role}`}
+        className="text-blue-600 text-sm font-medium hover:underline"
+      >
+        View All →
+      </a>
+    </div>
+  </div>
+)}
+
+    </div>
+
   );
 }

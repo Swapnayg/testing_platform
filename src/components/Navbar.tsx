@@ -31,44 +31,40 @@ const Navbar = async () => {
   const userId = dbUser?.id ?? 0; // Provide a default value if undefined
 
   return (
-    <div className="flex items-center justify-between p-4 shadow bg-white">
-      {/* SEARCH BAR */}
+    <div className="flex flex-wrap items-center justify-between px-4 py-3 shadow bg-white gap-4 sm:gap-6">
+      {/* SEARCH BAR - hidden on small screens */}
       <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 px-2">
         <Image src="/search.png" alt="" width={14} height={14} />
         <input
           type="text"
           placeholder="Search..."
-          className="w-[200px] p-2 bg-transparent outline-none"
+          className="w-[200px] p-2 bg-transparent outline-none text-sm"
         />
       </div>
 
-      {/* ICONS AND USER */}
-      <div className="flex items-center gap-6 justify-end w-full">
-
-        {/* Notification Bell */}
-        <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer relative">
-          <NotificationBell
-            username={username}
-            role={role}
-            userId={userId}
-          />
+      {/* RIGHT SECTION */}
+      <div className="flex items-center gap-3 sm:gap-5 ml-auto min-w-0">
+        {/* Notification Bell with shifted popup */}
+        <div className="relative w-8 h-8 flex items-center justify-center rounded-full bg-white cursor-pointer">
+          <NotificationBell username={username} role={role} userId={userId} />
         </div>
 
         {/* User Info */}
-        <div className="flex flex-col">
-          <span className="text-xs leading-3 font-medium">
+        <div className="hidden xs:flex flex-col text-right truncate max-w-[100px]">
+          <span className="text-xs font-medium leading-3 truncate">
             {capitalizedUsername.toUpperCase()}
           </span>
-          <span className="text-[10px] text-gray-500 text-right">
+          <span className="text-[10px] text-gray-500 truncate">
             {role}
           </span>
         </div>
 
         {/* Clerk User Button */}
-        <UserButton />
+        <div className="shrink-0">
+          <UserButton />
+        </div>
       </div>
     </div>
-    
   );
 };
 
